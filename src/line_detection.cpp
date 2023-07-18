@@ -10,19 +10,14 @@
 
 #include <time.h>
 
-#define _USE_MATH_DEFINES
 #include <math.h>
 
-// UDP data
-/*
-#include "Ws2tcpip.h"
-#include <WinSock2.h>
-#include <iostream>
-#include <tchar.h>
-#pragma comment (lib, "Ws2_32.lib")
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
-#include "crc.h"
-*/
+#define UDP_ADDR "192.168.1.100"
+#define UDP_BUFLEN 255
+#define UDP_PORT 8888
 
 using namespace cv;
 using namespace std;
@@ -44,18 +39,12 @@ using namespace std;
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
 
-#define IMG_ADDR "D:\\projects\\opencv_cpp\\my_test_opencv\\x64\\Debug\\image.png"
 #define CAM_ADDR "rtsp://admin:1234qwer@192.168.1.64:554/streaming/channels/2"
 
-#define UDP_ADDR "127.0.0.1"
-#define UDP_PORT 6000
-
-#define USE_CAMERA	1
 #define DETAILED	0
 #define SHOW_GRAY	0
 #define SHOW_LINES	1
 #define DRAW		1
-#define MORPHOLOGY	1
 
 struct RectData
 {
@@ -164,36 +153,32 @@ void parse_image(cv::Mat imgColor, std::vector<cv::Point>& res_points)
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
-//	if (MORPHOLOGY) {
-//		cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size(5, 5)));
-//		cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(5, 5)));
-//	}
+	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size(5, 5)));
+	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(5, 5)));
 
 	cv::Mat gray(imgColor.rows, imgColor.cols, CV_8U);
 	cv::threshold(trImage, gray, 127, 255, cv::THRESH_BINARY_INV);
 
-	ContData data[(NUM_ROI)];	//	(NUM_ROI - 1)
+	ContData data[(NUM_ROI)];
 	char buff[30];
 
 	int imgWidth = imgColor.cols;
 	int imgHeight = imgColor.rows;
 	int imgOffset = imgHeight / NUM_ROI;
-	int centerX = imgWidth / 2;
-	int centerY = imgHeight / 2;
+//	int centerX = imgWidth / 2;
+//	int centerY = imgHeight / 2;
 
 	for (int i = 0; i < NUM_ROI; ++i)
 	{
-		//	if (i < 1)
-		//		continue;
 
 		cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
 
-		get_contur_params(gray, roi, data[i], 100.0);	//	i - 1
+		get_contur_params(gray, roi, data[i], 100.0);
 
 		if (DETAILED && DRAW)
 		{
 			int ui = 0;
-			for (auto u = data[i].vRect.begin(); u != data[i].vRect.end(); ++u)	//	i - 1
+			for (auto u = data[i].vRect.begin(); u != data[i].vRect.end(); ++u)
 			{
 				cv::rectangle(imgColor, u->bound, CLR_RECT_BOUND);
 				cv::circle(imgColor, u->center, 3, CLR_RED, 1, cv::LINE_AA);
@@ -211,9 +196,9 @@ void parse_image(cv::Mat imgColor, std::vector<cv::Point>& res_points)
 
 	res_points.clear();
 
-	for (int i = 0; i < (NUM_ROI); ++i)	//	(NUM_ROI - 1)
+	for (int i = 0; i < (NUM_ROI); ++i)
 	{
-		ContData* dt = &data[(NUM_ROI) - 1 - i];	//	(NUM_ROI - 1)
+		ContData* dt = &data[(NUM_ROI) - 1 - i];
 		RectData* rd = sort_cont(*lpCenter, dt[0]);
 
 		if (rd == nullptr)
@@ -279,127 +264,102 @@ int main(int argc, char** argv)
 
 	std::vector<cv::Point> res_points;
 
-/*
-	//
-	// Загружаем библиотеку сокетов
-	WORD wVersionRequested;
-	WSADATA wsaData;
-	int err;
+	struct sockaddr_in si_other;
+	int s, slen = sizeof(si_other);
 
-	wVersionRequested = MAKEWORD(2, 2);
-
-	err = WSAStartup(wVersionRequested, &wsaData);
-	if (err != 0)
+	if ( (s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
 	{
-		return 0;
-	}
-	if (LOBYTE(wsaData.wVersion) != 2 ||
-		HIBYTE(wsaData.wVersion) != 2)
-	{
-		WSACleanup();
-		return 0;
+		fprintf(stderr, "socket");
+		exit(1);
 	}
 
-	// Создаем сокет
-	SOCKET client = socket(AF_INET, SOCK_DGRAM, 0);
-	SOCKADDR_IN addrSrv;
-	InetPton(AF_INET, _T(UDP_ADDR), &addrSrv.sin_addr.S_un.S_addr);
-	addrSrv.sin_family = AF_INET;
-	addrSrv.sin_port = htons(UDP_PORT);
-	//
-	//
-*/
-	if (!USE_CAMERA) {
+	memset((char *) &si_other, 0, sizeof(si_other));
+	si_other.sin_family = AF_INET;
+	si_other.sin_port = htons(UDP_PORT);
+
+	if (inet_aton(UDP_ADDR, &si_other.sin_addr) == 0)
+	{
+		fprintf(stderr, "inet_aton() failed\n");
+		exit(1);
+	}
+
+	cv::VideoCapture cap(CAM_ADDR);
+
+	if (!cap.isOpened()) {
+		std::cerr << "Error opening camera." << std::endl;
+		return -1;
+	}
+
+	cv::Mat frame;
+
+	// Очищаем буфер
+	for (int i = 0; i < 20; i++)
+		cap >> frame;
+
+	uint16_t counter = 0;
+
+	char udp_pack[UDP_BUFLEN];
+
+	while (true) {
 
 		tStart = clock();
 
-		cv::Mat img = cv::imread(IMG_ADDR, cv::IMREAD_COLOR);
-
-		parse_image(img, res_points);
+		cap >> frame;
+		parse_image(frame, res_points);
 
 		tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-		printf("Time taken: %.3fs\n", tt);
+		sum += tt;
+		cnt++;
 
-		cv::waitKey();
+		memset(udp_pack, 0, sizeof(udp_pack));
 
-	} else {
+		counter++;
 
-		cv::VideoCapture cap(CAM_ADDR);
+		udp_pack[0] = counter & 0xFF;
+		udp_pack[1] = counter >> 8;
 
-		if (!cap.isOpened()) {
-//			std::cerr << "Error opening camera." << std::endl;
-			return -1;
+		udp_pack[2] = frame.cols & 0xFF;
+		udp_pack[3] = frame.cols >> 8;
+		udp_pack[4] = frame.rows & 0xFF;
+		udp_pack[5] = frame.rows >> 8;
+
+		udp_pack[6] = res_points.size();
+
+		int pack_cnt = 7;
+
+		for (size_t i = 0; i < res_points.size(); i++)
+		{
+			if (cnt >= avg_cnt)
+				printf("(%d; %d) ", res_points[i].x, res_points[i].y);
+			//
+			udp_pack[pack_cnt++] = res_points[i].x & 0xFF;
+			udp_pack[pack_cnt++] = res_points[i].x >> 8;
+			udp_pack[pack_cnt++] = res_points[i].y & 0xFF;
+			udp_pack[pack_cnt++] = res_points[i].y >> 8;
 		}
-
-		cv::Mat frame;
-
-		// Очищаем буфер
-		for (int i = 0; i < 20; i++)
-			cap >> frame;
-
-		uint16_t counter = 0;
-
-		char udp_pack[255];
-
-		while (true) {
-
-			tStart = clock();
-
-			cap >> frame;
-			parse_image(frame, res_points);
-
-			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-			sum += tt;
-			cnt++;
-
-			memset(udp_pack, 0, sizeof(udp_pack));
-
-			counter++;
-
-			udp_pack[0] = counter & 0xFF;
-			udp_pack[1] = counter >> 8;
-
-			udp_pack[2] = frame.cols & 0xFF;
-			udp_pack[3] = frame.cols >> 8;
-			udp_pack[4] = frame.rows & 0xFF;
-			udp_pack[5] = frame.rows >> 8;
-
-			udp_pack[6] = res_points.size();
-
-			int pack_cnt = 7;
-
-			for (int i = 0; i < res_points.size(); i++)
+		if (cnt >= avg_cnt)
+		{
+			printf("\n");
+			//
+			if ( sendto(s, udp_pack, pack_cnt, 0, (struct sockaddr *) &si_other, slen) == -1 )
 			{
-				udp_pack[pack_cnt++] = res_points[i].x & 0xFF;
-				udp_pack[pack_cnt++] = res_points[i].x >> 8;
-				udp_pack[pack_cnt++] = res_points[i].y & 0xFF;
-				udp_pack[pack_cnt++] = res_points[i].y >> 8;
+				fprintf(stderr, "sendto()");
+				exit(1);
 			}
-
-			// CRC
-			/*
-			uint16_t crc = crc16(udp_pack, pack_cnt);
-			udp_pack[pack_cnt++] = (crc & 0xFF);
-			udp_pack[pack_cnt++] = (crc >> 8);
-			*/
-
-			//sendto(client, udp_pack, pack_cnt, 0, (SOCKADDR*)&addrSrv, sizeof(SOCKADDR));
-
-			if (cnt >= avg_cnt) {
-				printf("Average time taken: %.3fs\n", sum / avg_cnt);
-				cnt = 0;
-				sum = 0;
-			}
-
-			if (cv::waitKey(1) == 27)
-				break;
-
 		}
+
+		if (cnt >= avg_cnt) {
+			printf("Average time taken: %.3fs\n", sum / avg_cnt);
+			cnt = 0;
+			sum = 0;
+		}
+
+		if (cv::waitKey(1) == 27)
+			break;
 
 	}
 
-//	closesocket(client);
-//	WSACleanup();
+	//close(s);
 
     return 0;
 }
