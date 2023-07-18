@@ -12,18 +12,23 @@
 
 #include <math.h>
 
+#include <iomanip>
+#include <cstdlib>
+#include <libconfig.h++>
+
+using namespace libconfig;
+
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#define UDP_ADDR "192.168.1.100"
+char UDP_ADDR[15];	//	"192.168.1.100"
 #define UDP_BUFLEN 255
-#define UDP_PORT 8888
+int UDP_PORT = 0;	//	8888
 
 using namespace cv;
 using namespace std;
 
-#define ROI_IMAGE	0
-#define NUM_ROI		4
+int NUM_ROI = 0;	//	4
 
 #define DIR_LEFT	-1
 #define DIR_RIGHT	 1
@@ -39,7 +44,7 @@ using namespace std;
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
 
-#define CAM_ADDR "rtsp://admin:1234qwer@192.168.1.64:554/streaming/channels/2"
+string CAM_ADDR;	//	"rtsp://admin:1234qwer@192.168.1.64:554/streaming/channels/2"
 
 #define DETAILED	0
 #define SHOW_GRAY	0
@@ -254,8 +259,56 @@ void parse_image(cv::Mat imgColor, std::vector<cv::Point>& res_points)
 	//cv::imshow("thresh", trImage);
 }
 
+void read_config(char* exe) {
+
+	Config cfg;
+
+	char cfg_filename[255];
+
+	sprintf(cfg_filename, "%s.cfg", exe);
+
+	try
+	{
+		cfg.readFile(cfg_filename);
+	}
+	catch(const FileIOException &fioex)
+	{
+		std::cerr << "I/O error while reading file." << std::endl;
+		exit(1);
+	}
+	catch(const ParseException &pex)
+	{
+		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
+				  << " - " << pex.getError() << std::endl;
+		exit(1);
+	}
+
+	try {
+
+		NUM_ROI = cfg.lookup("roi_amount");
+
+		string cam_addr_1 = cfg.lookup("camera_address_1");
+		CAM_ADDR = cam_addr_1;
+
+		string udp_addr_str = cfg.lookup("udp_address");
+		strcpy(UDP_ADDR, udp_addr_str.c_str());
+
+		UDP_PORT = cfg.lookup("udp_port");
+
+	}
+	catch(const SettingNotFoundException &nfex)
+	{
+		cerr << "Critical setting was not found in configuration file." << endl;
+		exit(1);
+	}
+
+}
+
 int main(int argc, char** argv)
 {
+
+	read_config(argv[0]);
+
 	clock_t tStart;
 
 	const int avg_cnt = 20;
