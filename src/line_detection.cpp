@@ -54,13 +54,14 @@ using namespace std;
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
 
-string CAM_ADDR;	//	"rtsp://admin:1234qwer@192.168.1.64:554/streaming/channels/2"
+string cam_addr_1;
+string cam_addr_2;
 
 #define USE_CAMERA	1
 #define DETAILED	0
 #define SHOW_GRAY	0
 #define DRAW_GRID	0
-#define DRAW		0
+#define DRAW		1
 #define MORPHOLOGY	1
 
 struct RectData
@@ -216,8 +217,13 @@ int get_hor_line_y(cv::Mat& imgColor, std::vector<RectData*> line) {
 	return y;
 }
 
-void parse_image(cv::Mat imgColor, std::vector<cv::Point>& res_points, std::vector<int>& hor_ys, bool& fl_error)
-{
+void parse_image(
+	string aThreadName,
+	cv::Mat imgColor,
+	std::vector<cv::Point>& res_points,
+	std::vector<int>& hor_ys,
+	bool& fl_error
+) {
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
@@ -423,9 +429,9 @@ void parse_image(cv::Mat imgColor, std::vector<cv::Point>& res_points, std::vect
 			}
 		}
 		//
-		cv::imshow("img", imgColor);
-		if (SHOW_GRAY) cv::imshow("gray", gray);
-		//cv::imshow("thresh", trImage);
+		cv::imshow(aThreadName + "img", imgColor);
+		if (SHOW_GRAY) cv::imshow(aThreadName + "gray", gray);
+		//cv::imshow(aThreadName + "thresh", trImage);
 	}
 
 }
@@ -457,9 +463,10 @@ void read_config(char* exe) {
 	try {
 
 		//NUM_ROI = cfg.lookup("roi_amount");
-
-		string cam_addr_1 = cfg.lookup("camera_address_1");
-		CAM_ADDR = cam_addr_1;
+		string buf1 = cfg.lookup("camera_address_1");
+		cam_addr_1 = buf1;
+		string buf2 = cfg.lookup("camera_address_2");
+		cam_addr_2 = buf2;
 
 		string udp_addr_str = cfg.lookup("udp_address");
 		strcpy(UDP_ADDR, udp_addr_str.c_str());
@@ -494,54 +501,32 @@ struct udp_package {
 #define STATS_LOG 0
 #define UDP_LOG 0
 
-int main(int argc, char** argv)
-{
+void camera_thread(
+	string aThreadName,
+	string aCamAddress,
+	//
+	bool send_udp,
+	int sock,
+	sockaddr_in si_other,
+	int slen
+) {
 
-	//setenv("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;udp", 1);
-	//-rtsp_transport tcp -protocol_whiteliste rtp,file,udp,tcp
-
-	unsigned int n = std::thread::hardware_concurrency();
-    std::cout << n << " concurrent threads are supported.\n";
-
-	read_config(argv[0]);
+	std::vector<cv::Point> res_points;
+	std::vector<int> hor_ys;
 
 	clock_t tStart;
 
-	//const int avg_cnt = 20;
 	double tt, sum = 0;
 	int cnt = 0;
 	int incorrect_lines = 0;
 
 	uint64_t read_err = 0;
 
-	std::vector<cv::Point> res_points;
-	std::vector<int> hor_ys;
-
-	struct sockaddr_in si_other;
-	int s, slen = sizeof(si_other);
-
-	if ( (s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
-	{
-		fprintf(stderr, "socket");
-		exit(1);
-	}
-
-	memset((char *) &si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(UDP_PORT);
-
-	if (inet_aton(UDP_ADDR, &si_other.sin_addr) == 0)
-	{
-		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);
-	}
-
-	cv::VideoCapture cap(CAM_ADDR);
-	//cap.set(38, 3); // CV_CAP_PROP_BUFFERSIZE = 38
+	cv::VideoCapture cap(aCamAddress);
 
 	if (!cap.isOpened()) {
 		std::cerr << "Error opening camera." << std::endl;
-		return -1;
+		return;
 	}
 
 	cv::Mat frame;
@@ -570,7 +555,7 @@ int main(int argc, char** argv)
 		}
 
 		try {
-			parse_image(frame, res_points, hor_ys, fl_error);
+			parse_image(aThreadName, frame, res_points, hor_ys, fl_error);
 		} catch (...) {
 			printf("parse error!\n");
 		}
@@ -619,7 +604,7 @@ int main(int argc, char** argv)
 				printf("\n");
 			}
 			//
-			if ( sendto(s, &udp_pack, sz, 0, (struct sockaddr *) &si_other, slen) == -1 )
+			if ( send_udp && ( sendto(sock, &udp_pack, sz, 0, (struct sockaddr *) &si_other, slen) == -1 ) )
 			{
 				fprintf(stderr, "sendto()");
 				exit(1);
@@ -642,7 +627,43 @@ int main(int argc, char** argv)
 
 	}
 
-	//close(s);
+}
+
+int main(int argc, char** argv)
+{
+	read_config(argv[0]);
+
+	//
+
+	struct sockaddr_in si_other;
+	int sock, slen = sizeof(si_other);
+
+	if ( (sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
+	{
+		fprintf(stderr, "socket");
+		exit(1);
+	}
+
+	memset((char *) &si_other, 0, sizeof(si_other));
+	si_other.sin_family = AF_INET;
+	si_other.sin_port = htons(UDP_PORT);
+
+	if (inet_aton(UDP_ADDR, &si_other.sin_addr) == 0)
+	{
+		fprintf(stderr, "inet_aton() failed\n");
+		exit(1);
+	}
+
+	//
+
+	unsigned int n = std::thread::hardware_concurrency();
+    std::cout << n << " concurrent threads are supported.\n";
+
+    thread cam1_thread(camera_thread, "Cam1_", cam_addr_1, true,  sock, si_other, slen);
+    thread cam2_thread(camera_thread, "Cam2_", cam_addr_2, false, sock, si_other, slen);
+    //
+    if (cam1_thread.joinable()) cam1_thread.join();
+    if (cam2_thread.joinable()) cam2_thread.join();
 
     return 0;
 }
