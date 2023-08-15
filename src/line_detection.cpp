@@ -22,10 +22,11 @@ using namespace libconfig;
 #include <sys/socket.h>
 
 #include <thread>
+#include <mutex>
 
-char UDP_ADDR[15];	//	"192.168.1.100"
+char UDP_ADDR[15];
 #define UDP_BUFLEN 255
-int UDP_PORT = 0;	//	8888
+int UDP_PORT = 0;
 
 using namespace cv;
 using namespace std;
@@ -497,19 +498,26 @@ struct udp_package {
 	uint16_t points_hor[4];
 };
 
-#define AVG_CNT	1
-#define STATS_LOG 0
-#define UDP_LOG 0
+#define AVG_CNT		1
+#define STATS_LOG	0
+#define UDP_LOG		0
 
-void camera_thread(
+mutex udp_packs_mtx;
+udp_package udp_packs[2];
+size_t udp_packs_sz = sizeof(udp_packs);
+
+void camera_func(
 	string aThreadName,
 	string aCamAddress,
 	//
 	bool send_udp,
 	int sock,
 	sockaddr_in si_other,
-	int slen
+	int slen,
+	int aIndex
 ) {
+
+    std::cout << aThreadName <<  "thread started!\n";
 
 	std::vector<cv::Point> res_points;
 	std::vector<int> hor_ys;
@@ -541,6 +549,8 @@ void camera_thread(
 
 	bool fl_error;
 
+	std::cout << aThreadName <<  "thread entered infinity loop.\n";
+
 	while (true) {
 
 		tStart = clock();
@@ -551,13 +561,13 @@ void camera_thread(
 				read_err++;
 			//cap >> frame;
 		} catch (...) {
-			printf("read error!\n");
+			std::cout << aThreadName <<  "thread read error!\n";
 		}
 
 		try {
 			parse_image(aThreadName, frame, res_points, hor_ys, fl_error);
 		} catch (...) {
-			printf("parse error!\n");
+			std::cout << aThreadName <<  "thread parse error!\n";
 		}
 
 		if (fl_error)
@@ -596,6 +606,10 @@ void camera_thread(
 			}
 			if (UDP_LOG) printf("\n");
 			//
+			udp_packs_mtx.lock();
+			udp_packs[aIndex] = udp_pack;
+			udp_packs_mtx.unlock();
+			//
 			size_t sz = sizeof(udp_pack);
 			if (UDP_LOG) {
 				char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
@@ -604,17 +618,20 @@ void camera_thread(
 				printf("\n");
 			}
 			//
-			if ( send_udp && ( sendto(sock, &udp_pack, sz, 0, (struct sockaddr *) &si_other, slen) == -1 ) )
-			{
-				fprintf(stderr, "sendto()");
-				exit(1);
-			}
+//			if ( send_udp && ( sendto(sock, &udp_pack, sz, 0, (struct sockaddr *) &si_other, slen) == -1 ) )
+//			{
+//				fprintf(stderr, "sendto()");
+//				exit(1);
+//			}
 			//
 			if (STATS_LOG) {
 				if (read_err)
-					printf("Reading errors = %lu\n", read_err);
-				printf("Incorrect lines: %d\n", incorrect_lines);
-				printf("Average time taken: %.3fs\n", sum / cnt);
+					std::cout << aThreadName <<  "thread Reading errors = " << read_err << std::endl;
+					//printf("Reading errors = %lu\n", read_err);
+				std::cout << aThreadName <<  "thread Incorrect lines: " << incorrect_lines << std::endl;
+				//printf("Incorrect lines: %d\n", incorrect_lines);
+				std::cout << aThreadName <<  "thread Average time taken: " << sum / cnt << std::endl;
+				//printf("Average time taken: %.3fs\n", sum / cnt);
 			}
 			//
 			incorrect_lines = 0;
@@ -625,6 +642,58 @@ void camera_thread(
 		if (cv::waitKey(1) == 27)
 			break;
 
+	}
+
+}
+
+void udp_func() {
+
+	std::cout << "UPD thread started!\n";
+
+	struct sockaddr_in si_other;
+	int sock, slen = sizeof(si_other);
+
+	if ( (sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
+	{
+		fprintf(stderr, "socket");
+		exit(1);
+	}
+
+	memset((char *) &si_other, 0, sizeof(si_other));
+	si_other.sin_family = AF_INET;
+	si_other.sin_port = htons(UDP_PORT);
+
+	if (inet_aton(UDP_ADDR, &si_other.sin_addr) == 0)
+	{
+		fprintf(stderr, "inet_aton() failed\n");
+		exit(1);
+	}
+
+	std::cout << "UDP thread entered infinity loop.\n";
+
+	udp_package buf_udp_packs[2];
+
+	while (true) {
+
+		udp_packs_mtx.lock();
+		memcpy(buf_udp_packs, udp_packs, sizeof(buf_udp_packs));
+		udp_packs_mtx.unlock();
+
+		size_t sz = sizeof(buf_udp_packs);
+		if (UDP_LOG) {
+			char* my_s_bytes = reinterpret_cast<char*>(&buf_udp_packs);
+			for (size_t i = 0; i < sz; i++)
+				printf("%02x ", my_s_bytes[i]);
+			printf("\n");
+		}
+
+		if ( sendto(sock, &buf_udp_packs, sizeof(buf_udp_packs), 0, (struct sockaddr *) &si_other, slen) == -1 )
+		{
+			fprintf(stderr, "sendto()");
+			exit(1);
+		}
+
+		std::this_thread::sleep_for(50ms);
 	}
 
 }
@@ -659,11 +728,15 @@ int main(int argc, char** argv)
 	unsigned int n = std::thread::hardware_concurrency();
     std::cout << n << " concurrent threads are supported.\n";
 
-    thread cam1_thread(camera_thread, "Cam1_", cam_addr_1, true,  sock, si_other, slen);
-    thread cam2_thread(camera_thread, "Cam2_", cam_addr_2, false, sock, si_other, slen);
+    thread cam1_thread(camera_func, "Cam1_", cam_addr_1, true,  sock, si_other, slen, 0);
+    std::this_thread::sleep_for(2s);
+    thread cam2_thread(camera_func, "Cam2_", cam_addr_2, false, sock, si_other, slen, 1);
+    std::this_thread::sleep_for(2s);
+    thread udp_thread(udp_func);
     //
     if (cam1_thread.joinable()) cam1_thread.join();
     if (cam2_thread.joinable()) cam2_thread.join();
+    if (udp_thread.joinable()) udp_thread.join();
 
     return 0;
 }
