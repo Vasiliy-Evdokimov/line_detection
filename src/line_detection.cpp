@@ -160,17 +160,10 @@ void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& d
 }
 
 bool check_points_horz(const cv::Point& pt1, const cv::Point& pt2, const double angle) {
-	/*
-	double a = findPointsAngle(pt1, pt2);
-	if (a < 0) a *= -1;
-	a = abs(180 - a);
-	return (a <= angle);
-	*/
 	return abs(pt1.y - pt2.y) < 20;
 }
 
 bool check_rects_adj_vert(cv::Rect r1, const cv::Rect r2) {
-	//const int delta = 0;
 	// Если один прямоугольник находится ниже другого
 	if ((r1.y > (r2.y + r2.height)) ||
 		(r2.y > (r1.y + r1.height))) {
@@ -506,16 +499,8 @@ mutex udp_packs_mtx;
 udp_package udp_packs[2];
 size_t udp_packs_sz = sizeof(udp_packs);
 
-void camera_func(
-	string aThreadName,
-	string aCamAddress,
-	//
-	bool send_udp,
-	int sock,
-	sockaddr_in si_other,
-	int slen,
-	int aIndex
-) {
+void camera_func(string aThreadName, string aCamAddress, int aIndex)
+{
 
     std::cout << aThreadName <<  "thread started!\n";
 
@@ -618,20 +603,11 @@ void camera_func(
 				printf("\n");
 			}
 			//
-//			if ( send_udp && ( sendto(sock, &udp_pack, sz, 0, (struct sockaddr *) &si_other, slen) == -1 ) )
-//			{
-//				fprintf(stderr, "sendto()");
-//				exit(1);
-//			}
-			//
 			if (STATS_LOG) {
 				if (read_err)
 					std::cout << aThreadName <<  "thread Reading errors = " << read_err << std::endl;
-					//printf("Reading errors = %lu\n", read_err);
 				std::cout << aThreadName <<  "thread Incorrect lines: " << incorrect_lines << std::endl;
-				//printf("Incorrect lines: %d\n", incorrect_lines);
 				std::cout << aThreadName <<  "thread Average time taken: " << sum / cnt << std::endl;
-				//printf("Average time taken: %.3fs\n", sum / cnt);
 			}
 			//
 			incorrect_lines = 0;
@@ -701,42 +677,16 @@ void udp_func() {
 int main(int argc, char** argv)
 {
 	read_config(argv[0]);
-
 	//
-
-	struct sockaddr_in si_other;
-	int sock, slen = sizeof(si_other);
-
-	if ( (sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
-	{
-		fprintf(stderr, "socket");
-		exit(1);
-	}
-
-	memset((char *) &si_other, 0, sizeof(si_other));
-	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(UDP_PORT);
-
-	if (inet_aton(UDP_ADDR, &si_other.sin_addr) == 0)
-	{
-		fprintf(stderr, "inet_aton() failed\n");
-		exit(1);
-	}
-
-	//
-
-	unsigned int n = std::thread::hardware_concurrency();
-    std::cout << n << " concurrent threads are supported.\n";
-
-    thread cam1_thread(camera_func, "Cam1_", cam_addr_1, true,  sock, si_other, slen, 0);
+    thread cam1_thread(camera_func, "Cam1_", cam_addr_1, 0);
     std::this_thread::sleep_for(2s);
-    thread cam2_thread(camera_func, "Cam2_", cam_addr_2, false, sock, si_other, slen, 1);
+    thread cam2_thread(camera_func, "Cam2_", cam_addr_2, 1);
     std::this_thread::sleep_for(2s);
     thread udp_thread(udp_func);
     //
     if (cam1_thread.joinable()) cam1_thread.join();
     if (cam2_thread.joinable()) cam2_thread.join();
     if (udp_thread.joinable()) udp_thread.join();
-
+    //
     return 0;
 }
