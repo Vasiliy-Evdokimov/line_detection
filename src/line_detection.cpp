@@ -62,7 +62,7 @@ string cam_addr_2;
 #define DETAILED	0
 #define SHOW_GRAY	0
 #define DRAW_GRID	0
-#define DRAW		1
+#define DRAW		0
 #define MORPHOLOGY	1
 
 struct RectData
@@ -119,6 +119,7 @@ double length(const cv::Point& p1, const cv::Point& p2)
 	double y = static_cast<double>(p2.y - p1.y);
 	return std::sqrt(x * x + y * y);
 }
+
 double angle(const cv::Point& p)
 {
 	double x = static_cast<double>(p.x);
@@ -592,7 +593,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			if (UDP_LOG) printf("\n");
 			//
 			udp_packs_mtx.lock();
-			udp_packs[aIndex] = udp_pack;
+			memcpy(&udp_packs[aIndex], &udp_pack, sizeof(udp_pack));
 			udp_packs_mtx.unlock();
 			//
 			size_t sz = sizeof(udp_pack);
