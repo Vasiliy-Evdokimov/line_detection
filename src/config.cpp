@@ -30,13 +30,13 @@ void read_config(char* exe) {
 	}
 	catch(const FileIOException &fioex)
 	{
-		std::cerr << "I/O error while reading file." << std::endl;
+		cerr << "I/O error while reading file.\n";
 		exit(1);
 	}
 	catch(const ParseException &pex)
 	{
-		std::cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-				  << " - " << pex.getError() << std::endl;
+		cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
+				<< " - " << pex.getError() << endl;
 		exit(1);
 	}
 
@@ -56,7 +56,7 @@ void read_config(char* exe) {
 	}
 	catch(const SettingNotFoundException &nfex)
 	{
-		cerr << "Critical setting was not found in configuration file." << endl;
+		cerr << "Critical setting was not found in configuration file.\n";
 		exit(1);
 	}
 

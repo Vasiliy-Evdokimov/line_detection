@@ -18,13 +18,14 @@ using namespace std;
 #include "defines.hpp"
 #include "contours.hpp"
 #include "horizontal.hpp"
+#include "barcode.hpp"
 #include "udp.hpp"
 #include "camera.hpp"
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
-    cout << aThreadName <<  "thread started!\n";
+    cout << aThreadName <<  " started!\n";
 
 	vector<cv::Point> res_points;
 	vector<int> hor_ys;
@@ -40,13 +41,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	cv::VideoCapture cap(aCamAddress);
 
 	if (!cap.isOpened()) {
-		cerr << "Error opening camera." << endl;
+		cerr <<  aThreadName << " - error opening camera!\n";
 		return;
 	}
 
 	cv::Mat frame;
 
-	// Очищаем буфер
+	//	очищаем буфер
 	for (int i = 0; i < 20; i++)
 		cap >> frame;
 
@@ -56,25 +57,24 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	bool fl_error;
 
-	cout << aThreadName <<  "thread entered infinity loop.\n";
+	cout << aThreadName <<  " entered infinity loop.\n";
 
 	while (true) {
 
 		tStart = clock();
 
 		try {
-			//read_total++;
 			if (!(cap.read(frame)))
 				read_err++;
-			//cap >> frame;
 		} catch (...) {
-			cout << aThreadName <<  "thread read error!\n";
+			cout << aThreadName <<  " read error!\n";
 		}
 
 		try {
+			//	ищем центры областей и горизонтальные пересечения
 			parse_image(aThreadName, frame, res_points, hor_ys, fl_error);
 		} catch (...) {
-			cout << aThreadName <<  "thread parse error!\n";
+			cout << aThreadName <<  " parse error!\n";
 		}
 
 		if (fl_error)
@@ -113,6 +113,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			}
 			if (UDP_LOG) printf("\n");
 			//
+			//	сохраняем данные в исходящий UDP-пакет
 			udp_packs_mtx.lock();
 			memcpy(&udp_packs[aIndex], &udp_pack, sizeof(udp_pack));
 			udp_packs_mtx.unlock();
@@ -148,6 +149,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	vector<cv::Point>& res_points, vector<int>& hor_ys,
 	bool& fl_error)
 {
+
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
@@ -155,7 +157,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	if (MORPHOLOGY) {
 		cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size(7, 7)));
-		//cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(7, 7)));
+		cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(7, 7)));
 	}
 
 	cv::Mat gray; //(imgColor.rows, imgColor.cols, CV_8U);
@@ -219,7 +221,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	sort(buf_points.begin(), buf_points.end(),
 		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
 
-	//	searching for horizontal intersections
+	//	поиск горизонтальных пересечений
 	find_horizontal(imgColor, buf_points, hor_ys);
 
 	//	добавляем нижнюю центральную точку в список для построения линии
@@ -266,6 +268,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	fl_error = fl_error || (res_points.size() < NUM_ROI);
 
+	//	поиск и рисование штрихкодов
+	find_barcodes(imgColor);
+
 	if (DRAW) {
 		if (fl_error) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
@@ -282,9 +287,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		cv::imshow(aThreadName + "img", imgColor);
-		if (SHOW_GRAY) cv::imshow(aThreadName + "gray", gray);
-		//cv::imshow(aThreadName + "thresh", trImage);
+		cv::imshow(aThreadName + "_img", imgColor);
+		if (SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
+		//cv::imshow(aThreadName + "_thresh", trImage);
 	}
 
 }
