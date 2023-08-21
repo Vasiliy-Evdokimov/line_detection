@@ -12,5 +12,4 @@
 
 void find_barcodes(cv::Mat& imgColor);
 
-
 #endif /* BARCODE_HPP_ */

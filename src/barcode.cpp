@@ -5,9 +5,13 @@
  *      Author: vevdokimov
  */
 
+#include <iostream>
+
 #include "opencv2/opencv.hpp"
 
 #include "ZXing/ReadBarcode.h"
+
+using namespace std;
 
 inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
 {
@@ -43,9 +47,18 @@ inline void DrawResult(cv::Mat& img, ZXing::Result res)
 	cv::putText(img, res.text(), zx2cv(pos[3]) + cv::Point(0, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(0, 255, 0));
 }
 
+string last_bc;
+int cnt = 0;
+
 void find_barcodes(cv::Mat& imgColor)
 {
 	auto results = ReadBarcodes(imgColor);
-	for (auto& r : results)
+	for (auto& r : results) {
 		DrawResult(imgColor, r);
+		if (last_bc != r.text()) {
+			last_bc = r.text();
+			cout << cnt << " Barcode detected = " << last_bc << endl;
+			cnt++;
+		}
+	}
 }
