@@ -16,6 +16,8 @@
 #include "udp.hpp"
 #include "config.hpp"
 
+#include "string.h"
+
 using namespace std;
 
 mutex udp_packs_mtx;

@@ -38,6 +38,7 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.407418033" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.link.option.libs.1677748169" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="opencv_core"/>
+									<listOptionValue builtIn="false" value="ZXing"/>
 									<listOptionValue builtIn="false" value="opencv_ximgproc"/>
 									<listOptionValue builtIn="false" value="opencv_video"/>
 									<listOptionValue builtIn="false" value="opencv_imgproc"/>
@@ -45,7 +46,7 @@
 									<listOptionValue builtIn="false" value="opencv_videoio"/>
 									<listOptionValue builtIn="false" value="config++"/>
 								</option>
-								<option id="gnu.cpp.link.option.pthread.1987245710" superClass="gnu.cpp.link.option.pthread" value="true" valueType="boolean"/>
+								<option id="gnu.cpp.link.option.pthread.1987245710" name="Support for pthread (-pthread)" superClass="gnu.cpp.link.option.pthread" value="true" valueType="boolean"/>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1960385229" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>

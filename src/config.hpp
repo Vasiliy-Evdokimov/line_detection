@@ -8,7 +8,7 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
-#include <string.h>
+#include <string>
 
 using namespace std;
 

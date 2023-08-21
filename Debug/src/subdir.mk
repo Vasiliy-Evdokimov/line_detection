@@ -4,13 +4,31 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../src/line_detection.cpp 
+../src/barcode.cpp \
+../src/camera.cpp \
+../src/config.cpp \
+../src/contours.cpp \
+../src/horizontal.cpp \
+../src/line_detection.cpp \
+../src/udp.cpp 
 
 CPP_DEPS += \
-./src/line_detection.d 
+./src/barcode.d \
+./src/camera.d \
+./src/config.d \
+./src/contours.d \
+./src/horizontal.d \
+./src/line_detection.d \
+./src/udp.d 
 
 OBJS += \
-./src/line_detection.o 
+./src/barcode.o \
+./src/camera.o \
+./src/config.o \
+./src/contours.o \
+./src/horizontal.o \
+./src/line_detection.o \
+./src/udp.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -25,7 +43,7 @@ src/%.o: ../src/%.cpp src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/line_detection.d ./src/line_detection.o
+	-$(RM) ./src/barcode.d ./src/barcode.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/horizontal.d ./src/horizontal.o ./src/line_detection.d ./src/line_detection.o ./src/udp.d ./src/udp.o
 
 .PHONY: clean-src
 
