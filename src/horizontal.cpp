@@ -60,8 +60,10 @@ int get_hor_line_y(cv::Mat& imgColor, std::vector<RectData*> line)
 		cv::Point pt = line[j]->center;
 		y += pt.y;
 		//
+#ifndef NO_GUI
 		if (DRAW && DETAILED)
 			cv::circle(imgColor, pt, 3, CLR_RED, 1, cv::LINE_AA);
+#endif
 	}
 	y /= line.size();
 	return y;

@@ -22,6 +22,8 @@ using namespace std;
 #include "udp.hpp"
 #include "camera.hpp"
 
+mutex imshow_mtx;
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -72,7 +74,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		try {
 			//	ищем центры областей и горизонтальные пересечения
-			parse_image(aThreadName, frame, res_points, hor_ys, fl_error);
+			parse_image(aThreadName, frame, res_points, hor_ys, fl_error, aIndex);
 		} catch (...) {
 			cout << aThreadName <<  " parse error!\n";
 		}
@@ -137,17 +139,17 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			cnt = 0;
 			sum = 0;
 		}
-
-		if (cv::waitKey(1) == 27)
-			break;
-
+		//
+		if (SHOW_CAM & (1 << aIndex))
+			if (cv::waitKey(1) == 27)
+				break;
 	}
 
 }
 
 void parse_image(string aThreadName, cv::Mat imgColor,
 	vector<cv::Point>& res_points, vector<int>& hor_ys,
-	bool& fl_error)
+	bool& fl_error, int aIndex)
 {
 
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
@@ -212,10 +214,12 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 		lpCenter = &rd->center;
 
+#ifndef NO_GUI
 		if (DRAW && DETAILED) {
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
 			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
 		}
+#endif
 	}
 
 	sort(buf_points.begin(), buf_points.end(),
@@ -271,6 +275,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	поиск и рисование штрихкодов
 	find_barcodes(imgColor);
 
+#ifndef NO_GUI
 	if (DRAW) {
 		if (fl_error) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
@@ -287,9 +292,12 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		cv::imshow(aThreadName + "_img", imgColor);
-		if (SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
-		//cv::imshow(aThreadName + "_thresh", trImage);
+		if (SHOW_CAM & (1 << aIndex)) {
+			cv::imshow(aThreadName + "_img", imgColor);
+			if (SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
+			//cv::imshow(aThreadName + "_thresh", trImage);
+		}
 	}
+#endif
 
 }

@@ -34,7 +34,7 @@
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
 
-#define USE_CAMERA	1
+#define SHOW_CAM	0b01
 #define DETAILED	0
 #define SHOW_GRAY	0
 #define DRAW_GRID	0

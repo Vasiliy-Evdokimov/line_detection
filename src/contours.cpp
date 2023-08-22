@@ -82,8 +82,10 @@ RectData* sort_cont(const cv::Point& base, ContData& data)
 void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& dataItem, int roi_row, int roi_col)
 {
 
+#ifndef NO_GUI
 	if (DRAW && DRAW_GRID)
 		cv::rectangle(imgColor, roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
+#endif
 
 	get_contur_params(imgGray, roi, dataItem, MIN_CONT_LEN, roi_row, roi_col);
 
