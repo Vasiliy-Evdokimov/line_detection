@@ -42,16 +42,19 @@ void read_config(char* exe) {
 
 	try {
 
-		//NUM_ROI = cfg.lookup("roi_amount");
+		config.roi_amount = cfg.lookup("roi_amount");
+		config.roi_h_amount = cfg.lookup("roi_h_amount");
+		config.roi_v_amount = cfg.lookup("roi_v_amount");
+
 		string buf1 = cfg.lookup("camera_address_1");
 		config.cam_addr_1 = buf1;
 		string buf2 = cfg.lookup("camera_address_2");
 		config.cam_addr_2 = buf2;
 
 		string udp_addr_str = cfg.lookup("udp_address");
-		strcpy(config.UDP_ADDR, udp_addr_str.c_str());
+		strcpy(config.udp_addr, udp_addr_str.c_str());
 
-		config.UDP_PORT = cfg.lookup("udp_port");
+		config.udp_port = cfg.lookup("udp_port");
 
 	}
 	catch(const SettingNotFoundException &nfex)

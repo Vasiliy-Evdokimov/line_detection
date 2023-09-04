@@ -10,7 +10,7 @@
 #include "contours.hpp"
 #include "horizontal.hpp"
 
-bool check_points_horz(const cv::Point& pt1, const cv::Point& pt2, const double angle)
+bool check_points_horz(const cv::Point& pt1, const cv::Point& pt2)
 {
 	return abs(pt1.y - pt2.y) < 20;
 }
@@ -94,7 +94,7 @@ void find_horizontal(
 				rd2 = buf_points[j];
 				if (rd1->roi_row != rd2->roi_row) continue;
 				//
-				if (check_points_horz(rd1->center, rd2->center, HOR_ANGLE)) {
+				if (check_points_horz(rd1->center, rd2->center)) {
 					if (line.size() == 0)
 						line.push_back(rd1);
 					line.push_back(rd2);

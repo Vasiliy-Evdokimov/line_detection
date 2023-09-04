@@ -14,10 +14,13 @@ using namespace std;
 
 struct ConfigData
 {
+	int roi_amount;
+	int roi_h_amount;
+	int roi_v_amount;
 	string cam_addr_1;
 	string cam_addr_2;
-	char UDP_ADDR[15];
-	int UDP_PORT;
+	char udp_addr[15];
+	int udp_port;
 };
 
 extern ConfigData config;
