@@ -39,9 +39,9 @@ void udp_func()
 
 	memset((char *) &si_other, 0, sizeof(si_other));
 	si_other.sin_family = AF_INET;
-	si_other.sin_port = htons(config.udp_port);
+	si_other.sin_port = htons(config.UDP_PORT);
 
-	if (inet_aton(config.udp_addr, &si_other.sin_addr) == 0)
+	if (inet_aton(config.UDP_ADDR, &si_other.sin_addr) == 0)
 	{
 		fprintf(stderr, "inet_aton() failed\n");
 		exit(1);

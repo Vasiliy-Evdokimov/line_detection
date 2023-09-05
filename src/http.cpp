@@ -38,10 +38,32 @@ void get_params(const HttpRequestPtr &request, Callback &&callback)
 	//std::cout << "get_params request!" << std::endl;
 	//
 	Json::Value ret;
-	ret["cam_addr_1"] = config.cam_addr_1;
-	ret["cam_addr_2"] = config.cam_addr_2;
-	ret["udp_addr"] = config.udp_addr;
-	ret["udp_port"] = config.udp_port;
+	//
+	ret["01_CAM_ADDR_1"] = config.CAM_ADDR_1;
+	ret["02_CAM_ADDR_2"] = config.CAM_ADDR_2;
+	//
+	ret["03_UDP_ADDR"] = config.UDP_ADDR;
+	ret["04_UDP_PORT"] = config.UDP_PORT;
+	//
+	ret["05_NUM_ROI"] = config.NUM_ROI;
+	ret["06_NUM_ROI_H"] = config.NUM_ROI_H;
+	ret["07_NUM_ROI_V"] = config.NUM_ROI_V;
+	//
+	ret["08_SHOW_CAM"] = config.SHOW_CAM;
+	ret["09_SHOW_GRAY"] = config.SHOW_GRAY;
+	ret["10_DETAILED"] = config.DETAILED;
+	ret["11_DRAW_GRID"] = config.DRAW_GRID;
+	ret["12_DRAW"] = config.DRAW;
+	//
+	ret["13_MIN_CONT_LEN"] = config.MIN_CONT_LEN;
+	ret["14_HOR_COLLAPSE"] = config.HOR_COLLAPSE;
+	//
+	ret["15_GAUSSIAN_BLUR_KERNEL"] = config.GAUSSIAN_BLUR_KERNEL;
+	ret["16_MORPH_OPEN_KERNEL"] = config.MORPH_OPEN_KERNEL;
+	ret["17_MORPH_CLOSE_KERNEL"] = config.MORPH_CLOSE_KERNEL;
+	//
+	ret["18_THRESHOLD_THRESH"] = config.THRESHOLD_THRESH;
+	ret["19_THRESHOLD_MAXVAL"] = config.THRESHOLD_MAXVAL;
 	//
 	auto resp = HttpResponse::newHttpResponse();
 	Json::FastWriter fastWriter;
@@ -56,15 +78,17 @@ void get_params(const HttpRequestPtr &request, Callback &&callback)
 	callback(resp);
 }
 
-void set_params(const HttpRequestPtr &request, Callback &&callback)
+void apply_params(const HttpRequestPtr &request, Callback &&callback)
 {
-	std::cout << "set_params request!" << std::endl;
+	std::cout << "apply_params request!" << std::endl;
+	//
+	ConfigData buf;
 	//
 	Json::Value v;
 	std::string err;
 	if(jsonParse(request->body(), v, err)) {
-		std::cout << v["test_field"].asString() << std::endl;
-		std::cout << v["test_field_2"].asString() << std::endl;
+		 buf.CAM_ADDR_1 = v["CAM_ADDR_1"].asString();
+		 buf.CAM_ADDR_2 = v["CAM_ADDR_2"].asString();
 	}
 	//
 	Json::Value ret;
@@ -87,6 +111,6 @@ void http_init()
 {
 	drogon::app().addListener("127.0.0.1", 8000);
 	drogon::app().registerHandler("/get_params", &get_params, { Get, Post, Options });
-	drogon::app().registerHandler("/set_params", &set_params, { Get, Post, Options });
+	drogon::app().registerHandler("/apply_params", &apply_params, { Get, Post, Options });
 	drogon::app().run();
 }

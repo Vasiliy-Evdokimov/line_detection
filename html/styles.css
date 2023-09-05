@@ -1,0 +1,69 @@
+html *
+{
+    font-family: Tahoma;
+    font-size: 14pt;
+}
+
+body
+{
+    background-color: #d5d8dc;
+}
+
+div
+{
+    border: 0px solid black;
+    margin-bottom: 20px;
+}
+
+td 
+{
+    padding-right: 10px;
+    vertical-align: bottom;
+}
+
+.param_info {
+    width: 300px;
+    text-align: right;
+}
+
+input[type="text"]
+{
+    width: 60px;
+}
+
+input[type="checkbox"]
+{
+    width: 25px;
+    height: 25px;
+}
+
+.CAM_ADDR_1, 
+.CAM_ADDR_2 
+{
+    width: 500px !important;
+}
+
+.UDP_ADDR
+{
+    width: 140px !important;
+}
+
+button
+{
+    width: 200px;
+} 
+
+.status
+{
+    margin-top: 10px;
+}
+
+.status_ok_class 
+{
+    color: green;
+}
+
+.status_error_class 
+{
+    color: red;
+}

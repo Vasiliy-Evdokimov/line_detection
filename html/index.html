@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Cache-Control" content="no-cache" />
+	<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <link rel="stylesheet" href="styles.css?v.1">
+	<script src="vue.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div v-if="params_init" v-for="(value, name, index) in cur_params">
+            <table>
+                <tr>
+                    <td rowspan="2" class="param_info">{{ get_param_info(name) }}</td>
+                    <td>{{ cur_params[name] }}</td>
+                </tr>
+                <tr>
+                    <td>
+                        <input
+                            v-if="checkboxes_params.has(name.slice(3))"
+                            type="checkbox"
+                            v-bind:class="name.slice(3)"
+                            v-model="new_params[name]"
+                            true-value=1
+                            false-value=0
+                        />
+                        <input
+                            v-else
+                            type="text"
+                            v-bind:class="name.slice(3)"
+                            v-model="new_params[name]"
+                        />
+                    </td>
+                </tr>
+             </table>
+        </div>
+        
+        <button v-on:click="get_params">Получить текущие параметры</button>
+        <button v-on:click="apply_params">Применить новые параметры</button>
+        <button v-on:click="save_params">Сохранить новые параметры</button>
+
+        <div class="status" v-bind:class="{ status_error_class: !status_ok, status_ok_class: status_ok }">
+            {{ status_text }}
+        </div>        
+    </div>
+    <script src="vueapp.js?v.1"></script>
+</body>
+</html>

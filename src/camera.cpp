@@ -16,13 +16,12 @@ using namespace cv;
 using namespace std;
 
 #include "defines.hpp"
+#include "config.hpp"
 #include "contours.hpp"
 #include "horizontal.hpp"
 #include "barcode.hpp"
 #include "udp.hpp"
 #include "camera.hpp"
-
-mutex imshow_mtx;
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
@@ -50,7 +49,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	cv::Mat frame;
 
 	//	очищаем буфер
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
 		cap >> frame;
 
 	uint16_t counter = 0;
@@ -140,7 +139,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			sum = 0;
 		}
 		//
-		if (SHOW_CAM & (1 << aIndex))
+		if (config.SHOW_CAM & (1 << aIndex))
 			if (cv::waitKey(1) == 27)
 				break;
 	}
@@ -155,38 +154,37 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
-	cv::GaussianBlur(trImage, trImage, Size(9, 9), 0);
+	Size2i gbk = Size(config.GAUSSIAN_BLUR_KERNEL, config.GAUSSIAN_BLUR_KERNEL);
+	cv::GaussianBlur(trImage, trImage, gbk, 0);
 
-	if (MORPHOLOGY) {
-		cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size(7, 7)));
-		cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size(7, 7)));
-	}
+	Size2i mok = Size(config.MORPH_OPEN_KERNEL, config.MORPH_OPEN_KERNEL);
+	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, mok));
+	Size2i mck = Size(config.MORPH_CLOSE_KERNEL, config.MORPH_CLOSE_KERNEL);
+	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, mck));
 
-	cv::Mat gray; //(imgColor.rows, imgColor.cols, CV_8U);
-	cv::threshold(trImage, gray, 160, 255, cv::THRESH_BINARY_INV);
+	cv::Mat gray;
+	cv::threshold(trImage, gray,
+		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 
-	ContData data[(DATA_SIZE)];
-//	char buff[30];
+	ContData data[config.DATA_SIZE];
 
 	int imgWidth = imgColor.cols;
 	int imgHeight = imgColor.rows;
-	int imgOffset = imgHeight / NUM_ROI;
-	int imgOffsetV = imgWidth / NUM_ROI_V;
-//	int centerX = imgWidth / 2;
-//	int centerY = imgHeight / 2;
+	int imgOffset = imgHeight / config.NUM_ROI;
+	int imgOffsetV = imgWidth / config.NUM_ROI_V;
 
 	fl_error = false;
 
 	int k = 0;
 
-	for (int i = 0; i < NUM_ROI; ++i)
+	for (int i = 0; i < config.NUM_ROI; ++i)
 	{
-		if (i < (NUM_ROI - NUM_ROI_H)) {
+		if (i < (config.NUM_ROI - config.NUM_ROI_H)) {
 			cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
 			get_contour(imgColor, gray, roi, data[k], i, 0);
 			k++;
 		} else {
-			for (int j = 0; j < NUM_ROI_V; ++j)
+			for (int j = 0; j < config.NUM_ROI_V; ++j)
 			{
 				cv::Rect roi(imgOffsetV * j, imgOffset * i, imgOffsetV, imgOffset);
 				get_contour(imgColor, gray, roi, data[k], i, j);
@@ -202,9 +200,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	vector<RectData*> buf_points;
 
-	for (int i = 0; i < (DATA_SIZE); ++i)
+	for (int i = 0; i < config.DATA_SIZE; ++i)
 	{
-		ContData* dt = &data[(DATA_SIZE) - 1 - i];
+		ContData* dt = &data[config.DATA_SIZE - 1 - i];
 		RectData* rd = sort_cont(*lpCenter, dt[0]);
 
 		if (rd == nullptr)
@@ -215,7 +213,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		lpCenter = &rd->center;
 
 #ifndef NO_GUI
-		if (DRAW && DETAILED) {
+		if (config.DRAW && config.DETAILED) {
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
 			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
 		}
@@ -232,7 +230,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	RectData crd;
 	crd.center = cv::Point(imgWidth / 2, imgHeight);
 	crd.bound = cv::Rect(crd.center.x - imgOffsetV / 2, crd.center.y - 10, imgOffsetV, 20);
-	crd.roi_row = NUM_ROI;
+	crd.roi_row = config.NUM_ROI;
 	buf_points.insert(buf_points.begin(), &crd);
 
 	//	строим линию
@@ -270,13 +268,13 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
-	fl_error = fl_error || (res_points.size() < NUM_ROI);
+	fl_error = fl_error || (res_points.size() < config.NUM_ROI);
 
 	//	поиск и рисование штрихкодов
 	find_barcodes(imgColor);
 
 #ifndef NO_GUI
-	if (DRAW) {
+	if (config.DRAW) {
 		if (fl_error) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}
@@ -292,9 +290,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		if (SHOW_CAM & (1 << aIndex)) {
+		if (config.SHOW_CAM & (1 << aIndex)) {
 			cv::imshow(aThreadName + "_img", imgColor);
-			if (SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
+			if (config.SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
 			//cv::imshow(aThreadName + "_thresh", trImage);
 		}
 	}

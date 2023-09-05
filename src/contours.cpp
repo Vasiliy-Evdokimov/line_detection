@@ -6,6 +6,7 @@
  */
 
 #include "defines.hpp"
+#include "config.hpp"
 #include "contours.hpp"
 
 void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, double min_cont_len, int roi_row, int roi_col)
@@ -83,11 +84,11 @@ void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& d
 {
 
 #ifndef NO_GUI
-	if (DRAW && DRAW_GRID)
+	if (config.DRAW && config.DRAW_GRID)
 		cv::rectangle(imgColor, roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
 #endif
 
-	get_contur_params(imgGray, roi, dataItem, MIN_CONT_LEN, roi_row, roi_col);
+	get_contur_params(imgGray, roi, dataItem, config.MIN_CONT_LEN, roi_row, roi_col);
 
 }
 

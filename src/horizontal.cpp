@@ -6,6 +6,7 @@
  */
 
 #include "opencv2/opencv.hpp"
+#include "config.hpp"
 #include "defines.hpp"
 #include "contours.hpp"
 #include "horizontal.hpp"
@@ -61,7 +62,7 @@ int get_hor_line_y(cv::Mat& imgColor, std::vector<RectData*> line)
 		y += pt.y;
 		//
 #ifndef NO_GUI
-		if (DRAW && DETAILED)
+		if (config.DRAW && config.DETAILED)
 			cv::circle(imgColor, pt, 3, CLR_RED, 1, cv::LINE_AA);
 #endif
 	}
@@ -75,7 +76,7 @@ void find_horizontal(
 	std::vector<int>& hor_ys
 ) {
 
-	int imgOffsetV = imgColor.cols / NUM_ROI_V;
+	int imgOffsetV = imgColor.cols / config.NUM_ROI_V;
 
 	std::vector<RectData*> hor_points;
 	std::vector<std::vector<RectData*>> hor_lines;
@@ -139,7 +140,7 @@ void find_horizontal(
 			for (size_t j = i + 1; j < hor_lines.size(); j++) {
 				int y2 = get_hor_line_y(imgColor, hor_lines[j]);
 				//
-				if (abs(y1 - y2) < HOR_COLLAPSE) {
+				if (abs(y1 - y2) < config.HOR_COLLAPSE) {
 					y_sum += y2;
 					y_cnt++;
 					k = j;

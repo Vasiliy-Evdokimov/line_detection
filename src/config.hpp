@@ -14,13 +14,32 @@ using namespace std;
 
 struct ConfigData
 {
-	int roi_amount;
-	int roi_h_amount;
-	int roi_v_amount;
-	string cam_addr_1;
-	string cam_addr_2;
-	char udp_addr[15];
-	int udp_port;
+	string CAM_ADDR_1;
+	string CAM_ADDR_2;
+	//
+	char UDP_ADDR[15];
+	int UDP_PORT;
+	//
+	int NUM_ROI;
+	int NUM_ROI_H;
+	int NUM_ROI_V;
+	int DATA_SIZE;
+	//
+	int SHOW_CAM;
+	int SHOW_GRAY;
+	int DETAILED;
+	int DRAW_GRID;
+	int DRAW;
+	//
+	int MIN_CONT_LEN;
+	int HOR_COLLAPSE;
+	//
+	int GAUSSIAN_BLUR_KERNEL;
+	int MORPH_OPEN_KERNEL;
+	int MORPH_CLOSE_KERNEL;
+	//
+	int THRESHOLD_THRESH;
+	int THRESHOLD_MAXVAL;
 };
 
 extern ConfigData config;
