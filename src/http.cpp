@@ -49,21 +49,20 @@ void get_params(const HttpRequestPtr &request, Callback &&callback)
 	ret["06_NUM_ROI_H"] = config.NUM_ROI_H;
 	ret["07_NUM_ROI_V"] = config.NUM_ROI_V;
 	//
-	ret["08_SHOW_CAM"] = config.SHOW_CAM;
-	ret["09_SHOW_GRAY"] = config.SHOW_GRAY;
-	ret["10_DETAILED"] = config.DETAILED;
-	ret["11_DRAW_GRID"] = config.DRAW_GRID;
-	ret["12_DRAW"] = config.DRAW;
+	ret["08_SHOW_GRAY"] = config.SHOW_GRAY;
+	ret["09_DETAILED"] = config.DETAILED;
+	ret["10_DRAW_GRID"] = config.DRAW_GRID;
+	ret["11_DRAW"] = config.DRAW;
 	//
-	ret["13_MIN_CONT_LEN"] = config.MIN_CONT_LEN;
-	ret["14_HOR_COLLAPSE"] = config.HOR_COLLAPSE;
+	ret["12_MIN_CONT_LEN"] = config.MIN_CONT_LEN;
+	ret["13_HOR_COLLAPSE"] = config.HOR_COLLAPSE;
 	//
-	ret["15_GAUSSIAN_BLUR_KERNEL"] = config.GAUSSIAN_BLUR_KERNEL;
-	ret["16_MORPH_OPEN_KERNEL"] = config.MORPH_OPEN_KERNEL;
-	ret["17_MORPH_CLOSE_KERNEL"] = config.MORPH_CLOSE_KERNEL;
+	ret["14_GAUSSIAN_BLUR_KERNEL"] = config.GAUSSIAN_BLUR_KERNEL;
+	ret["15_MORPH_OPEN_KERNEL"] = config.MORPH_OPEN_KERNEL;
+	ret["16_MORPH_CLOSE_KERNEL"] = config.MORPH_CLOSE_KERNEL;
 	//
-	ret["18_THRESHOLD_THRESH"] = config.THRESHOLD_THRESH;
-	ret["19_THRESHOLD_MAXVAL"] = config.THRESHOLD_MAXVAL;
+	ret["17_THRESHOLD_THRESH"] = config.THRESHOLD_THRESH;
+	ret["18_THRESHOLD_MAXVAL"] = config.THRESHOLD_MAXVAL;
 	//
 	auto resp = HttpResponse::newHttpResponse();
 	Json::FastWriter fastWriter;
@@ -101,7 +100,6 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 			 buf.NUM_ROI_V = stoi(v["NUM_ROI_V"].asString());
 			 recount_data_size(buf);
 			 //
-			 buf.SHOW_CAM = stoi(v["SHOW_CAM"].asString());
 			 buf.SHOW_GRAY = stoi(v["SHOW_GRAY"].asString());
 			 buf.DETAILED = stoi(v["DETAILED"].asString());
 			 buf.DRAW_GRID = stoi(v["DRAW_GRID"].asString());

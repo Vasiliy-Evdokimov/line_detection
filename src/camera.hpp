@@ -17,6 +17,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	std::vector<cv::Point>& res_points, std::vector<int>& hor_ys,
 	bool& fl_error, int aIndex);
 
+void visualizer_func();
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex);
 
 #endif /* CAMERA_HPP_ */

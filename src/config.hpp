@@ -14,8 +14,6 @@ using namespace std;
 
 struct ConfigData
 {
-	bool restart_threads;
-	//
 	string CAM_ADDR_1;
 	string CAM_ADDR_2;
 	//
@@ -27,7 +25,6 @@ struct ConfigData
 	int NUM_ROI_V;
 	int DATA_SIZE;
 	//
-	int SHOW_CAM;
 	int SHOW_GRAY;
 	int DETAILED;
 	int DRAW_GRID;
@@ -47,6 +44,7 @@ struct ConfigData
 extern ConfigData config;
 
 extern bool restart_threads;
+extern bool kill_threads;
 
 void recount_data_size(ConfigData& cfg);
 

@@ -23,6 +23,35 @@ using namespace std;
 #include "udp.hpp"
 #include "camera.hpp"
 
+mutex frames_mtx;
+cv::Mat frames_to_show[2];
+cv::Mat grays_to_show[2];
+
+void visualizer_func()
+{
+	cv::Mat mergedGray;
+	cv::Mat mergedColor;
+
+	while (!kill_threads) {
+
+		frames_mtx.lock();
+		if (config.SHOW_GRAY && !(grays_to_show[0].empty() || grays_to_show[1].empty()))
+			cv::hconcat(grays_to_show[0], grays_to_show[1], mergedGray);
+		if (!(frames_to_show[0].empty() || frames_to_show[1].empty()))
+			cv::hconcat(frames_to_show[0], frames_to_show[1], mergedColor);
+		frames_mtx.unlock();
+		//
+		if (config.SHOW_GRAY && !mergedGray.empty())
+			cv::imshow("Cameras 1 & 2 Gray", mergedGray);
+		if (!mergedColor.empty())
+			cv::imshow("Cameras 1 & 2 Color", mergedColor);
+		//
+		cv::waitKey(1);
+
+	}
+
+}
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -138,18 +167,10 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			cnt = 0;
 			sum = 0;
 		}
-		//
-		if (config.SHOW_CAM & (1 << aIndex))
-			if (cv::waitKey(1) == 27)
-				break;
+
 	}
 
 	cap.release();
-
-#ifndef NO_GUI
-	if (config.DRAW && (config.SHOW_CAM & (1 << aIndex)))
-		destroyWindow(aThreadName + "_img");
-#endif
 
 }
 
@@ -172,6 +193,14 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Mat gray;
 	cv::threshold(trImage, gray,
 		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+
+#ifndef NO_GUI
+	if (config.DRAW && config.SHOW_GRAY) {
+		frames_mtx.lock();
+		grays_to_show[aIndex] = gray.clone();
+		frames_mtx.unlock();
+	}
+#endif
 
 	ContData data[config.DATA_SIZE];
 
@@ -297,12 +326,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		if (config.SHOW_CAM & (1 << aIndex)) {
-			cv::imshow(aThreadName + "_img", imgColor);
-			if (config.SHOW_GRAY)
-				cv::imshow(aThreadName + "_gray", gray);
-			//	cv::imshow(aThreadName + "_thresh", trImage);
-		}
+		frames_mtx.lock();
+		frames_to_show[aIndex] = imgColor.clone();
+		frames_mtx.unlock();
 	}
 #endif
 

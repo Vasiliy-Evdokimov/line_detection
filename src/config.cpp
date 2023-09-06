@@ -17,6 +17,7 @@ using namespace libconfig;
 ConfigData config;
 
 bool restart_threads;
+bool kill_threads;
 
 void recount_data_size(ConfigData& cfg) {
 	cfg.DATA_SIZE =
@@ -49,40 +50,40 @@ void read_config(char* exe) {
 
 	try {
 
-		string buf1 = cfg.lookup("camera_address_1");
+		string buf1 = cfg.lookup("CAM_ADDR_1");
 		config.CAM_ADDR_1 = buf1;
-		string buf2 = cfg.lookup("camera_address_2");
+		string buf2 = cfg.lookup("CAM_ADDR_2");
 		config.CAM_ADDR_2 = buf2;
 
-		string udp_addr_str = cfg.lookup("udp_address");
+		string udp_addr_str = cfg.lookup("UDP_ADDR");
 		strcpy(config.UDP_ADDR, udp_addr_str.c_str());
 
-		config.UDP_PORT = cfg.lookup("udp_port");
+		config.UDP_PORT = cfg.lookup("UDP_PORT");
 
-		config.NUM_ROI = cfg.lookup("roi_amount");
-		config.NUM_ROI_H = cfg.lookup("roi_h_amount");
-		config.NUM_ROI_V = cfg.lookup("roi_v_amount");
+		config.NUM_ROI = cfg.lookup("NUM_ROI");
+		config.NUM_ROI_H = cfg.lookup("NUM_ROI_H");
+		config.NUM_ROI_V = cfg.lookup("NUM_ROI_V");
 		recount_data_size(config);
 
-		config.SHOW_CAM = cfg.lookup("show_camera");
-		config.SHOW_GRAY = cfg.lookup("show_gray");
-		config.DETAILED = cfg.lookup("draw_detailed");
-		config.DRAW_GRID = cfg.lookup("draw_grid");
-		config.DRAW = cfg.lookup("draw");
+		config.SHOW_GRAY = cfg.lookup("SHOW_GRAY");
+		config.DETAILED = cfg.lookup("DETAILED");
+		config.DRAW_GRID = cfg.lookup("DRAW_GRID");
+		config.DRAW = cfg.lookup("DRAW");
 
 		//	минимальная длина контура
-		config.MIN_CONT_LEN = cfg.lookup("minimal_contour_length");
+		config.MIN_CONT_LEN = cfg.lookup("MIN_CONT_LEN");
 		//	при этом или меньшем расстоянии между горизонтальными линиями, они усредняются в одну
-		config.HOR_COLLAPSE = cfg.lookup("horizontal_collapse");
+		config.HOR_COLLAPSE = cfg.lookup("HOR_COLLAPSE");
 
-		config.GAUSSIAN_BLUR_KERNEL = cfg.lookup("gaussian_blur_kernel");
-		config.MORPH_OPEN_KERNEL = cfg.lookup("morph_open_kernel");
-		config.MORPH_CLOSE_KERNEL = cfg.lookup("morph_close_kernel");
+		config.GAUSSIAN_BLUR_KERNEL = cfg.lookup("GAUSSIAN_BLUR_KERNEL");
+		config.MORPH_OPEN_KERNEL = cfg.lookup("MORPH_OPEN_KERNEL");
+		config.MORPH_CLOSE_KERNEL = cfg.lookup("MORPH_CLOSE_KERNEL");
 
-		config.THRESHOLD_THRESH = cfg.lookup("threshold_thresh");
-		config.THRESHOLD_MAXVAL = cfg.lookup("threshold_maxval");
+		config.THRESHOLD_THRESH = cfg.lookup("THRESHOLD_THRESH");
+		config.THRESHOLD_MAXVAL = cfg.lookup("THRESHOLD_MAXVAL");
 
 		restart_threads = false;
+		kill_threads = false;
 	}
 	catch(const SettingNotFoundException &nfex)
 	{
