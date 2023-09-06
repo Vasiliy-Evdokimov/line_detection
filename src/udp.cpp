@@ -51,7 +51,7 @@ void udp_func()
 
 	udp_package buf_udp_packs[2];
 
-	while (true) {
+	while (!restart_threads) {
 
 		udp_packs_mtx.lock();
 		memcpy(buf_udp_packs, udp_packs, sizeof(buf_udp_packs));

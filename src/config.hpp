@@ -14,6 +14,8 @@ using namespace std;
 
 struct ConfigData
 {
+	bool restart_threads;
+	//
 	string CAM_ADDR_1;
 	string CAM_ADDR_2;
 	//
@@ -43,6 +45,10 @@ struct ConfigData
 };
 
 extern ConfigData config;
+
+extern bool restart_threads;
+
+void recount_data_size(ConfigData& cfg);
 
 void read_config(char* exe);
 

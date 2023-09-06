@@ -3,12 +3,17 @@
 <head>
     <meta http-equiv="Cache-Control" content="no-cache" />
 	<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-    <link rel="stylesheet" href="styles.css?v.1">
+    <link rel="stylesheet" href="styles.css?v.2">
 	<script src="vue.min.js"></script>
 </head>
 <body>
     <div id="app">
-        <div v-if="params_init" v-for="(value, name, index) in cur_params">
+        <div
+            class="param"
+            v-if="params_init" 
+            v-for="(value, name, index) in cur_params"
+            v-bind:class="{ odd: ((index % 2) == 1)}"
+        />
             <table>
                 <tr>
                     <td rowspan="2" class="param_info">{{ get_param_info(name) }}</td>
@@ -34,15 +39,15 @@
                 </tr>
              </table>
         </div>
-        
-        <button v-on:click="get_params">Получить текущие параметры</button>
-        <button v-on:click="apply_params">Применить новые параметры</button>
-        <button v-on:click="save_params">Сохранить новые параметры</button>
-
+        <div class="buttons">
+            <button v-on:click="get_params">Получить текущие параметры</button>
+            <button v-on:click="apply_params">Применить новые параметры</button>
+            <button v-on:click="save_params">Сохранить новые параметры</button>
+        </div>
         <div class="status" v-bind:class="{ status_error_class: !status_ok, status_ok_class: status_ok }">
             {{ status_text }}
         </div>        
     </div>
-    <script src="vueapp.js?v.1"></script>
+    <script src="vueapp.js?v.2"></script>
 </body>
 </html>

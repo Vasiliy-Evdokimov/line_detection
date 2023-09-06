@@ -87,12 +87,46 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 	Json::Value v;
 	std::string err;
 	if(jsonParse(request->body(), v, err)) {
-		 buf.CAM_ADDR_1 = v["CAM_ADDR_1"].asString();
-		 buf.CAM_ADDR_2 = v["CAM_ADDR_2"].asString();
-	}
+		try {
+
+			 buf.CAM_ADDR_1 = v["CAM_ADDR_1"].asString();
+			 buf.CAM_ADDR_2 = v["CAM_ADDR_2"].asString();
+			 //
+			 string udp_addr_str = v["UDP_ADDR"].asString();
+			 strcpy(buf.UDP_ADDR, udp_addr_str.c_str());
+			 buf.UDP_PORT = stoi(v["UDP_PORT"].asString());
+			 //
+			 buf.NUM_ROI = stoi(v["NUM_ROI"].asString());
+			 buf.NUM_ROI_H = stoi(v["NUM_ROI_H"].asString());
+			 buf.NUM_ROI_V = stoi(v["NUM_ROI_V"].asString());
+			 recount_data_size(buf);
+			 //
+			 buf.SHOW_CAM = stoi(v["SHOW_CAM"].asString());
+			 buf.SHOW_GRAY = stoi(v["SHOW_GRAY"].asString());
+			 buf.DETAILED = stoi(v["DETAILED"].asString());
+			 buf.DRAW_GRID = stoi(v["DRAW_GRID"].asString());
+			 buf.DRAW = stoi(v["DRAW"].asString());
+			 //
+			 buf.MIN_CONT_LEN = stoi(v["MIN_CONT_LEN"].asString());
+			 buf.HOR_COLLAPSE = stoi(v["HOR_COLLAPSE"].asString());
+			 //
+			 buf.GAUSSIAN_BLUR_KERNEL = stoi(v["GAUSSIAN_BLUR_KERNEL"].asString());
+			 buf.MORPH_OPEN_KERNEL = stoi(v["MORPH_OPEN_KERNEL"].asString());
+			 buf.MORPH_CLOSE_KERNEL = stoi(v["MORPH_CLOSE_KERNEL"].asString());
+			 //
+			 buf.THRESHOLD_THRESH = stoi(v["THRESHOLD_THRESH"].asString());
+			 buf.THRESHOLD_MAXVAL = stoi(v["THRESHOLD_MAXVAL"].asString());
+			 //
+			 config = buf;
+
+		} catch (...) {
+			cout << "apply params failed!" << endl;
+		}
+	} else
+		cout << "jsonParse failed!" << endl;
 	//
 	Json::Value ret;
-	ret["message"] = "Hello, World";
+	ret["message"] = "ok";
 	//
 	auto resp = HttpResponse::newHttpResponse();
 	Json::FastWriter fastWriter;
@@ -105,6 +139,8 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 	resp->setBody(json_str);
 	//
 	callback(resp);
+	//
+	restart_threads = true;
 }
 
 void http_init()

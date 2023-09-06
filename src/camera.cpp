@@ -60,7 +60,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	cout << aThreadName <<  " entered infinity loop.\n";
 
-	while (true) {
+	while (!restart_threads) {
 
 		tStart = clock();
 
@@ -143,6 +143,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			if (cv::waitKey(1) == 27)
 				break;
 	}
+
+	cap.release();
+
+#ifndef NO_GUI
+	if (config.DRAW && (config.SHOW_CAM & (1 << aIndex)))
+		destroyWindow(aThreadName + "_img");
+#endif
 
 }
 
@@ -292,8 +299,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		//
 		if (config.SHOW_CAM & (1 << aIndex)) {
 			cv::imshow(aThreadName + "_img", imgColor);
-			if (config.SHOW_GRAY) cv::imshow(aThreadName + "_gray", gray);
-			//cv::imshow(aThreadName + "_thresh", trImage);
+			if (config.SHOW_GRAY)
+				cv::imshow(aThreadName + "_gray", gray);
+			//	cv::imshow(aThreadName + "_thresh", trImage);
 		}
 	}
 #endif

@@ -51,7 +51,7 @@ var app = new Vue({
         },
         apply_params: function() {
 
-            this.status_text = 'Применение текущих параметров...';
+            this.status_text = 'Применение новых параметров...';
             
             let buf = this.process_params_data(this.new_params);
 
@@ -66,7 +66,7 @@ var app = new Vue({
             .then((response) => {
                 response.json().then(
                     (data) => {
-                        alert(data);                        
+                        console.log(JSON.stringify(data));
                     });
                 this.status_ok = true;
                 this.status_text += ' успешно!';
@@ -117,8 +117,8 @@ var params_descriptions = new Map([
 	['HOR_COLLAPSE', 'Усреднение горизонтальных линий, если расстояние между ними меньше чем'],
 	//
 	['GAUSSIAN_BLUR_KERNEL', 'Ядро преобразования для GaussianBlur - (NxN)'],
-	['MORPH_OPEN_KERNEL', 'Ядро преоразования для MorphologyEx(MORPH_OPEN) - (NxN)'],
-	['MORPH_CLOSE_KERNEL', 'Ядро преоразования для MorphologyEx(MORPH_CLOSE) - (NxN)'],
+	['MORPH_OPEN_KERNEL', 'Ядро преобразования для MorphologyEx(MORPH_OPEN) - (NxN)'],
+	['MORPH_CLOSE_KERNEL', 'Ядро преобразования для MorphologyEx(MORPH_CLOSE) - (NxN)'],
 	//
 	['THRESHOLD_THRESH', 'Параметр (thresh) функции Threshold'],
 	['THRESHOLD_MAXVAL', 'Параметр (maxval) функции Threshold']

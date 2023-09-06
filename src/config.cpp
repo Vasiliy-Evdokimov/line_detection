@@ -16,9 +16,11 @@ using namespace libconfig;
 
 ConfigData config;
 
-void recount_data_size() {
-	config.DATA_SIZE =
-		(config.NUM_ROI_H * config.NUM_ROI_V + (config.NUM_ROI - config.NUM_ROI_H));
+bool restart_threads;
+
+void recount_data_size(ConfigData& cfg) {
+	cfg.DATA_SIZE =
+		(cfg.NUM_ROI_H * cfg.NUM_ROI_V + (cfg.NUM_ROI - cfg.NUM_ROI_H));
 }
 
 void read_config(char* exe) {
@@ -60,7 +62,7 @@ void read_config(char* exe) {
 		config.NUM_ROI = cfg.lookup("roi_amount");
 		config.NUM_ROI_H = cfg.lookup("roi_h_amount");
 		config.NUM_ROI_V = cfg.lookup("roi_v_amount");
-		recount_data_size();
+		recount_data_size(config);
 
 		config.SHOW_CAM = cfg.lookup("show_camera");
 		config.SHOW_GRAY = cfg.lookup("show_gray");
@@ -80,6 +82,7 @@ void read_config(char* exe) {
 		config.THRESHOLD_THRESH = cfg.lookup("threshold_thresh");
 		config.THRESHOLD_MAXVAL = cfg.lookup("threshold_maxval");
 
+		restart_threads = false;
 	}
 	catch(const SettingNotFoundException &nfex)
 	{
