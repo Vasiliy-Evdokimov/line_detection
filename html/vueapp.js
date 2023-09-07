@@ -1,4 +1,4 @@
-const url = "http://127.0.0.1:8000";
+const sever_url = "http://127.0.0.1:8000";
 
 var app = new Vue({
     el: '#app',
@@ -19,67 +19,68 @@ var app = new Vue({
             }
             return res;
         },
+        server_request(aStatusText, aURL, aMethod, aDataObj, aCallback) {
+            this.status_text = aStatusText;
+            //
+            var request = new Request(sever_url + aURL);
+            var init = {
+                method: aMethod,
+                headers: { "Content-Type": "application/json" }
+            };
+            if (aMethod == "POST")
+                init.body = JSON.stringify(aDataObj);
+
+            fetch(request, init)
+            .then((response) => {
+                response.json().then((data) => aCallback(data));
+                this.status_ok = true;
+                this.status_text += ' успешно!';
+            })
+            .catch((err) => {
+                this.status_ok = false;
+                this.status_text += ' возникла ошибка!';
+                console.error(err);
+            });
+        },        
         get_params: function() {
-
-            this.status_text = 'Получение текущих параметров...';
-
-            fetch(
-                url + "/get_params",
-                {
-                    method: "GET",
-                    headers: { "Content-Type": "application/json" }
-                }
-            )
-            .then((response) => {
-                response.json().then(
-                    (data) => {
-                        this.cur_params = JSON.parse(JSON.stringify(data));
-                        if (!this.params_init) {
-                            this.params_init = true;
-                        }
-                        Object.assign(this.new_params, this.cur_params);
-                    });
-                this.status_ok = true;
-                this.status_text += ' успешно!';
-            })
-            .catch((err) => {
-                this.status_ok = false;
-                this.status_text += ' возникла ошибка!\n' + err;
-                console.error(err);
-            });
-
+            this.server_request(
+                "Получение текущих параметров...",
+                "/get_params",
+                "GET",
+                null,
+                this.get_params_callback
+            );
         },
-        apply_params: function() {
-
-            this.status_text = 'Применение новых параметров...';
-            
-            let buf = this.process_params_data(this.new_params);
-
-            fetch(
-                url + "/apply_params",
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(buf)
-                }
-            )
-            .then((response) => {
-                response.json().then(
-                    (data) => {
-                        console.log(JSON.stringify(data));
-                    });
-                this.status_ok = true;
-                this.status_text += ' успешно!';
-            })
-            .catch((err) => {
-                this.status_ok = false;
-                this.status_text += ' возникла ошибка!\n' + err;
-                console.error(err);
-            });
-
+        get_params_callback: function(data) {
+            this.cur_params = JSON.parse(JSON.stringify(data));
+            if (!this.params_init) {
+                this.params_init = true;
+            }
+            Object.assign(this.new_params, this.cur_params);
         },
-        save_params: function() {
-            alert('save_params()');
+        apply_params: function() {            
+            this.server_request(
+                "Применение новых параметров...",
+                "/apply_params",
+                "POST",
+                this.process_params_data(this.new_params),
+                this.apply_params_callback
+            );
+        },
+        apply_params_callback: function(data) {
+            console.log(JSON.stringify(data));
+        },
+        save_params: function() {            
+            this.server_request(
+                "Сохранение новых параметров...",
+                "/save_params",
+                "GET",
+                null,
+                this.save_params_callback
+            );
+        },
+        save_params_callback: function(data) {
+            console.log(JSON.stringify(data));
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);
@@ -97,12 +98,11 @@ var app = new Vue({
 });
 
 var params_descriptions = new Map([
-
     ['CAM_ADDR_1', 'RTSP адрес 1й камеры'],
     ['CAM_ADDR_2', 'RTSP адрес 2й камеры'],
     ['UDP_ADDR', 'UDP адрес для обмена данными'],
     ['UDP_PORT', 'UDP порт для обмена данными'],
-
+    //
     ['NUM_ROI', 'Количество горизонтальных полос'],
 	['NUM_ROI_H', 'Количество горизонтальных полос, которые делим на вертикальные'],
 	['NUM_ROI_V', 'Количество вертикальных полос'],
@@ -121,7 +121,6 @@ var params_descriptions = new Map([
 	//
 	['THRESHOLD_THRESH', 'Параметр (thresh) функции Threshold'],
 	['THRESHOLD_MAXVAL', 'Параметр (maxval) функции Threshold']
-
 ]);
 
 var checkboxes_params = new Set([    
