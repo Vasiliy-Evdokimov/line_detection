@@ -9,15 +9,41 @@
 #define CONFIG_HPP_
 
 #include <string>
+#include <libconfig.h++>
 
 using namespace std;
+using namespace libconfig;
+
+enum class ConfigType { ctUnknown = 0, ctInteger, ctString, ctBool };
+
+struct ConfigItem
+{
+	string name;
+	ConfigType type;
+	int valueInt;
+	string valueString;
+	bool valueBool;
+	string description;
+
+	ConfigItem();
+	ConfigItem(Setting& aSetting);
+	ConfigItem(const ConfigItem& src);
+};
 
 struct ConfigData
 {
+	ConfigItem items[100];
+	int items_count;
+
+	int GetIntParam(string aName);
+	string GetStringParam(string aName);
+	bool GetBoolParam(string aName);
+	void recount_data_size();
+
 	string CAM_ADDR_1;
 	string CAM_ADDR_2;
 	//
-	char UDP_ADDR[15];
+	string UDP_ADDR;
 	int UDP_PORT;
 	//
 	int NUM_ROI;
@@ -26,7 +52,7 @@ struct ConfigData
 	int DATA_SIZE;
 	//
 	int SHOW_GRAY;
-	int DETAILED;
+	int DRAW_DETAILED;
 	int DRAW_GRID;
 	int DRAW;
 	//

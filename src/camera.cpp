@@ -249,7 +249,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		lpCenter = &rd->center;
 
 #ifndef NO_GUI
-		if (config.DRAW && config.DETAILED) {
+		if (config.DRAW && config.DRAW_DETAILED) {
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
 			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
 		}

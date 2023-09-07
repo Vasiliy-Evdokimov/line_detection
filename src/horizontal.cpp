@@ -62,7 +62,7 @@ int get_hor_line_y(cv::Mat& imgColor, std::vector<RectData*> line)
 		y += pt.y;
 		//
 #ifndef NO_GUI
-		if (config.DRAW && config.DETAILED)
+		if (config.DRAW && config.DRAW_DETAILED)
 			cv::circle(imgColor, pt, 3, CLR_RED, 1, cv::LINE_AA);
 #endif
 	}

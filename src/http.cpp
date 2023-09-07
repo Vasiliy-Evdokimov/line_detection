@@ -50,7 +50,7 @@ void get_params(const HttpRequestPtr &request, Callback &&callback)
 	ret["07_NUM_ROI_V"] = config.NUM_ROI_V;
 	//
 	ret["08_SHOW_GRAY"] = config.SHOW_GRAY;
-	ret["09_DETAILED"] = config.DETAILED;
+	ret["09_DRAW_DETAILED"] = config.DRAW_DETAILED;
 	ret["10_DRAW_GRID"] = config.DRAW_GRID;
 	ret["11_DRAW"] = config.DRAW;
 	//
@@ -91,17 +91,16 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 			 buf.CAM_ADDR_1 = v["CAM_ADDR_1"].asString();
 			 buf.CAM_ADDR_2 = v["CAM_ADDR_2"].asString();
 			 //
-			 string udp_addr_str = v["UDP_ADDR"].asString();
-			 strcpy(buf.UDP_ADDR, udp_addr_str.c_str());
+			 buf.UDP_ADDR = v["UDP_ADDR"].asString();
 			 buf.UDP_PORT = stoi(v["UDP_PORT"].asString());
 			 //
 			 buf.NUM_ROI = stoi(v["NUM_ROI"].asString());
 			 buf.NUM_ROI_H = stoi(v["NUM_ROI_H"].asString());
 			 buf.NUM_ROI_V = stoi(v["NUM_ROI_V"].asString());
-			 recount_data_size(buf);
+			 buf.recount_data_size();
 			 //
 			 buf.SHOW_GRAY = stoi(v["SHOW_GRAY"].asString());
-			 buf.DETAILED = stoi(v["DETAILED"].asString());
+			 buf.DRAW_DETAILED = stoi(v["DRAW_DETAILED"].asString());
 			 buf.DRAW_GRID = stoi(v["DRAW_GRID"].asString());
 			 buf.DRAW = stoi(v["DRAW"].asString());
 			 //
@@ -126,9 +125,19 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 	Json::Value ret;
 	ret["message"] = "ok";
 	//
+	Json::Value root;
+	Json::Value child;
+	child["aa1"] = "aaaa111";
+	child["bb1"].append("bbbb111");
+	child["bb1"].append("cccc1111");
+	root["test1"]["a"] = 1;
+	root["test1"]["b"] = 2;
+	root["test1"]["c"] = child;
+	//
 	auto resp = HttpResponse::newHttpResponse();
 	Json::FastWriter fastWriter;
-	std::string json_str = fastWriter.write(ret);
+	//std::string json_str = fastWriter.write(ret);
+	std::string json_str = fastWriter.write(root);
 	//
 	resp->addHeader("Content-Type", "application/json");
 	resp->addHeader("Access-Control-Allow-Origin", "*");

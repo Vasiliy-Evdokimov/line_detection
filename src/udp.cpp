@@ -41,7 +41,9 @@ void udp_func()
 	si_other.sin_family = AF_INET;
 	si_other.sin_port = htons(config.UDP_PORT);
 
-	if (inet_aton(config.UDP_ADDR, &si_other.sin_addr) == 0)
+	char udp_addr[15];
+	strcpy(udp_addr, config.UDP_ADDR.c_str());
+	if (inet_aton(udp_addr, &si_other.sin_addr) == 0)
 	{
 		fprintf(stderr, "inet_aton() failed\n");
 		exit(1);
