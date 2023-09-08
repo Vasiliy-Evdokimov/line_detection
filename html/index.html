@@ -16,13 +16,13 @@
         />
             <table>
                 <tr>
-                    <td rowspan="2" class="param_info">{{ get_param_info(name) }}</td>
+                    <td rowspan="2" class="param_info">{{ get_param_info(name).descr }}</td>
                     <td>{{ cur_params[name] }}</td>
                 </tr>
-                <tr>
+                <tr>                    
                     <td>
                         <input
-                            v-if="checkboxes_params.has(name.slice(3))"
+                            v-if="get_param_info(name).type == 3"
                             type="checkbox"
                             v-bind:class="name.slice(3)"
                             v-model="new_params[name]"

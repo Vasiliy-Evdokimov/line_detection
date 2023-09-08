@@ -72,8 +72,7 @@ extern ConfigData config;
 extern bool restart_threads;
 extern bool kill_threads;
 
-void recount_data_size(ConfigData& cfg);
-
 void read_config(char* exe);
+void save_config();
 
 #endif /* CONFIG_HPP_ */

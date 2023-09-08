@@ -16,6 +16,8 @@ using namespace libconfig;
 
 ConfigData config;
 
+char cfg_filename[255];
+
 bool restart_threads;
 bool kill_threads;
 
@@ -90,17 +92,12 @@ bool ConfigData::GetBoolParam(string aName)
 	return false;
 }
 
-
-
-
-
-void read_config(char* exe) {
-
-	Config cfg;
-
-	char cfg_filename[255];
+void read_config(char* exe)
+{
 
 	sprintf(cfg_filename, "%s.cfg", exe);
+
+	Config cfg;
 
 	try
 	{
@@ -121,7 +118,7 @@ void read_config(char* exe) {
 	Setting& root = cfg.getRoot();
 
 	try {
-
+		/*
 		const Setting &params = root["params"];
 		int count = params.getLength();
 		config.items_count = 0;
@@ -131,9 +128,7 @@ void read_config(char* exe) {
 			config.items[i] = new_item;
 			config.items_count++;
 		}
-
-		//
-
+		*/
 		root["cameras_addresses"].lookupValue("address_1", config.CAM_ADDR_1);
 		root["cameras_addresses"].lookupValue("address_2", config.CAM_ADDR_2);
 
@@ -168,5 +163,57 @@ void read_config(char* exe) {
 		cerr << "Critical setting was not found in configuration file.\n";
 		exit(1);
 	}
+
+}
+
+void save_config()
+{
+
+	Config cfg;
+
+	try
+	{
+		cfg.readFile(cfg_filename);
+	}
+	catch(const FileIOException &fioex)
+	{
+		cerr << "I/O error while reading file.\n";
+		exit(1);
+	}
+	catch(const ParseException &pex)
+	{
+		cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
+				<< " - " << pex.getError() << endl;
+		exit(1);
+	}
+
+	Setting& root = cfg.getRoot();
+
+	root["cameras_addresses"]["address_1"] = config.CAM_ADDR_1;
+	root["cameras_addresses"]["address_2"] = config.CAM_ADDR_2;
+
+	root["udp_parameters"]["address"] = config.UDP_ADDR;
+	root["udp_parameters"]["port"] = config.UDP_PORT;
+
+	root["regions_of_interests"]["roi"] = config.NUM_ROI;
+	root["regions_of_interests"]["roi_h"] = config.NUM_ROI_H;
+	root["regions_of_interests"]["roi_v"] = config.NUM_ROI_V;
+	config.recount_data_size();
+
+	root["processing"]["gaussian_blur"]["kernel"] = config.GAUSSIAN_BLUR_KERNEL;
+	root["processing"]["morph_open"]["kernel"] = config.MORPH_OPEN_KERNEL;
+	root["processing"]["morph_close"]["kernel"] = config.MORPH_CLOSE_KERNEL;
+	root["processing"]["threshold"]["thresh"] = config.THRESHOLD_THRESH;
+	root["processing"]["threshold"]["maxval"] = config.THRESHOLD_MAXVAL;
+
+	root["parsing"]["minimal_contour_length"] = config.MIN_CONT_LEN;
+	root["parsing"]["horizontal_collapse"] = config.HOR_COLLAPSE;
+
+	root["displaying"]["show_gray"] = config.SHOW_GRAY;
+	root["displaying"]["draw_detailed"] = config.DRAW_DETAILED;
+	root["displaying"]["draw_grid"] = config.DRAW_GRID;
+	root["displaying"]["draw"] = config.DRAW;
+
+	cfg.writeFile(cfg_filename);
 
 }
