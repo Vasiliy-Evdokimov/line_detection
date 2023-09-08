@@ -8,6 +8,9 @@
 </head>
 <body>
     <div id="app">
+        <canvas id="graph" width="150" height="150"></canvas>            
+        <button v-on:click="get_points">Get Points</button>
+
         <div
             class="param"
             v-if="params_init" 

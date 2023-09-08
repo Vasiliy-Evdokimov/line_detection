@@ -7,7 +7,11 @@ var app = new Vue({
         cur_params: {},
         new_params: {},
         status_ok: true,
-        status_text: ""
+        status_text: "",
+        //
+        draw_canvas: null,
+        draw_context: null,
+        draw_interval: null
     },
     methods: {
         process_params_data: function(data) {
@@ -63,6 +67,9 @@ var app = new Vue({
             this.new_params = JSON.parse(JSON.stringify(this.cur_params));            
         },
         apply_params: function() {    
+            let cnv = this.canvas;
+            let ctx = this.context;
+
             if (!(this.check_form(this.new_params)))
                 return;
             //
@@ -88,6 +95,18 @@ var app = new Vue({
         },
         save_params_callback: function(data) {            
             this.get_params();            
+        },
+        get_points: function() {            
+            this.server_request(
+                "Получение результатов распознавания...",
+                "/get_points",
+                "GET",
+                null,
+                this.get_points_callback
+            );
+        },
+        get_points_callback: function(data) {            
+            //
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);
@@ -146,10 +165,24 @@ var app = new Vue({
             }
             //
             return true;
+        },
+        draw: function() {
+            let ctx = this.draw_context;
+            //
+            ctx.fillStyle = "rgb(200,0,0)";
+            ctx.fillRect(10, 10, 55, 50);
+            ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+            ctx.fillRect(30, 30, 55, 50);
         }
+
     },
     mounted: function () {
         this.get_params();
+        //
+        this.draw_canvas = document.getElementById("graph");
+        this.draw_context =  this.draw_canvas.getContext("2d");
+        //        
+        this.draw_interval = setInterval(this.draw, 50);
     }
 });
 

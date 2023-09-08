@@ -19,8 +19,6 @@ using namespace drogon;
 
 typedef std::function<void(const HttpResponsePtr &)> Callback;
 
-Json::Value http_packs[2];
-
 bool jsonParse(std::string_view str, Json::Value& val, std::string& err)
 {
   Json::CharReaderBuilder builder;
@@ -48,9 +46,25 @@ void fillJsonResponse(Json::Value& ret, HttpResponsePtr& resp)
 	resp->setBody(json_str);
 }
 
-void fillParseResultJson(int aIndex, Json::Value& aJS, ParseImageResult& parse_result)
+void fillParseResultJson(Json::Value& aJS, ParseImageResult& parse_result)
 {
+	aJS.clear();
+	aJS["width"] = parse_result.width;
+	aJS["height"] = parse_result.height;
+	aJS["fl_error"] = parse_result.fl_error;
 	//
+	Json::Value res_pt, res_pts;
+	for (size_t i = 0; i < parse_result.res_points.size(); i++) {
+		res_pt["x"] = parse_result.res_points[i].x;
+		res_pt["y"] = parse_result.res_points[i].y;
+		res_pts.append(res_pt);
+	}
+	aJS["res_points"] = res_pts;
+	//
+	Json::Value hor_ys;
+	for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
+		hor_ys.append(parse_result.hor_ys[i]);
+	aJS["hor_ys"] = hor_ys;
 }
 
 void get_params(const HttpRequestPtr& request, Callback&& callback)
@@ -167,18 +181,27 @@ void save_params(const HttpRequestPtr &request, Callback &&callback)
 	else
 		ret["message"] = "error";
 	//
-//	Json::Value root;
-//	Json::Value child;
-//	//
-//	child["aa1"] = "aaaa111";
-//	child["bb1"].append("bbbb111");
-//	child["bb1"].append("cccc1111");
-//	root["test1"]["a"] = 1;
-//	root["test1"]["b"] = 2;
-//	root["test1"]["c"] = child;
-	//
 	HttpResponsePtr resp = HttpResponse::newHttpResponse();
 	fillJsonResponse(ret, resp);
+	callback(resp);
+}
+
+
+void get_points(const HttpRequestPtr &request, Callback &&callback)
+{
+	//std::cout << "get_points request!" << std::endl;
+	//
+	Json::Value root;
+	Json::Value child;
+	parse_results_mtx.lock();
+	for (int i = 0; i < 2; i++) {
+		fillParseResultJson(child, parse_results[i]);
+		root["result"].append(child);
+	}
+	parse_results_mtx.unlock();
+	//
+	HttpResponsePtr resp = HttpResponse::newHttpResponse();
+	fillJsonResponse(root, resp);
 	callback(resp);
 }
 
@@ -188,5 +211,6 @@ void http_init()
 	drogon::app().registerHandler("/get_params", &get_params, { Get, Post, Options });
 	drogon::app().registerHandler("/apply_params", &apply_params, { Get, Post, Options });
 	drogon::app().registerHandler("/save_params", &save_params, { Get, Post, Options });
+	drogon::app().registerHandler("/get_points", &get_points, { Get, Post, Options });
 	drogon::app().run();
 }
