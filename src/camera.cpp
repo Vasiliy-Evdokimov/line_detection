@@ -27,6 +27,9 @@ mutex frames_mtx;
 cv::Mat frames_to_show[2];
 cv::Mat grays_to_show[2];
 
+mutex parse_results_mtx;
+ParseImageResult parse_results[2];
+
 void visualizer_func()
 {
 	cv::Mat mergedGray;
@@ -57,9 +60,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
     cout << aThreadName <<  " started!\n";
 
-	vector<cv::Point> res_points;
-	vector<int> hor_ys;
-
 	clock_t tStart;
 
 	double tt, sum = 0;
@@ -81,13 +81,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
 		cap >> frame;
 
-	uint16_t counter = 0;
-
-	udp_package udp_pack;
-
-	bool fl_error;
-
 	cout << aThreadName <<  " entered infinity loop.\n";
+
+	ParseImageResult parse_result;
 
 	while (!restart_threads) {
 
@@ -100,14 +96,28 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			cout << aThreadName <<  " read error!\n";
 		}
 
+		parse_result.width = frame.cols;
+		parse_result.height = frame.rows;
+
 		try {
 			//	ищем центры областей и горизонтальные пересечения
-			parse_image(aThreadName, frame, res_points, hor_ys, fl_error, aIndex);
+			parse_image(
+				aThreadName,
+				frame,
+				parse_result.res_points,
+				parse_result.hor_ys,
+				parse_result.fl_error,
+				aIndex
+			);
+			//
+			parse_results_mtx.lock();
+			parse_results[aIndex] = parse_result;
+			parse_results_mtx.unlock();
 		} catch (...) {
 			cout << aThreadName <<  " parse error!\n";
 		}
 
-		if (fl_error)
+		if (parse_result.fl_error)
 			incorrect_lines++;
 
 		tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
@@ -116,45 +126,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		if (cnt >= AVG_CNT)
 		{
-
-			memset(&udp_pack, 0, sizeof(udp_pack));
-
-			counter++;
-
-			udp_pack.counter = counter;
-			udp_pack.img_width = frame.cols;
-			udp_pack.img_height = frame.rows;
-			udp_pack.error_flag = (fl_error) ? 1 : 0;
-			//
-			udp_pack.points_count = hor_ys.size() & 0xF;
-			udp_pack.points_count |= (res_points.size() & 0xF) << 4;
-			//
-			for (size_t i = 0; i < res_points.size(); i++)
-			{
-				if (UDP_LOG) printf("(%d; %d) ", res_points[i].x, res_points[i].y);
-				udp_pack.points[i] = { (uint16_t)res_points[i].x, (uint16_t)res_points[i].y };
-			}
-			if (UDP_LOG) printf("\n");
-			//
-			for (size_t i = 0; i < hor_ys.size(); i++)
-			{
-				if (UDP_LOG) printf("(%d) ", hor_ys[i]);
-				udp_pack.points_hor[i] = { (uint16_t)hor_ys[i] };
-			}
-			if (UDP_LOG) printf("\n");
-			//
-			//	сохраняем данные в исходящий UDP-пакет
-			udp_packs_mtx.lock();
-			memcpy(&udp_packs[aIndex], &udp_pack, sizeof(udp_pack));
-			udp_packs_mtx.unlock();
-			//
-			size_t sz = sizeof(udp_pack);
-			if (UDP_LOG) {
-				char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
-				for (size_t i = 0; i < sz; i++)
-					printf("%02x ", my_s_bytes[i]);
-				printf("\n");
-			}
+			//make_udp_pack(aIndex, parse_result);
 			//
 			if (STATS_LOG) {
 				if (read_err)

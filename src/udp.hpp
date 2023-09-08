@@ -27,9 +27,6 @@ struct udp_package {
 	uint16_t points_hor[4];
 };
 
-extern mutex udp_packs_mtx;
-extern udp_package udp_packs[2];
-
 void udp_func();
 
 #endif /* UDP_HPP_ */

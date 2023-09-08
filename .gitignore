@@ -6,3 +6,11 @@
 Debug/line_detection
 /Debug/
 /DebugNoGUI/
+
+html/jquery-3.7.0.js
+
+html/jquery-3.7.0.min.js
+
+html/vue.js
+
+html/vue.min.js

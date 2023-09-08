@@ -10,6 +10,7 @@
 #include <drogon/drogon.h>
 
 #include "config.hpp"
+#include "camera.hpp"
 #include "http.hpp"
 
 using namespace std;
@@ -17,6 +18,8 @@ using namespace std;
 using namespace drogon;
 
 typedef std::function<void(const HttpResponsePtr &)> Callback;
+
+Json::Value http_packs[2];
 
 bool jsonParse(std::string_view str, Json::Value& val, std::string& err)
 {
@@ -43,6 +46,11 @@ void fillJsonResponse(Json::Value& ret, HttpResponsePtr& resp)
 	resp->addHeader("Access-Control-Request-Method", "*");
 	//
 	resp->setBody(json_str);
+}
+
+void fillParseResultJson(int aIndex, Json::Value& aJS, ParseImageResult& parse_result)
+{
+	//
 }
 
 void get_params(const HttpRequestPtr& request, Callback&& callback)
