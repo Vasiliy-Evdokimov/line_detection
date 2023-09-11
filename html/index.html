@@ -3,14 +3,12 @@
 <head>
     <meta http-equiv="Cache-Control" content="no-cache" />
 	<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-    <link rel="stylesheet" href="styles.css?v.3">
+    <link rel="stylesheet" href="styles.css?v.4">
 	<script src="vue.min.js"></script>
 </head>
 <body>
     <div id="app">
-        <canvas id="graph" width="150" height="150"></canvas>            
-        <button v-on:click="get_points">Get Points</button>
-
+        <canvas id="graph"></canvas>
         <div
             class="param"
             v-if="params_init" 
@@ -51,6 +49,6 @@
             {{ status_text }}
         </div>        
     </div>
-    <script src="vueapp.js?v.3"></script>
+    <script src="vueapp.js?v.4"></script>
 </body>
 </html>

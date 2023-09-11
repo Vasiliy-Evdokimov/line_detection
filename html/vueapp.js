@@ -23,8 +23,9 @@ var app = new Vue({
             }
             return res;
         },
-        server_request(aStatusText, aURL, aMethod, aDataObj, aCallback) {
-            this.status_text = aStatusText;
+        server_request(aStatusText, aURL, aMethod, aDataObj, aCallback, aApplyStatus = true, aLogResponse = true) {
+            if (aApplyStatus)
+                this.status_text = aStatusText;
             //
             var request = new Request(sever_url + aURL);
             var init = {
@@ -37,17 +38,22 @@ var app = new Vue({
             fetch(request, init)
             .then((response) => response.json())
             .then((data) => {
-                console.log(JSON.stringify(data));
+                if (aLogResponse)
+                    console.log(JSON.stringify(data));
                 if (data.message == "error") throw "error";
                 aCallback(data);
             })
             .then(() => {
-                this.status_ok = true;
-                this.status_text += ' успешно!';
+                if (aApplyStatus) {
+                    this.status_ok = true;
+                    this.status_text += ' успешно!';
+                }
             })
             .catch((err) => {
-                this.status_ok = false;
-                this.status_text += ' возникла ошибка!';                
+                if (aApplyStatus) {
+                    this.status_ok = false;
+                    this.status_text += ' возникла ошибка!';
+                }                    
             });
         },        
         get_params: function() {
@@ -102,11 +108,75 @@ var app = new Vue({
                 "/get_points",
                 "GET",
                 null,
-                this.get_points_callback
+                this.get_points_callback,
+                false,
+                false
             );
         },
-        get_points_callback: function(data) {            
+        get_points_callback: function(data) {
+            let ctx = this.draw_context;
             //
+            let w0 = data.result[0].width;
+            let h0 = data.result[0].height;
+            let w1 = data.result[1].width;            
+            let h1 = data.result[1].height;
+            //
+            let canvas_width = w0 + w1;
+            let canvas_height = Math.max(h0, h1);
+            if ((this.draw_canvas.width != canvas_width) ||
+                (this.draw_canvas.height != canvas_height)) 
+            {
+                this.draw_canvas.width = canvas_width;
+                this.draw_canvas.height = canvas_height;
+            }
+
+            //
+            let offset = 0;
+            for (let i = 0; i < 2; i++) {                
+
+                let res = data.result[i];
+                let width = res.width;
+                let height = res.height;
+                //            
+                ctx.beginPath();
+                ctx.rect(offset, 0, width, height);
+                ctx.closePath();
+                ctx.strokeStyle = "yellow";
+                ctx.fillStyle = "black";
+                ctx.fill();
+                ctx.stroke();
+                ctx.strokeStyle = "black";
+                //
+                if (res.fl_error) {
+                    ctx.beginPath();                                
+                    ctx.fillStyle = "red";
+                    ctx.arc(50 + offset, 50, 20, 0, this.get_radians(360));
+                    ctx.stroke();
+                    ctx.fill();
+                } else {
+                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = "green";
+                    let res_point;
+                    ctx.beginPath();
+                    ctx.moveTo((width / 2) + offset, height);
+                    for (res_point of res.res_points)
+                        ctx.lineTo(res_point.x + offset, res_point.y);            
+                    ctx.stroke();
+                    //
+                    ctx.strokeStyle = "red";
+                    let hor_y;
+                    for (hor_y of res.hor_ys)
+                    {
+                        ctx.beginPath();
+                        ctx.moveTo(offset, hor_y);
+                        ctx.lineTo(width + offset, hor_y);
+                        ctx.stroke();
+                    }
+                }
+
+                offset = width;
+
+            }            
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);
@@ -166,13 +236,11 @@ var app = new Vue({
             //
             return true;
         },
+        get_radians: function(degrees) {
+            return (Math.PI / 180) * degrees;
+        },
         draw: function() {
-            let ctx = this.draw_context;
-            //
-            ctx.fillStyle = "rgb(200,0,0)";
-            ctx.fillRect(10, 10, 55, 50);
-            ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
-            ctx.fillRect(30, 30, 55, 50);
+            this.get_points();
         }
 
     },
@@ -181,8 +249,8 @@ var app = new Vue({
         //
         this.draw_canvas = document.getElementById("graph");
         this.draw_context =  this.draw_canvas.getContext("2d");
-        //        
-        this.draw_interval = setInterval(this.draw, 50);
+        //
+        this.draw_interval = setInterval(this.draw, 500);
     }
 });
 
