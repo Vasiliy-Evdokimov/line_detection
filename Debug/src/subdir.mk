@@ -41,7 +41,7 @@ OBJS += \
 src/%.o: ../src/%.cpp src/subdir.mk
 	@echo 'Building file: $<'
 	@echo 'Invoking: GCC C++ Compiler'
-	g++ -std=c++17 -I/usr/include/opencv4 -I/usr/local/include/ZXing -I/usr/local/include/oatpp-1.3.0/oatpp -I/usr/local/include/drogon -I/usr/local/include/trantor -I/usr/include/openssl -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
+	g++ -std=c++17 -I/usr/include/opencv4 -I/usr/local/include/ZXing -I/usr/local/include/drogon -I/usr/local/include/trantor -I/usr/include/openssl -O0 -g3 -Wall -c -fmessage-length=0 -MMD -MP -MF"$(@:%.o=%.d)" -MT"$@" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

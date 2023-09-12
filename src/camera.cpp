@@ -85,7 +85,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	ParseImageResult parse_result;
 
-	while (!restart_threads) {
+	while (!restart_threads || !kill_threads) {
 
 		tStart = clock();
 
@@ -141,6 +141,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 	}
+
+	cout << aThreadName <<  " is out of infinity loop.\n";
 
 	cap.release();
 

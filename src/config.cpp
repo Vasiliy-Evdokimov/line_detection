@@ -155,7 +155,6 @@ void read_config(char* exe)
 		root["displaying"].lookupValue("draw", config.DRAW);
 
 		restart_threads = false;
-		kill_threads = false;
 
 	}
 	catch(const SettingNotFoundException &nfex)

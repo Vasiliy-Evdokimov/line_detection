@@ -214,3 +214,9 @@ void http_init()
 	drogon::app().registerHandler("/get_points", &get_points, { Get, Post, Options });
 	drogon::app().run();
 }
+
+void http_quit()
+{
+	if (drogon::app().isRunning())
+		drogon::app().quit();
+}

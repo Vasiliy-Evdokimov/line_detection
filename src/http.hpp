@@ -10,4 +10,6 @@
 
 void http_init();
 
+void http_quit();
+
 #endif /* HTTP_HPP_ */
