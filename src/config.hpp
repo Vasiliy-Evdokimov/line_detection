@@ -32,18 +32,13 @@ struct ConfigItem
 
 struct ConfigData
 {
-	ConfigItem items[100];
-	int items_count;
+//	ConfigItem items[100];
+//	int items_count;
 
-	int GetIntParam(string aName);
-	string GetStringParam(string aName);
-	bool GetBoolParam(string aName);
-	void recount_data_size();
-
-	string CAM_ADDR_1;
-	string CAM_ADDR_2;
+	char CAM_ADDR_1[255];
+	char CAM_ADDR_2[255];
 	//
-	string UDP_ADDR;
+	char UDP_ADDR[16];
 	int UDP_PORT;
 	//
 	int NUM_ROI;
@@ -65,6 +60,8 @@ struct ConfigData
 	//
 	int THRESHOLD_THRESH;
 	int THRESHOLD_MAXVAL;
+
+	void recount_data_size();
 };
 
 extern ConfigData config;

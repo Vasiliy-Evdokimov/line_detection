@@ -4,6 +4,7 @@
 using namespace std;
 
 #include "config.hpp"
+#include "shared_memory.hpp"
 #include "camera.hpp"
 #include "udp.hpp"
 #include "http.hpp"
@@ -50,12 +51,14 @@ int main(int argc, char** argv)
 	//	читаем параметры из конфигурационного файла
 	read_config(argv[0]);
 	//
+	init_shared_memory();
+	//
 	//	создаем рабочий поток
 	thread work_thread(work_func);
 	//	создаем поток визуализации
 	thread visualizer_thread(visualizer_func);
 	//	инициализируем HTTP
-    http_init();
+	//	http_init();
     //
     if (work_thread.joinable()) work_thread.join();
     if (visualizer_thread.joinable()) visualizer_thread.join();

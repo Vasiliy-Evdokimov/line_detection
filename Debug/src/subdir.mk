@@ -11,6 +11,7 @@ CPP_SRCS += \
 ../src/horizontal.cpp \
 ../src/http.cpp \
 ../src/line_detection.cpp \
+../src/shared_memory.cpp \
 ../src/udp.cpp \
 ../src/websocket.cpp 
 
@@ -22,6 +23,7 @@ CPP_DEPS += \
 ./src/horizontal.d \
 ./src/http.d \
 ./src/line_detection.d \
+./src/shared_memory.d \
 ./src/udp.d \
 ./src/websocket.d 
 
@@ -33,6 +35,7 @@ OBJS += \
 ./src/horizontal.o \
 ./src/http.o \
 ./src/line_detection.o \
+./src/shared_memory.o \
 ./src/udp.o \
 ./src/websocket.o 
 
@@ -49,7 +52,7 @@ src/%.o: ../src/%.cpp src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/barcode.d ./src/barcode.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/horizontal.d ./src/horizontal.o ./src/http.d ./src/http.o ./src/line_detection.d ./src/line_detection.o ./src/udp.d ./src/udp.o ./src/websocket.d ./src/websocket.o
+	-$(RM) ./src/barcode.d ./src/barcode.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/horizontal.d ./src/horizontal.o ./src/http.d ./src/http.o ./src/line_detection.d ./src/line_detection.o ./src/shared_memory.d ./src/shared_memory.o ./src/udp.d ./src/udp.o ./src/websocket.d ./src/websocket.o
 
 .PHONY: clean-src
 

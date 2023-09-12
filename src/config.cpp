@@ -77,21 +77,6 @@ void ConfigData::recount_data_size() {
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
 }
 
-int ConfigData::GetIntParam(string aName)
-{
-	return 0;
-}
-
-string ConfigData::GetStringParam(string aName)
-{
-	return "";
-}
-
-bool ConfigData::GetBoolParam(string aName)
-{
-	return false;
-}
-
 void read_config(char* exe)
 {
 
@@ -129,10 +114,14 @@ void read_config(char* exe)
 			config.items_count++;
 		}
 		*/
-		root["cameras_addresses"].lookupValue("address_1", config.CAM_ADDR_1);
-		root["cameras_addresses"].lookupValue("address_2", config.CAM_ADDR_2);
+		string str;
+		root["cameras_addresses"].lookupValue("address_1", str);
+		strcpy(config.CAM_ADDR_1, str.c_str());
+		root["cameras_addresses"].lookupValue("address_2", str);
+		strcpy(config.CAM_ADDR_2, str.c_str());
 
-		root["udp_parameters"].lookupValue("address", config.UDP_ADDR);
+		root["udp_parameters"].lookupValue("address", str);
+		strcpy(config.UDP_ADDR, str.c_str());
 		root["udp_parameters"].lookupValue("port", config.UDP_PORT);
 
 		root["regions_of_interests"].lookupValue("roi", config.NUM_ROI);

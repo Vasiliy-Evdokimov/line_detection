@@ -111,13 +111,16 @@ void apply_params(const HttpRequestPtr &request, Callback &&callback)
 	//
 	Json::Value v;
 	std::string err;
+	string str;
 	if(jsonParse(request->body(), v, err)) {
 		try {
-
-			buf.CAM_ADDR_1 = v["CAM_ADDR_1"].asString();
-			buf.CAM_ADDR_2 = v["CAM_ADDR_2"].asString();
+			str = v["CAM_ADDR_1"].asString();
+			strcpy(buf.CAM_ADDR_1, str.c_str());
+			str = v["CAM_ADDR_2"].asString();
+			strcpy(buf.CAM_ADDR_2, str.c_str());
 			//
-			buf.UDP_ADDR = v["UDP_ADDR"].asString();
+			str = v["UDP_ADDR"].asString();
+			strcpy(buf.UDP_ADDR, str.c_str());
 			buf.UDP_PORT = stoi(v["UDP_PORT"].asString());
 			//
 			buf.NUM_ROI = stoi(v["NUM_ROI"].asString());
