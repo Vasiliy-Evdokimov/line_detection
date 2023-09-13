@@ -35,6 +35,9 @@ void visualizer_func()
 	cv::Mat mergedGray;
 	cv::Mat mergedColor;
 
+	cout << "visualizer_func() started!\n";
+	cout << "visualizer_func() entered infinity loop.\n";
+
 	while (!kill_threads) {
 
 		frames_mtx.lock();
@@ -52,6 +55,10 @@ void visualizer_func()
 		cv::waitKey(1);
 
 	}
+
+	destroyAllWindows();
+
+	cout << "visualizer_func() is out of infinity loop.\n";
 
 }
 
@@ -85,15 +92,21 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	ParseImageResult parse_result;
 
-	while (!restart_threads || !kill_threads) {
+	while (1) {
+
+		if (restart_threads || kill_threads) break;
 
 		tStart = clock();
 
 		try {
 			if (!(cap.read(frame)))
 				read_err++;
-		} catch (...) {
-			cout << aThreadName <<  " read error!\n";
+		}
+		catch (const std::exception& e) {
+			cout << aThreadName << " an exception occurred: " << e.what() << endl;
+		}
+		catch (...) {
+			cout << aThreadName << " read error!\n";
 		}
 
 		parse_result.width = frame.cols;
@@ -142,9 +155,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	}
 
-	cout << aThreadName <<  " is out of infinity loop.\n";
-
 	cap.release();
+
+	cout << aThreadName <<  " is out of infinity loop.\n";
 
 }
 

@@ -27,6 +27,10 @@ struct udp_package {
 	uint16_t points_hor[4];
 };
 
+extern pthread_t udp_thread_id;
+
+void kill_udp_thread();
+
 void udp_func();
 
 #endif /* UDP_HPP_ */

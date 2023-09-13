@@ -19,6 +19,8 @@
 #include "config.hpp"
 #include "camera.hpp"
 
+#include <pthread.h>
+
 #include "udp.hpp"
 
 #include "string.h"
@@ -28,6 +30,10 @@
 using namespace std;
 
 udp_package udp_packs[2];
+
+pthread_t udp_thread_id = 0;
+
+int sockfd = -1;
 
 void make_udp_pack(int aCounter, udp_package& udp_pack, ParseImageResult& parse_result) {
 
@@ -65,56 +71,67 @@ void make_udp_pack(int aCounter, udp_package& udp_pack, ParseImageResult& parse_
 
 }
 
+void kill_udp_thread()
+{
+	if (udp_thread_id)
+		pthread_cancel(udp_thread_id);
+}
+
 void udp_func()
 {
 
 	std::cout << "UPD thread started!\n";
 
-	int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-	if (sockfd < 0) {
-		std::cerr << "Error creating socket" << std::endl;
-		exit(1);
-	}
+	struct sockaddr_in serverAddr{}, clientAddr{};
+	socklen_t addrLen = sizeof(clientAddr);
 
-	// Задаем адрес сервера
-	struct sockaddr_in serveraddr{};
-	serveraddr.sin_family = AF_INET;
-	serveraddr.sin_port = htons(config.UDP_PORT);
-	serveraddr.sin_addr.s_addr = INADDR_ANY;
-
-	// Привязываем сокет к адресу сервера
-	if (bind(sockfd, (struct sockaddr*) &serveraddr, sizeof(serveraddr)) < 0) {
-		std::cerr << "Error binding socket" << std::endl;
+	// Создание сокета
+	if (sockfd >= 0)
+	try {
 		close(sockfd);
-		exit(1);
+	} catch (...) {
+		cout << "socket close error!\n";
 	}
+	//
+	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (sockfd < 0) {
+		std::cerr << "Ошибка при создании сокета" << std::endl;
+		return;
+	}
+
+	// Настройка структуры serverAddr
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(config.UDP_PORT); // Порт сервера
+	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY); // Принимать пакеты от любых адресов
+
+	// Привязка сокета к адресу и порту
+	if (bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
+		std::cerr << "Ошибка при привязке сокета к адресу и порту" << std::endl;
+		return;
+	}
+
+	char buffer[UDP_BUFLEN];
 
 	std::cout << "UDP thread entered infinity loop.\n";
 
-	// Бесконечный цикл приема сообщений
-	while (!restart_threads || !kill_threads) {
-
-		char buffer[UDP_BUFLEN] = {0};
-		struct sockaddr_in clientaddr{};
-		socklen_t clientaddrlen = sizeof(clientaddr);
-
-		// Принимаем сообщение
-		ssize_t bytesRead = recvfrom(sockfd, buffer, sizeof(buffer)-1, 0, (struct sockaddr*) &clientaddr, &clientaddrlen);
-		if (bytesRead < 0) {
-			std::cerr << "Error receiving message" << std::endl;
-			break;
+	while (true) {
+		// Получение данных от клиента
+		int numBytes = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen);
+		if (numBytes < 0) {
+			std::cerr << "Ошибка при приеме данных от клиента" << std::endl;
+			return;
 		}
 
-		// Выводим полученное сообщение
-		std::cout << "Received message: " << buffer << std::endl;
+		// Обработка полученных данных
+		std::cout << "Received: " << std::string(buffer, numBytes) << std::endl;
 
-//		// Отправляем ответное сообщение обратно клиенту
-//		std::string response = "Hello, client!";
-//		ssize_t bytesSent = sendto(sockfd, response.c_str(), response.length(), 0, (struct sockaddr*) &clientaddr, clientaddrlen);
-//		if (bytesSent < 0) {
-//			std::cerr << "Error sending response" << std::endl;
-//			break;
-//		}
+		// Отправка данных обратно клиенту
+		if (sendto(sockfd, buffer, numBytes, 0, (struct sockaddr *) &clientAddr, addrLen) < 0) {
+			std::cerr << "Ошибка при отправке данных клиенту" << std::endl;
+			return;
+		}
+
+		if (restart_threads || kill_threads) break;
 	}
 
 	std::cout << "UDP out of infinity loop.\n";

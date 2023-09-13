@@ -35,6 +35,8 @@ struct ConfigData
 //	ConfigItem items[100];
 //	int items_count;
 
+	int PID;
+
 	char CAM_ADDR_1[255];
 	char CAM_ADDR_2[255];
 	//
@@ -69,7 +71,7 @@ extern ConfigData config;
 extern bool restart_threads;
 extern bool kill_threads;
 
-void read_config(char* exe);
-void save_config();
+void read_config();
+void save_config(ConfigData aConfig);
 
 #endif /* CONFIG_HPP_ */

@@ -7,6 +7,8 @@
 
 #include <iostream>
 #include <string.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <libconfig.h++>
 
 #include "config.hpp"
@@ -16,7 +18,8 @@ using namespace libconfig;
 
 ConfigData config;
 
-char cfg_filename[255];
+const char* cfg_filename =
+	"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
 
 bool restart_threads;
 bool kill_threads;
@@ -77,10 +80,8 @@ void ConfigData::recount_data_size() {
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
 }
 
-void read_config(char* exe)
+void read_config()
 {
-
-	sprintf(cfg_filename, "%s.cfg", exe);
 
 	Config cfg;
 
@@ -114,6 +115,9 @@ void read_config(char* exe)
 			config.items_count++;
 		}
 		*/
+		config.PID = getpid();
+		cout << "Application PID = " << config.PID << endl;
+
 		string str;
 		root["cameras_addresses"].lookupValue("address_1", str);
 		strcpy(config.CAM_ADDR_1, str.c_str());
@@ -154,7 +158,7 @@ void read_config(char* exe)
 
 }
 
-void save_config()
+void save_config(ConfigData aConfig)
 {
 
 	Config cfg;
@@ -177,30 +181,30 @@ void save_config()
 
 	Setting& root = cfg.getRoot();
 
-	root["cameras_addresses"]["address_1"] = config.CAM_ADDR_1;
-	root["cameras_addresses"]["address_2"] = config.CAM_ADDR_2;
+	root["cameras_addresses"]["address_1"] = aConfig.CAM_ADDR_1;
+	root["cameras_addresses"]["address_2"] = aConfig.CAM_ADDR_2;
 
-	root["udp_parameters"]["address"] = config.UDP_ADDR;
-	root["udp_parameters"]["port"] = config.UDP_PORT;
+	root["udp_parameters"]["address"] = aConfig.UDP_ADDR;
+	root["udp_parameters"]["port"] = aConfig.UDP_PORT;
 
-	root["regions_of_interests"]["roi"] = config.NUM_ROI;
-	root["regions_of_interests"]["roi_h"] = config.NUM_ROI_H;
-	root["regions_of_interests"]["roi_v"] = config.NUM_ROI_V;
-	config.recount_data_size();
+	root["regions_of_interests"]["roi"] = aConfig.NUM_ROI;
+	root["regions_of_interests"]["roi_h"] = aConfig.NUM_ROI_H;
+	root["regions_of_interests"]["roi_v"] = aConfig.NUM_ROI_V;
+	aConfig.recount_data_size();
 
-	root["processing"]["gaussian_blur"]["kernel"] = config.GAUSSIAN_BLUR_KERNEL;
-	root["processing"]["morph_open"]["kernel"] = config.MORPH_OPEN_KERNEL;
-	root["processing"]["morph_close"]["kernel"] = config.MORPH_CLOSE_KERNEL;
-	root["processing"]["threshold"]["thresh"] = config.THRESHOLD_THRESH;
-	root["processing"]["threshold"]["maxval"] = config.THRESHOLD_MAXVAL;
+	root["processing"]["gaussian_blur"]["kernel"] = aConfig.GAUSSIAN_BLUR_KERNEL;
+	root["processing"]["morph_open"]["kernel"] = aConfig.MORPH_OPEN_KERNEL;
+	root["processing"]["morph_close"]["kernel"] = aConfig.MORPH_CLOSE_KERNEL;
+	root["processing"]["threshold"]["thresh"] = aConfig.THRESHOLD_THRESH;
+	root["processing"]["threshold"]["maxval"] = aConfig.THRESHOLD_MAXVAL;
 
-	root["parsing"]["minimal_contour_length"] = config.MIN_CONT_LEN;
-	root["parsing"]["horizontal_collapse"] = config.HOR_COLLAPSE;
+	root["parsing"]["minimal_contour_length"] = aConfig.MIN_CONT_LEN;
+	root["parsing"]["horizontal_collapse"] = aConfig.HOR_COLLAPSE;
 
-	root["displaying"]["show_gray"] = config.SHOW_GRAY;
-	root["displaying"]["draw_detailed"] = config.DRAW_DETAILED;
-	root["displaying"]["draw_grid"] = config.DRAW_GRID;
-	root["displaying"]["draw"] = config.DRAW;
+	root["displaying"]["show_gray"] = aConfig.SHOW_GRAY;
+	root["displaying"]["draw_detailed"] = aConfig.DRAW_DETAILED;
+	root["displaying"]["draw_grid"] = aConfig.DRAW_GRID;
+	root["displaying"]["draw"] = aConfig.DRAW;
 
 	cfg.writeFile(cfg_filename);
 

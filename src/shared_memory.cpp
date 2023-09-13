@@ -16,37 +16,62 @@
 
 using namespace std;
 
+int config_sm_id;
+ConfigData* config_sm_ptr;
+
 int init_shared_memory()
 {
 
 	//	генерация ключа для shared memory
-	key_t key = ftok(SM_NAME, SM_ID);
-	if (key == -1) {
+	key_t config_key = ftok(SM_NAME, CONFIG_SM_ID);
+	if (config_key == -1) {
 		perror("ftok");
 		return 1;
 	}
 
 	//	создание shared memory
-	int mem_id = shmget(key, sizeof(ConfigData), IPC_CREAT | 0666);
-	if (mem_id == -1) {
+	config_sm_id = shmget(config_key, sizeof(ConfigData), IPC_CREAT | 0666);
+	if (config_sm_id == -1) {
 		perror("shmget");
 		return 1;
 	}
 
-	// Присоединение к shared memory
-	ConfigData* ptr = (ConfigData*) shmat(mem_id, nullptr, SHM_R | SHM_W);
-	if (ptr == (void*) -1) {
+	//	присоединение к shared memory
+	config_sm_ptr = (ConfigData*) shmat(config_sm_id, nullptr, SHM_R | SHM_W);
+	if (config_sm_ptr == (void*) -1) {
 		perror("shmat");
-		shmctl(mem_id, IPC_RMID, nullptr);
+		shmctl(config_sm_id, IPC_RMID, nullptr);
 		return 1;
 	}
 
+	return 0;
+
+}
+
+int write_config_sm(ConfigData& aConfig) {
+
+	if (config_sm_ptr == (void*) -1) return 1;
+	memcpy(config_sm_ptr, &aConfig, sizeof(aConfig));
+	return 0;
+
+}
+
+int read_config_sm(ConfigData& aConfig) {
+
+	if (config_sm_ptr == (void*) -1) return 1;
+	memcpy(&aConfig, config_sm_ptr, sizeof(aConfig));
+	return 0;
+
+}
+
+int init_config_sm(ConfigData& aConfig) {
+
 	shmid_ds state;
-	shmctl(mem_id, IPC_STAT, &state);
+	shmctl(config_sm_id, IPC_STAT, &state);
 	if (state.shm_nattch == 1) {
-		memcpy(ptr, &config, sizeof(config));
+		write_config_sm(aConfig);
 	} else {
-		memcpy(&config, ptr, sizeof(config));
+		read_config_sm(aConfig);
 	}
 
 	return 0;
