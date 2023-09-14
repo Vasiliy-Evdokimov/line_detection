@@ -8,8 +8,8 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-//#define	NO_GUI
-//#define	RELEASE
+#define	NO_GUI
+#define	RELEASE
 
 #define DIR_LEFT	-1
 #define DIR_RIGHT	1
@@ -27,8 +27,8 @@
 
 #define CLEAR_CAM_BUFFER	20
 
-#define AVG_CNT		1
-#define STATS_LOG	0
+#define AVG_CNT		100
+#define STATS_LOG	1
 #define UDP_LOG		0
 
 #endif /* DEFINES_HPP_ */

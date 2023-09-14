@@ -23,11 +23,11 @@ using namespace std;
 #include "udp.hpp"
 #include "camera.hpp"
 
-mutex frames_mtx;
+mutex frames_mtx[2];
 cv::Mat frames_to_show[2];
 cv::Mat grays_to_show[2];
 
-mutex parse_results_mtx;
+mutex parse_results_mtx[2];
 ParseImageResult parse_results[2];
 
 void visualizer_func()
@@ -38,14 +38,25 @@ void visualizer_func()
 	cout << "visualizer_func() started!\n";
 	cout << "visualizer_func() entered infinity loop.\n";
 
+	cv::Mat frames[2];
+	cv::Mat grays[2];
+
 	while (!kill_threads) {
 
-		frames_mtx.lock();
-		if (config.SHOW_GRAY && !(grays_to_show[0].empty() || grays_to_show[1].empty()))
-			cv::hconcat(grays_to_show[0], grays_to_show[1], mergedGray);
-		if (!(frames_to_show[0].empty() || frames_to_show[1].empty()))
-			cv::hconcat(frames_to_show[0], frames_to_show[1], mergedColor);
-		frames_mtx.unlock();
+		for	(int i = 0; i < 2; i++) {
+			frames_mtx[i].lock();
+			if (!(frames_to_show[i].empty()))
+				frames[i] = frames_to_show[i].clone();
+			if (config.SHOW_GRAY && !(grays_to_show[i].empty()))
+				grays[i] = grays_to_show[i].clone();
+			frames_mtx[i].unlock();
+		}
+
+		if (config.SHOW_GRAY && !(grays[0].empty() || grays[1].empty()))
+			cv::hconcat(grays[0], grays[1], mergedGray);
+		if (!(frames[0].empty() || frames[1].empty()))
+			cv::hconcat(frames[0], frames[1], mergedColor);
+
 		//
 		if (config.SHOW_GRAY && !mergedGray.empty())
 			cv::imshow("Cameras 1 & 2 Gray", mergedGray);
@@ -123,36 +134,35 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				aIndex
 			);
 			//
-			parse_results_mtx.lock();
+			parse_results_mtx[aIndex].lock();
 			parse_results[aIndex] = parse_result;
-			parse_results_mtx.unlock();
+			parse_results_mtx[aIndex].unlock();
 		} catch (...) {
 			cout << aThreadName <<  " parse error!\n";
 		}
 
-		if (parse_result.fl_error)
-			incorrect_lines++;
+		if (STATS_LOG) {
 
-		tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-		sum += tt;
-		cnt++;
-
-		if (cnt >= AVG_CNT)
-		{
-			//make_udp_pack(aIndex, parse_result);
+			if (parse_result.fl_error)
+				incorrect_lines++;
 			//
-			if (STATS_LOG) {
+			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+			sum += tt;
+			cnt++;
+			//
+			if (cnt >= AVG_CNT)
+			{
 				if (read_err)
 					cout << aThreadName <<  "thread Reading errors = " << read_err << endl;
 				cout << aThreadName <<  "thread Incorrect lines: " << incorrect_lines << endl;
 				cout << aThreadName <<  "thread Average time taken: " << sum / cnt << endl;
+				//
+				incorrect_lines = 0;
+				cnt = 0;
+				sum = 0;
 			}
-			//
-			incorrect_lines = 0;
-			cnt = 0;
-			sum = 0;
-		}
 
+		}
 	}
 
 	cap.release();
@@ -183,9 +193,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifndef NO_GUI
 	if (config.DRAW && config.SHOW_GRAY) {
-		frames_mtx.lock();
+		frames_mtx[aIndex].lock();
 		grays_to_show[aIndex] = gray.clone();
-		frames_mtx.unlock();
+		frames_mtx[aIndex].unlock();
 	}
 #endif
 
@@ -313,9 +323,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		frames_mtx.lock();
+		frames_mtx[aIndex].lock();
 		frames_to_show[aIndex] = imgColor.clone();
-		frames_mtx.unlock();
+		frames_mtx[aIndex].unlock();
 	}
 #endif
 

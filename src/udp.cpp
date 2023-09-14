@@ -85,7 +85,6 @@ void udp_func()
 	struct sockaddr_in serverAddr{}, clientAddr{};
 	socklen_t addrLen = sizeof(clientAddr);
 
-	// Создание сокета
 	if (sockfd >= 0)
 	try {
 		close(sockfd);
@@ -95,18 +94,16 @@ void udp_func()
 	//
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0) {
-		std::cerr << "Ошибка при создании сокета" << std::endl;
+		std::cerr << "socket creating error!\n";
 		return;
 	}
 
-	// Настройка структуры serverAddr
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(config.UDP_PORT); // Порт сервера
-	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY); // Принимать пакеты от любых адресов
+	serverAddr.sin_port = htons(config.UDP_PORT);
+	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	// Привязка сокета к адресу и порту
 	if (bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-		std::cerr << "Ошибка при привязке сокета к адресу и порту" << std::endl;
+		std::cerr << "socket binding error!\n";
 		return;
 	}
 
@@ -114,80 +111,51 @@ void udp_func()
 
 	std::cout << "UDP thread entered infinity loop.\n";
 
+	ParseImageResult pr[2];
+
+	uint16_t counter = 0;
+
 	while (true) {
-		// Получение данных от клиента
-		int numBytes = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen);
-		if (numBytes < 0) {
-			std::cerr << "Ошибка при приеме данных от клиента" << std::endl;
-			return;
-		}
-
-		// Обработка полученных данных
-		std::cout << "Received: " << std::string(buffer, numBytes) << std::endl;
-
-		// Отправка данных обратно клиенту
-		if (sendto(sockfd, buffer, numBytes, 0, (struct sockaddr *) &clientAddr, addrLen) < 0) {
-			std::cerr << "Ошибка при отправке данных клиенту" << std::endl;
-			return;
-		}
 
 		if (restart_threads || kill_threads) break;
+
+		int numBytes = recvfrom( sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen );
+		if (numBytes < 0) {
+			std::cerr << "data receiving error!\n";
+			return;
+		}
+
+		//	std::cout << "Received: " << std::string(buffer, numBytes) << std::endl;
+
+		for (int i = 0; i < 2; i++) {
+			parse_results_mtx[i].lock();
+			pr[i] = parse_results[i];
+			parse_results_mtx[i].unlock();
+		}
+
+		counter++;
+
+		for (int i = 0; i < 2; i++)
+			make_udp_pack(counter, udp_packs[i], parse_results[i]);
+
+		size_t sz = sizeof(udp_packs);
+		if (UDP_LOG) {
+			char* my_s_bytes = reinterpret_cast<char*>(&udp_packs);
+			for (size_t i = 0; i < sz; i++)
+				printf("%02x ", my_s_bytes[i]);
+			printf("\n");
+		}
+
+		if ( sendto(sockfd, &udp_packs, sizeof(udp_packs), 0, (struct sockaddr *) &clientAddr, addrLen) == -1 )
+		{
+			fprintf(stderr, "sendto()");
+			exit(1);
+		}
+
 	}
 
 	std::cout << "UDP out of infinity loop.\n";
 
-	// Закрываем сокет
 	close(sockfd);
-
-//	struct sockaddr_in si_other;
-//	int sock, slen = sizeof(si_other);
-//
-//	if ( (sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == -1 )
-//	{
-//		fprintf(stderr, "socket");
-//		exit(1);
-//	}
-//
-//	memset((char *) &si_other, 0, sizeof(si_other));
-//	si_other.sin_family = AF_INET;
-//	si_other.sin_port = htons(config.UDP_PORT);
-//
-//	char udp_addr[15];
-//	strcpy(udp_addr, config.UDP_ADDR.c_str());
-//	if (inet_aton(udp_addr, &si_other.sin_addr) == 0)
-//	{
-//		fprintf(stderr, "inet_aton() failed\n");
-//		exit(1);
-//	}
-//
-//	std::cout << "UDP thread entered infinity loop.\n";
-//
-//	uint16_t counter = 0;
-//
-//	while (!restart_threads || !kill_threads) {
-//
-//		counter++;
-//
-//		parse_results_mtx.lock();
-//		for (int i = 0; i < 2; i++)
-//			make_udp_pack(counter, udp_packs[i], parse_results[i]);
-//		parse_results_mtx.unlock();
-//
-//		size_t sz = sizeof(udp_packs);
-//		if (UDP_LOG) {
-//			char* my_s_bytes = reinterpret_cast<char*>(&udp_packs);
-//			for (size_t i = 0; i < sz; i++)
-//				printf("%02x ", my_s_bytes[i]);
-//			printf("\n");
-//		}
-//
-//		if ( sendto(sock, &udp_packs, sizeof(udp_packs), 0, (struct sockaddr *) &si_other, slen) == -1 )
-//		{
-//			fprintf(stderr, "sendto()");
-//			exit(1);
-//		}
-//
-//		std::this_thread::sleep_for(50ms);
-//	}
 
 }

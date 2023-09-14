@@ -40,7 +40,7 @@ struct ParseImageResult {
 	}
 };
 
-extern mutex parse_results_mtx;
+extern mutex parse_results_mtx[2];
 extern ParseImageResult parse_results[2];
 
 void parse_image(string aThreadName, cv::Mat imgColor,
