@@ -71,16 +71,19 @@ int init_config_sm(ConfigData& aConfig) {
 	shmctl(config_sm_id, IPC_STAT, &state);
 	//
 	cout << "state.shm_nattch = " << state.shm_nattch << endl;
-	//
+	//	если количество подключенных к SM = 1, т.е. только это приложение
 	if (state.shm_nattch == 1) {
+		//	то записываем в SM данные из конфига прочитанного при инициализации
 		write_config_sm(aConfig);
-	} else {
-		read_config_sm(aConfig);
-		//
+	} else {	//	если подключенных > 1
 		int pid = getpid();
-		if (aConfig.PID != pid) {
-			config_sm_ptr->PID = pid;
-			aConfig.PID = pid;
+		//	если PID в SM совпадает с PID программы
+		if (config_sm_ptr->PID == pid) {	//	то это перезапуск потоков
+			//	читаем конфиг из SM
+			read_config_sm(aConfig);
+		} else {							//	то это запуск программы при запущенном вэб-сервере
+			//	записываем в SM конфиг с PID программы
+			write_config_sm(aConfig);
 		}
 	}
 
