@@ -5,6 +5,7 @@
  *      Author: vevdokimov
  */
 
+#include <iostream>
 #include <cstring>
 
 #include <sys/ipc.h>
@@ -68,10 +69,19 @@ int init_config_sm(ConfigData& aConfig) {
 
 	shmid_ds state;
 	shmctl(config_sm_id, IPC_STAT, &state);
+	//
+	cout << "state.shm_nattch = " << state.shm_nattch << endl;
+	//
 	if (state.shm_nattch == 1) {
 		write_config_sm(aConfig);
 	} else {
 		read_config_sm(aConfig);
+		//
+		int pid = getpid();
+		if (aConfig.PID != pid) {
+			config_sm_ptr->PID = pid;
+			aConfig.PID = pid;
+		}
 	}
 
 	return 0;

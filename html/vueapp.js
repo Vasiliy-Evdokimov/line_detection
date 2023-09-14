@@ -1,4 +1,4 @@
-const sever_url = "http://127.0.0.1:8000";
+const sever_url = location.origin;
 
 var app = new Vue({
     el: '#app',

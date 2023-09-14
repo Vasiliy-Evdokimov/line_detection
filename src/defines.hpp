@@ -8,17 +8,20 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-#define DIR_LEFT	-1
-#define DIR_RIGHT	 1
-#define DIR_FORWARD	 0
+//#define	NO_GUI
+//#define	RELEASE
 
-#define CLR_BLACK		(cv::Scalar(0x00, 0x00, 0x00))
-#define CLR_RED			(cv::Scalar(0x00, 0x00, 0xFF))
-#define CLR_BLUE		(cv::Scalar(0xFF, 0x00, 0x00))
-#define CLR_GREEN		(cv::Scalar(0x00, 0xFF, 0x00))
-#define CLR_YELLOW		(cv::Scalar(0x00, 0xFF, 0xFF))
-#define CLR_MAGENTA		(cv::Scalar(0xFF, 0x00, 0xFF))
-#define CLR_CYAN		(cv::Scalar(0xFF, 0xFF, 0x00))
+#define DIR_LEFT	-1
+#define DIR_RIGHT	1
+#define DIR_FORWARD	0
+
+#define CLR_BLACK	(cv::Scalar(0x00, 0x00, 0x00))
+#define CLR_RED		(cv::Scalar(0x00, 0x00, 0xFF))
+#define CLR_BLUE	(cv::Scalar(0xFF, 0x00, 0x00))
+#define CLR_GREEN	(cv::Scalar(0x00, 0xFF, 0x00))
+#define CLR_YELLOW	(cv::Scalar(0x00, 0xFF, 0xFF))
+#define CLR_MAGENTA	(cv::Scalar(0xFF, 0x00, 0xFF))
+#define CLR_CYAN	(cv::Scalar(0xFF, 0xFF, 0x00))
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
 

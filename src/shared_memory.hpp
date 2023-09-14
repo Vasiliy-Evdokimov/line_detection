@@ -10,13 +10,13 @@
 
 #include "config.hpp"
 
-#define SM_NAME "/tmp/"
-#define CONFIG_SM_ID 	19841003
-#define CAM1RES_SM_ID 	19841004
-#define CAM2RES_SM_ID 	19841005
+#define SM_NAME 		"/tmp/"
+#define CONFIG_SM_ID	19841003
+#define CAM1RES_SM_ID	19841004
+#define CAM2RES_SM_ID	19841005
 
-#define MAX_POINTS_COUNT 10
-#define MAX_HOR_COUNT 10
+#define MAX_POINTS_COUNT	10
+#define MAX_HOR_COUNT 		10
 
 struct ResultPointForSM {
 	int x;

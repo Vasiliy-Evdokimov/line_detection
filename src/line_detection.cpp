@@ -3,6 +3,7 @@
 
 using namespace std;
 
+#include "defines.hpp"
 #include "config.hpp"
 #include "shared_memory.hpp"
 #include "camera.hpp"
@@ -80,11 +81,17 @@ int main(int argc, char** argv)
 	//	создаем рабочий поток
 	thread work_thread(work_func);
 	std::this_thread::sleep_for(2s);
+	//
+#ifndef NO_GUI
 	//	создаем поток визуализации
 	thread visualizer_thread(visualizer_func);
+#endif
     //
     if (work_thread.joinable()) work_thread.join();
+    //
+#ifndef NO_GUI
     if (visualizer_thread.joinable()) visualizer_thread.join();
+#endif
     //
     //	бесконечный цикл для ожидания сигналов
     while (!kill_threads) {

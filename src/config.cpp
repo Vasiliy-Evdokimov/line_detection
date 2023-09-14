@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <libconfig.h++>
 
+#include "defines.hpp"
 #include "config.hpp"
 
 using namespace std;
@@ -19,7 +20,11 @@ using namespace libconfig;
 ConfigData config;
 
 const char* cfg_filename =
-	"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
+	#ifndef RELEASE
+		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
+	#else
+		"/home/user/line_detection/line_detection.cfg";
+	#endif
 
 bool restart_threads;
 bool kill_threads;
@@ -82,6 +87,8 @@ void ConfigData::recount_data_size() {
 
 void read_config()
 {
+
+	cout << "cfg_filename = " << cfg_filename << endl;
 
 	Config cfg;
 
