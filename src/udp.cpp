@@ -18,6 +18,7 @@
 #include "defines.hpp"
 #include "config.hpp"
 #include "camera.hpp"
+#include "shared_memory.hpp"
 
 #include <pthread.h>
 
@@ -92,10 +93,12 @@ void udp_func()
 		counter++;
 
 		udp_pack.counter = counter;
-		for (int i = 0; i < 2; i++) {
-			parse_results_mtx[i].lock();
-			udp_pack.results[i] = parse_results[i];
-			parse_results_mtx[i].unlock();
+
+		for (int i = 0; i < CAM_COUNT; i++) {
+			//parse_results_mtx[i].lock();
+			//udp_pack.results[i] = parse_results[i];
+			read_results_sm(udp_pack.results[i], i);
+			//parse_results_mtx[i].unlock();
 		}
 
 		size_t sz = sizeof(udp_pack);

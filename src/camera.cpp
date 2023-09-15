@@ -20,7 +20,7 @@ using namespace std;
 #include "contours.hpp"
 #include "horizontal.hpp"
 #include "barcode.hpp"
-#include "udp.hpp"
+#include "shared_memory.hpp"
 #include "camera.hpp"
 
 mutex frames_mtx[2];
@@ -102,6 +102,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	cout << aThreadName <<  " entered infinity loop.\n";
 
 	ParseImageResult parse_result;
+	ResultFixed rfx;
 
 	while (1) {
 
@@ -124,6 +125,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		parse_result.height = frame.rows;
 
 		try {
+
 			//	ищем центры областей и горизонтальные пересечения
 			parse_image(
 				aThreadName,
@@ -134,9 +136,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				aIndex
 			);
 			//
-			parse_results_mtx[aIndex].lock();
-			parse_results[aIndex] = parse_result.ToFixed();
-			parse_results_mtx[aIndex].unlock();
+			//parse_results_mtx[aIndex].lock();
+			//parse_results[aIndex] = parse_result.ToFixed();
+			//write_results_sm(parse_results[aIndex], aIndex);
+			rfx = parse_result.ToFixed();
+			write_results_sm(rfx, aIndex);
+			//parse_results_mtx[aIndex].unlock();
+
 		} catch (...) {
 			cout << aThreadName <<  " parse error!\n";
 		}

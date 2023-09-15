@@ -131,8 +131,6 @@ void read_config()
 		root["cameras_addresses"].lookupValue("address_2", str);
 		strcpy(config.CAM_ADDR_2, str.c_str());
 
-		root["udp_parameters"].lookupValue("address", str);
-		strcpy(config.UDP_ADDR, str.c_str());
 		root["udp_parameters"].lookupValue("port", config.UDP_PORT);
 
 		root["regions_of_interests"].lookupValue("roi", config.NUM_ROI);
@@ -153,6 +151,9 @@ void read_config()
 		root["displaying"].lookupValue("draw_detailed", config.DRAW_DETAILED);
 		root["displaying"].lookupValue("draw_grid", config.DRAW_GRID);
 		root["displaying"].lookupValue("draw", config.DRAW);
+
+		root["web_interface"].lookupValue("show_lines", config.WEB_SHOW_LINES);
+		root["web_interface"].lookupValue("interval", config.WEB_INTERVAL);
 
 		restart_threads = false;
 
@@ -191,7 +192,6 @@ void save_config(ConfigData aConfig)
 	root["cameras_addresses"]["address_1"] = aConfig.CAM_ADDR_1;
 	root["cameras_addresses"]["address_2"] = aConfig.CAM_ADDR_2;
 
-	root["udp_parameters"]["address"] = aConfig.UDP_ADDR;
 	root["udp_parameters"]["port"] = aConfig.UDP_PORT;
 
 	root["regions_of_interests"]["roi"] = aConfig.NUM_ROI;
@@ -213,6 +213,77 @@ void save_config(ConfigData aConfig)
 	root["displaying"]["draw_grid"] = aConfig.DRAW_GRID;
 	root["displaying"]["draw"] = aConfig.DRAW;
 
+	root["web_interface"]["show_lines"] = config.WEB_SHOW_LINES;
+	root["web_interface"]["interval"] = config.WEB_INTERVAL;
+
 	cfg.writeFile(cfg_filename);
 
 }
+
+void fill_json_form_config(ConfigData aConfig, Json::Value& js)
+{
+
+	js["01_CAM_ADDR_1"] = aConfig.CAM_ADDR_1;
+	js["02_CAM_ADDR_2"] = aConfig.CAM_ADDR_2;
+	//
+	js["04_UDP_PORT"] = aConfig.UDP_PORT;
+	//
+	js["05_NUM_ROI"] = aConfig.NUM_ROI;
+	js["06_NUM_ROI_H"] = aConfig.NUM_ROI_H;
+	js["07_NUM_ROI_V"] = aConfig.NUM_ROI_V;
+	//
+	js["08_SHOW_GRAY"] = aConfig.SHOW_GRAY;
+	js["09_DRAW_DETAILED"] = aConfig.DRAW_DETAILED;
+	js["10_DRAW_GRID"] = aConfig.DRAW_GRID;
+	js["11_DRAW"] = aConfig.DRAW;
+	//
+	js["12_MIN_CONT_LEN"] = aConfig.MIN_CONT_LEN;
+	js["13_HOR_COLLAPSE"] = aConfig.HOR_COLLAPSE;
+	//
+	js["14_GAUSSIAN_BLUR_KERNEL"] = aConfig.GAUSSIAN_BLUR_KERNEL;
+	js["15_MORPH_OPEN_KERNEL"] = aConfig.MORPH_OPEN_KERNEL;
+	js["16_MORPH_CLOSE_KERNEL"] = aConfig.MORPH_CLOSE_KERNEL;
+	//
+	js["17_THRESHOLD_THRESH"] = aConfig.THRESHOLD_THRESH;
+	js["18_THRESHOLD_MAXVAL"] = aConfig.THRESHOLD_MAXVAL;
+	//
+	js["19_WEB_SHOW_LINES"] = aConfig.WEB_SHOW_LINES;
+	js["20_WEB_INTERVAL"] = aConfig.WEB_INTERVAL;
+
+}
+
+void fill_config_form_json(Json::Value js, ConfigData& aConfig)
+{
+	string str;
+	//
+	str = js["CAM_ADDR_1"].asString();
+	strcpy(aConfig.CAM_ADDR_1, str.c_str());
+	str = js["CAM_ADDR_2"].asString();
+	strcpy(aConfig.CAM_ADDR_2, str.c_str());
+	//
+	aConfig.UDP_PORT = stoi(js["UDP_PORT"].asString());
+	//
+	aConfig.NUM_ROI = stoi(js["NUM_ROI"].asString());
+	aConfig.NUM_ROI_H = stoi(js["NUM_ROI_H"].asString());
+	aConfig.NUM_ROI_V = stoi(js["NUM_ROI_V"].asString());
+	aConfig.recount_data_size();
+	//
+	aConfig.SHOW_GRAY = stoi(js["SHOW_GRAY"].asString());
+	aConfig.DRAW_DETAILED = stoi(js["DRAW_DETAILED"].asString());
+	aConfig.DRAW_GRID = stoi(js["DRAW_GRID"].asString());
+	aConfig.DRAW = stoi(js["DRAW"].asString());
+	//
+	aConfig.MIN_CONT_LEN = stoi(js["MIN_CONT_LEN"].asString());
+	aConfig.HOR_COLLAPSE = stoi(js["HOR_COLLAPSE"].asString());
+	//
+	aConfig.GAUSSIAN_BLUR_KERNEL = stoi(js["GAUSSIAN_BLUR_KERNEL"].asString());
+	aConfig.MORPH_OPEN_KERNEL = stoi(js["MORPH_OPEN_KERNEL"].asString());
+	aConfig.MORPH_CLOSE_KERNEL = stoi(js["MORPH_CLOSE_KERNEL"].asString());
+	//
+	aConfig.THRESHOLD_THRESH = stoi(js["THRESHOLD_THRESH"].asString());
+	aConfig.THRESHOLD_MAXVAL = stoi(js["THRESHOLD_MAXVAL"].asString());
+	//
+	aConfig.WEB_SHOW_LINES = stoi(js["WEB_SHOW_LINES"].asString());
+	aConfig.WEB_INTERVAL = stoi(js["WEB_INTERVAL"].asString());
+}
+

@@ -10,6 +10,7 @@
 
 #include <string>
 #include <libconfig.h++>
+#include <json/json.h>
 
 using namespace std;
 using namespace libconfig;
@@ -62,6 +63,9 @@ struct ConfigData
 	//
 	int THRESHOLD_THRESH;
 	int THRESHOLD_MAXVAL;
+	//
+	int WEB_SHOW_LINES;
+	int WEB_INTERVAL;
 
 	void recount_data_size();
 };
@@ -73,5 +77,8 @@ extern bool kill_threads;
 
 void read_config();
 void save_config(ConfigData aConfig);
+
+void fill_json_form_config(ConfigData aConfig, Json::Value& js);
+void fill_config_form_json(Json::Value js, ConfigData& aConfig);
 
 #endif /* CONFIG_HPP_ */

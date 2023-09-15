@@ -250,15 +250,14 @@ var app = new Vue({
         this.draw_canvas = document.getElementById("graph");
         this.draw_context =  this.draw_canvas.getContext("2d");
         //
-        this.draw_interval = setInterval(this.draw, 500);
+        this.draw_interval = setInterval(this.draw, 50);
     }
 });
 
 // type: 1 - int; 2 - string; 3 - bool; 4 - ip
 var params_descriptions = new Map([
     ['CAM_ADDR_1',  { type: 2, descr: 'RTSP адрес 1й камеры'}],
-    ['CAM_ADDR_2',  { type: 2, descr: 'RTSP адрес 2й камеры'}],
-    ['UDP_ADDR',    { type: 4, descr: 'UDP адрес для обмена данными'}],
+    ['CAM_ADDR_2',  { type: 2, descr: 'RTSP адрес 2й камеры'}],    
     ['UDP_PORT',    { type: 1, descr: 'UDP порт для обмена данными'}],
     //
     ['NUM_ROI',     { type: 1, descr: 'Количество горизонтальных полос'}],
@@ -278,5 +277,8 @@ var params_descriptions = new Map([
 	['MORPH_CLOSE_KERNEL',      { type: 1, descr: 'Ядро преобразования для MorphologyEx(MORPH_CLOSE) - (NxN)'}],
 	//
 	['THRESHOLD_THRESH', { type: 1, descr: 'Параметр (thresh) функции Threshold'}],
-	['THRESHOLD_MAXVAL', { type: 1, descr: 'Параметр (maxval) функции Threshold'}]
+	['THRESHOLD_MAXVAL', { type: 1, descr: 'Параметр (maxval) функции Threshold'}],
+    //
+    ['WEB_SHOW_LINES',  { type: 3, descr: 'Показывать результаты распознавания в веб-интерфейсе'}],
+    ['WEB_INTERVAL',    { type: 1, descr: 'Интервал обновления визуализации в веб-интерфейсе '}]
 ]);
