@@ -11,6 +11,8 @@
 #define	NO_GUI
 #define	RELEASE
 
+#define CAM_COUNT	2
+
 #define DIR_LEFT	-1
 #define DIR_RIGHT	1
 #define DIR_FORWARD	0
@@ -30,5 +32,8 @@
 #define AVG_CNT		100
 #define STATS_LOG	1
 #define UDP_LOG		0
+
+#define MAX_POINTS_COUNT	10
+#define MAX_HOR_COUNT		10
 
 #endif /* DEFINES_HPP_ */

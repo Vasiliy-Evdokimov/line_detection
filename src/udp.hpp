@@ -8,23 +8,13 @@
 #ifndef UDP_HPP_
 #define UDP_HPP_
 
-#include <mutex>
+#include "common_types.hpp"
 
 using namespace std;
 
-struct udp_point {
-	uint16_t x;
-	uint16_t y;
-};
-
 struct udp_package {
 	uint16_t counter;
-	uint16_t img_width;
-	uint16_t img_height;
-	uint8_t error_flag;
-	uint8_t points_count;
-	udp_point points[4];
-	uint16_t points_hor[4];
+	ResultFixed results[2];
 };
 
 extern pthread_t udp_thread_id;

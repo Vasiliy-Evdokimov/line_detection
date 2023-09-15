@@ -28,7 +28,7 @@ cv::Mat frames_to_show[2];
 cv::Mat grays_to_show[2];
 
 mutex parse_results_mtx[2];
-ParseImageResult parse_results[2];
+ResultFixed parse_results[2];
 
 void visualizer_func()
 {
@@ -135,7 +135,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			);
 			//
 			parse_results_mtx[aIndex].lock();
-			parse_results[aIndex] = parse_result;
+			parse_results[aIndex] = parse_result.ToFixed();
 			parse_results_mtx[aIndex].unlock();
 		} catch (...) {
 			cout << aThreadName <<  " parse error!\n";

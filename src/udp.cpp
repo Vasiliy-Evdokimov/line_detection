@@ -29,47 +29,9 @@
 
 using namespace std;
 
-udp_package udp_packs[2];
-
 pthread_t udp_thread_id = 0;
 
 int sockfd = -1;
-
-void make_udp_pack(int aCounter, udp_package& udp_pack, ParseImageResult& parse_result) {
-
-		memset(&udp_pack, 0, sizeof(udp_pack));
-
-		udp_pack.counter = aCounter;
-		udp_pack.img_width = parse_result.width;
-		udp_pack.img_height = parse_result.height;
-		udp_pack.error_flag = (parse_result.fl_error) ? 1 : 0;
-		//
-		udp_pack.points_count = parse_result.hor_ys.size() & 0xF;
-		udp_pack.points_count |= (parse_result.res_points.size() & 0xF) << 4;
-		//
-		for (size_t i = 0; i < parse_result.res_points.size(); i++)
-		{
-			if (UDP_LOG) printf("(%d; %d) ", parse_result.res_points[i].x, parse_result.res_points[i].y);
-			udp_pack.points[i] = { (uint16_t)parse_result.res_points[i].x, (uint16_t)parse_result.res_points[i].y };
-		}
-		if (UDP_LOG) printf("\n");
-		//
-		for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
-		{
-			if (UDP_LOG) printf("(%d) ", parse_result.hor_ys[i]);
-			udp_pack.points_hor[i] = { (uint16_t)parse_result.hor_ys[i] };
-		}
-		if (UDP_LOG) printf("\n");
-		//
-		size_t sz = sizeof(udp_pack);
-		if (UDP_LOG) {
-			char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
-			for (size_t i = 0; i < sz; i++)
-				printf("%02x ", my_s_bytes[i]);
-			printf("\n");
-		}
-
-}
 
 void kill_udp_thread()
 {
@@ -111,9 +73,9 @@ void udp_func()
 
 	std::cout << "UDP thread entered infinity loop.\n";
 
-	ParseImageResult pr[2];
-
 	uint16_t counter = 0;
+
+	udp_package udp_pack;
 
 	while (true) {
 
@@ -127,26 +89,24 @@ void udp_func()
 
 		//	std::cout << "Received: " << std::string(buffer, numBytes) << std::endl;
 
+		counter++;
+
+		udp_pack.counter = counter;
 		for (int i = 0; i < 2; i++) {
 			parse_results_mtx[i].lock();
-			pr[i] = parse_results[i];
+			udp_pack.results[i] = parse_results[i];
 			parse_results_mtx[i].unlock();
 		}
 
-		counter++;
-
-		for (int i = 0; i < 2; i++)
-			make_udp_pack(counter, udp_packs[i], parse_results[i]);
-
-		size_t sz = sizeof(udp_packs);
+		size_t sz = sizeof(udp_pack);
 		if (UDP_LOG) {
-			char* my_s_bytes = reinterpret_cast<char*>(&udp_packs);
+			char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
 			for (size_t i = 0; i < sz; i++)
 				printf("%02x ", my_s_bytes[i]);
 			printf("\n");
 		}
 
-		if ( sendto(sockfd, &udp_packs, sizeof(udp_packs), 0, (struct sockaddr *) &clientAddr, addrLen) == -1 )
+		if ( sendto(sockfd, &udp_pack, sizeof(udp_pack), 0, (struct sockaddr *) &clientAddr, addrLen) == -1 )
 		{
 			fprintf(stderr, "sendto()");
 			exit(1);
