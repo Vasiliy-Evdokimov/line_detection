@@ -12,6 +12,9 @@ using namespace std;
 void work_func()
 {
 
+	if (THREAD_NAMING)
+		pthread_setname_np(pthread_self(), "work thread");
+
 	kill_threads = false;
 
 	cout << "work_func() started!\n";

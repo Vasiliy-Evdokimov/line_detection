@@ -43,6 +43,9 @@ void kill_udp_thread()
 void udp_func()
 {
 
+	if (THREAD_NAMING)
+		pthread_setname_np(pthread_self(), "udp thread");
+
 	std::cout << "UPD thread started!\n";
 
 	struct sockaddr_in serverAddr{}, clientAddr{};

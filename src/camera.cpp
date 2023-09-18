@@ -11,6 +11,8 @@
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <string.h>
+#include <thread>
+#include <pthread.h>
 
 using namespace cv;
 using namespace std;
@@ -32,6 +34,10 @@ ResultFixed parse_results[2];
 
 void visualizer_func()
 {
+
+	if (THREAD_NAMING)
+		pthread_setname_np(pthread_self(), "visualizer thread");
+
 	cv::Mat mergedGray;
 	cv::Mat mergedColor;
 
@@ -75,6 +81,8 @@ void visualizer_func()
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
+
+	pthread_setname_np(pthread_self(), aThreadName.c_str());
 
     cout << aThreadName <<  " started!\n";
 
