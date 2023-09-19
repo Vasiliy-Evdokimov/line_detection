@@ -18,6 +18,7 @@ using namespace std;
 using namespace libconfig;
 
 ConfigData config;
+ConfigData config_buf;
 
 const char* cfg_filename =
 	#ifndef RELEASE
@@ -26,16 +27,38 @@ const char* cfg_filename =
 		"/home/user/line_detection/line_detection.cfg";
 	#endif
 
+std::map<std::string, void*> config_pointers = {
+	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
+	{ "CAM_ADDR_2",		&config_buf.CAM_ADDR_2 },
+	{ "UDP_PORT",		&config_buf.UDP_PORT },
+	{ "NUM_ROI",		&config_buf.NUM_ROI },
+	{ "NUM_ROI_H",		&config_buf.NUM_ROI_H },
+	{ "NUM_ROI_V",		&config_buf.NUM_ROI_V },
+	{ "SHOW_GRAY",		&config_buf.SHOW_GRAY },
+	{ "DRAW_DETAILED",	&config_buf.DRAW_DETAILED },
+	{ "DRAW_GRID",		&config_buf.DRAW_GRID },
+	{ "DRAW",			&config_buf.DRAW },
+	{ "MIN_CONT_LEN",	&config_buf.MIN_CONT_LEN },
+	{ "HOR_COLLAPSE",	&config_buf.HOR_COLLAPSE },
+	{ "GAUSSIAN_BLUR_KERNEL",	&config_buf.GAUSSIAN_BLUR_KERNEL },
+	{ "MORPH_OPEN_KERNEL",		&config_buf.MORPH_OPEN_KERNEL },
+	{ "MORPH_CLOSE_KERNEL",		&config_buf.MORPH_CLOSE_KERNEL },
+	{ "THRESHOLD_THRESH",		&config_buf.THRESHOLD_THRESH },
+	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
+	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
+	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL }
+};
+
+std::map<std::string, ConfigItem> config_map;
+
 bool restart_threads;
 bool kill_threads;
 
 ConfigItem::ConfigItem()
 {
+	order = 0;
 	name = "";
 	type = ConfigType::ctUnknown;
-	valueInt = 0;
-	valueString = "";
-	valueBool = false;
 	description = "";
 }
 
@@ -53,19 +76,23 @@ ConfigItem::ConfigItem(Setting& aSetting) : ConfigItem()
 			break;
 		case (ConfigType::ctInteger):
 		{
-			valueInt = aSetting.lookup("value");
+			int i = aSetting.lookup("value");
+			int* val = (int*)config_pointers[name];
+			*val = i;
 			break;
 		}
 		case (ConfigType::ctString):
 		{
 			string s = aSetting.lookup("value");
-			valueString = s;
+			char* val = (char*)config_pointers[name];
+			strncpy(val, s.c_str(), s.length());
 			break;
 		}
 		case (ConfigType::ctBool):
 		{
 			int i = aSetting.lookup("value");
-			valueBool = (bool)i;
+			int* val = (int*)config_pointers[name];
+			*val = (i > 0) ? 1 : 0;
 			break;
 		}
 	}
@@ -73,11 +100,9 @@ ConfigItem::ConfigItem(Setting& aSetting) : ConfigItem()
 
 ConfigItem::ConfigItem(const ConfigItem& src)
 {
+	order = src.order;
 	name = src.name;
 	type = src.type;
-	valueInt = src.valueInt;
-	valueString = src.valueString;
-	valueBool = src.valueBool;
 	description = src.description;
 }
 
@@ -111,49 +136,21 @@ void read_config()
 	Setting& root = cfg.getRoot();
 
 	try {
-		/*
+
+		config_map.clear();
 		const Setting &params = root["params"];
 		int count = params.getLength();
-		config.items_count = 0;
-
-		for(int i = 0; i < count; ++i) {
+		for(int i = 0; i < count; i++) {
 			ConfigItem new_item(params[i]);
-			config.items[i] = new_item;
-			config.items_count++;
+			new_item.order = i + 1;
+			config_map.insert({new_item.name, new_item});
 		}
-		*/
-		config.PID = getpid();
-		cout << "Application PID = " << config.PID << endl;
-
-		string str;
-		root["cameras_addresses"].lookupValue("address_1", str);
-		strcpy(config.CAM_ADDR_1, str.c_str());
-		root["cameras_addresses"].lookupValue("address_2", str);
-		strcpy(config.CAM_ADDR_2, str.c_str());
-
-		root["udp_parameters"].lookupValue("port", config.UDP_PORT);
-
-		root["regions_of_interests"].lookupValue("roi", config.NUM_ROI);
-		root["regions_of_interests"].lookupValue("roi_h", config.NUM_ROI_H);
-		root["regions_of_interests"].lookupValue("roi_v", config.NUM_ROI_V);
+		//
+		config = config_buf;
 		config.recount_data_size();
 
-		root["processing"]["gaussian_blur"].lookupValue("kernel", config.GAUSSIAN_BLUR_KERNEL);
-		root["processing"]["morph_open"].lookupValue("kernel", config.MORPH_OPEN_KERNEL);
-		root["processing"]["morph_close"].lookupValue("kernel", config.MORPH_CLOSE_KERNEL);
-		root["processing"]["threshold"].lookupValue("thresh", config.THRESHOLD_THRESH);
-		root["processing"]["threshold"].lookupValue("maxval", config.THRESHOLD_MAXVAL);
-
-		root["parsing"].lookupValue("minimal_contour_length", config.MIN_CONT_LEN);
-		root["parsing"].lookupValue("horizontal_collapse", config.HOR_COLLAPSE);
-
-		root["displaying"].lookupValue("show_gray", config.SHOW_GRAY);
-		root["displaying"].lookupValue("draw_detailed", config.DRAW_DETAILED);
-		root["displaying"].lookupValue("draw_grid", config.DRAW_GRID);
-		root["displaying"].lookupValue("draw", config.DRAW);
-
-		root["web_interface"].lookupValue("show_lines", config.WEB_SHOW_LINES);
-		root["web_interface"].lookupValue("interval", config.WEB_INTERVAL);
+		config.PID = getpid();
+		cout << "Application PID = " << config.PID << endl;
 
 		restart_threads = false;
 
@@ -189,32 +186,46 @@ void save_config(ConfigData aConfig)
 
 	Setting& root = cfg.getRoot();
 
-	root["cameras_addresses"]["address_1"] = aConfig.CAM_ADDR_1;
-	root["cameras_addresses"]["address_2"] = aConfig.CAM_ADDR_2;
+	config_buf = aConfig;
 
-	root["udp_parameters"]["port"] = aConfig.UDP_PORT;
-
-	root["regions_of_interests"]["roi"] = aConfig.NUM_ROI;
-	root["regions_of_interests"]["roi_h"] = aConfig.NUM_ROI_H;
-	root["regions_of_interests"]["roi_v"] = aConfig.NUM_ROI_V;
-	aConfig.recount_data_size();
-
-	root["processing"]["gaussian_blur"]["kernel"] = aConfig.GAUSSIAN_BLUR_KERNEL;
-	root["processing"]["morph_open"]["kernel"] = aConfig.MORPH_OPEN_KERNEL;
-	root["processing"]["morph_close"]["kernel"] = aConfig.MORPH_CLOSE_KERNEL;
-	root["processing"]["threshold"]["thresh"] = aConfig.THRESHOLD_THRESH;
-	root["processing"]["threshold"]["maxval"] = aConfig.THRESHOLD_MAXVAL;
-
-	root["parsing"]["minimal_contour_length"] = aConfig.MIN_CONT_LEN;
-	root["parsing"]["horizontal_collapse"] = aConfig.HOR_COLLAPSE;
-
-	root["displaying"]["show_gray"] = aConfig.SHOW_GRAY;
-	root["displaying"]["draw_detailed"] = aConfig.DRAW_DETAILED;
-	root["displaying"]["draw_grid"] = aConfig.DRAW_GRID;
-	root["displaying"]["draw"] = aConfig.DRAW;
-
-	root["web_interface"]["show_lines"] = config.WEB_SHOW_LINES;
-	root["web_interface"]["interval"] = config.WEB_INTERVAL;
+	string nm;
+	const Setting &params = root["params"];
+	int count = params.getLength();
+	for(int i = 0; i < count; ++i) {
+		Setting& p = params[i];
+		p.lookupValue("name", nm);
+		if ((config_map.count(nm) == 0) || (config_pointers.count(nm) == 0))
+			continue;
+		//
+		ConfigItem ci = config_map[nm];
+		void* ptr = config_pointers[nm];
+		//
+		switch (ci.type)
+		{
+			case (ConfigType::ctUnknown):
+				/* throw? */
+				break;
+			case (ConfigType::ctInteger):
+			{
+				int* val = (int*)ptr;
+				p["value"] = *val;
+				break;
+			}
+			case (ConfigType::ctString):
+			{
+				char* val = (char*)ptr;
+				string str(val);
+				p["value"] = str;
+				break;
+			}
+			case (ConfigType::ctBool):
+			{
+				int* val = (int*)ptr;
+				p["value"] = ((*val) > 0) ? 1 : 0;
+				break;
+			}
+		}
+	}
 
 	cfg.writeFile(cfg_filename);
 
@@ -223,67 +234,92 @@ void save_config(ConfigData aConfig)
 void fill_json_form_config(ConfigData aConfig, Json::Value& js)
 {
 
-	js["01_CAM_ADDR_1"] = aConfig.CAM_ADDR_1;
-	js["02_CAM_ADDR_2"] = aConfig.CAM_ADDR_2;
-	//
-	js["04_UDP_PORT"] = aConfig.UDP_PORT;
-	//
-	js["05_NUM_ROI"] = aConfig.NUM_ROI;
-	js["06_NUM_ROI_H"] = aConfig.NUM_ROI_H;
-	js["07_NUM_ROI_V"] = aConfig.NUM_ROI_V;
-	//
-	js["08_SHOW_GRAY"] = aConfig.SHOW_GRAY;
-	js["09_DRAW_DETAILED"] = aConfig.DRAW_DETAILED;
-	js["10_DRAW_GRID"] = aConfig.DRAW_GRID;
-	js["11_DRAW"] = aConfig.DRAW;
-	//
-	js["12_MIN_CONT_LEN"] = aConfig.MIN_CONT_LEN;
-	js["13_HOR_COLLAPSE"] = aConfig.HOR_COLLAPSE;
-	//
-	js["14_GAUSSIAN_BLUR_KERNEL"] = aConfig.GAUSSIAN_BLUR_KERNEL;
-	js["15_MORPH_OPEN_KERNEL"] = aConfig.MORPH_OPEN_KERNEL;
-	js["16_MORPH_CLOSE_KERNEL"] = aConfig.MORPH_CLOSE_KERNEL;
-	//
-	js["17_THRESHOLD_THRESH"] = aConfig.THRESHOLD_THRESH;
-	js["18_THRESHOLD_MAXVAL"] = aConfig.THRESHOLD_MAXVAL;
-	//
-	js["19_WEB_SHOW_LINES"] = aConfig.WEB_SHOW_LINES;
-	js["20_WEB_INTERVAL"] = aConfig.WEB_INTERVAL;
+	config_buf = aConfig;
+	string nm;
+	char js_nm[255];
+	for (const auto& element : config_map) {
+		nm = element.first;
+		//
+		if ((config_map.count(nm) == 0) || (config_pointers.count(nm) == 0))
+			continue;
+		//
+		ConfigItem ci = config_map[nm];
+		void* ptr = config_pointers[nm];
+		//
+		sprintf(js_nm, "%02d_%s", ci.order, nm.c_str());
+		//
+		switch (ci.type)
+		{
+			case (ConfigType::ctUnknown):
+				/* throw? */
+				break;
+			case (ConfigType::ctInteger):
+			{
+				int* val = (int*)ptr;
+				js[js_nm] = *val;
+				break;
+			}
+			case (ConfigType::ctString):
+			{
+				char* val = (char*)ptr;
+				js[js_nm] = val;
+				break;
+			}
+			case (ConfigType::ctBool):
+			{
+				int* val = (int*)ptr;
+				js[js_nm] = ((*val) > 0) ? 1 : 0;
+				break;
+			}
+		}
+	}
 
 }
 
 void fill_config_form_json(Json::Value js, ConfigData& aConfig)
 {
-	string str;
+
+	config_buf = aConfig;
 	//
-	str = js["CAM_ADDR_1"].asString();
-	strcpy(aConfig.CAM_ADDR_1, str.c_str());
-	str = js["CAM_ADDR_2"].asString();
-	strcpy(aConfig.CAM_ADDR_2, str.c_str());
+	for (const auto& field : js.getMemberNames()) {
+		//	std::cout << "Field: " << field << ", Value: " << js[field] << std::endl;
+		//
+		if ((config_map.count(field) == 0) || (config_pointers.count(field) == 0))
+			continue;
+		//
+		ConfigItem ci = config_map[field];
+		void* ptr = config_pointers[field];
+		//
+		switch (ci.type)
+		{
+			case (ConfigType::ctUnknown):
+				/* throw? */
+				break;
+			case (ConfigType::ctInteger):
+			{
+				int i = stoi(js[field].asString());
+				int* val = (int*)ptr;
+				*val = i;
+				break;
+			}
+			case (ConfigType::ctString):
+			{
+				string s = js[field].asString();
+				char* val = (char*)ptr;
+				strncpy(val, s.c_str(), s.length());
+				break;
+			}
+			case (ConfigType::ctBool):
+			{
+				int i = stoi(js[field].asString());
+				int* val = (int*)ptr;
+				*val = (i > 0) ? 1 : 0;
+				break;
+			}
+		}
+	}
 	//
-	aConfig.UDP_PORT = stoi(js["UDP_PORT"].asString());
-	//
-	aConfig.NUM_ROI = stoi(js["NUM_ROI"].asString());
-	aConfig.NUM_ROI_H = stoi(js["NUM_ROI_H"].asString());
-	aConfig.NUM_ROI_V = stoi(js["NUM_ROI_V"].asString());
-	aConfig.recount_data_size();
-	//
-	aConfig.SHOW_GRAY = stoi(js["SHOW_GRAY"].asString());
-	aConfig.DRAW_DETAILED = stoi(js["DRAW_DETAILED"].asString());
-	aConfig.DRAW_GRID = stoi(js["DRAW_GRID"].asString());
-	aConfig.DRAW = stoi(js["DRAW"].asString());
-	//
-	aConfig.MIN_CONT_LEN = stoi(js["MIN_CONT_LEN"].asString());
-	aConfig.HOR_COLLAPSE = stoi(js["HOR_COLLAPSE"].asString());
-	//
-	aConfig.GAUSSIAN_BLUR_KERNEL = stoi(js["GAUSSIAN_BLUR_KERNEL"].asString());
-	aConfig.MORPH_OPEN_KERNEL = stoi(js["MORPH_OPEN_KERNEL"].asString());
-	aConfig.MORPH_CLOSE_KERNEL = stoi(js["MORPH_CLOSE_KERNEL"].asString());
-	//
-	aConfig.THRESHOLD_THRESH = stoi(js["THRESHOLD_THRESH"].asString());
-	aConfig.THRESHOLD_MAXVAL = stoi(js["THRESHOLD_MAXVAL"].asString());
-	//
-	aConfig.WEB_SHOW_LINES = stoi(js["WEB_SHOW_LINES"].asString());
-	aConfig.WEB_INTERVAL = stoi(js["WEB_INTERVAL"].asString());
+	aConfig = config_buf;
+
 }
 

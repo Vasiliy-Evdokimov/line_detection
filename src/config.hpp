@@ -19,11 +19,9 @@ enum class ConfigType { ctUnknown = 0, ctInteger, ctString, ctBool };
 
 struct ConfigItem
 {
+	int order;
 	string name;
 	ConfigType type;
-	int valueInt;
-	string valueString;
-	bool valueBool;
 	string description;
 
 	ConfigItem();
@@ -33,15 +31,11 @@ struct ConfigItem
 
 struct ConfigData
 {
-//	ConfigItem items[100];
-//	int items_count;
-
 	int PID;
-
+	//
 	char CAM_ADDR_1[255];
 	char CAM_ADDR_2[255];
 	//
-	char UDP_ADDR[16];
 	int UDP_PORT;
 	//
 	int NUM_ROI;
@@ -71,6 +65,7 @@ struct ConfigData
 };
 
 extern ConfigData config;
+extern std::map<std::string, ConfigItem> config_map;
 
 extern bool restart_threads;
 extern bool kill_threads;

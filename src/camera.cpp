@@ -315,7 +315,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
-	fl_error = fl_error || (res_points.size() < config.NUM_ROI);
+	fl_error = fl_error || (res_points.size() < (size_t)(config.NUM_ROI));
 
 	//	поиск и рисование штрихкодов
 	find_barcodes(imgColor);

@@ -11,9 +11,18 @@ var app = new Vue({
         //
         draw_canvas: null,
         draw_context: null,
-        draw_interval: null
+        draw_interval: null,
+        //
+        web_show_lines: false,
+        web_interval: 50
     },
     methods: {
+        get_param_by_name: function(aParams, aName) {
+            for (key in aParams)
+                if (key.slice(3) == aName)
+                    return aParams[key];                
+            return null;
+        },
         process_params_data: function(data) {
             let res = {};
             let new_key = '';
@@ -63,7 +72,7 @@ var app = new Vue({
                 "GET",
                 null,
                 this.get_params_callback
-            );
+            );           
         },
         get_params_callback: function(data) {
             this.cur_params = JSON.parse(JSON.stringify(data));
@@ -71,11 +80,20 @@ var app = new Vue({
                 this.params_init = true;
             }
             this.new_params = JSON.parse(JSON.stringify(this.cur_params));            
+            this.check_params();
+        },
+        check_params: function() {
+            this.web_show_lines = (this.get_param_by_name(this.cur_params, "WEB_SHOW_LINES") > 0);
+            this.web_interval = parseInt(this.get_param_by_name(this.cur_params, "WEB_INTERVAL"));
+            //
+            if (this.draw_interval) 
+                clearInterval(this.draw_interval);
+            this.draw_interval = setInterval(this.draw, this.web_interval);
         },
         apply_params: function() {    
             let cnv = this.canvas;
             let ctx = this.context;
-
+            //
             if (!(this.check_form(this.new_params)))
                 return;
             //
@@ -89,6 +107,7 @@ var app = new Vue({
         },
         apply_params_callback: function(data) {
             this.cur_params = JSON.parse(JSON.stringify(this.new_params));
+            this.check_params();
         },
         save_params: function() {            
             this.server_request(
@@ -240,17 +259,15 @@ var app = new Vue({
             return (Math.PI / 180) * degrees;
         },
         draw: function() {
-            this.get_points();
+            if (this.web_show_lines)
+                this.get_points();
         }
-
     },
     mounted: function () {
         this.get_params();
         //
         this.draw_canvas = document.getElementById("graph");
-        this.draw_context =  this.draw_canvas.getContext("2d");
-        //
-        this.draw_interval = setInterval(this.draw, 50);
+        this.draw_context =  this.draw_canvas.getContext("2d");      
     }
 });
 
@@ -280,5 +297,5 @@ var params_descriptions = new Map([
 	['THRESHOLD_MAXVAL', { type: 1, descr: 'Параметр (maxval) функции Threshold'}],
     //
     ['WEB_SHOW_LINES',  { type: 3, descr: 'Показывать результаты распознавания в веб-интерфейсе'}],
-    ['WEB_INTERVAL',    { type: 1, descr: 'Интервал обновления визуализации в веб-интерфейсе '}]
+    ['WEB_INTERVAL',    { type: 1, descr: 'Интервал обновления визуализации в веб-интерфейсе'}]
 ]);

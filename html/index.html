@@ -3,12 +3,12 @@
 <head>
     <meta http-equiv="Cache-Control" content="no-cache" />
 	<meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
-    <link rel="stylesheet" href="styles.css?v.4">
+    <link rel="stylesheet" href="styles.css?v.5">
 	<script src="vue.min.js"></script>
 </head>
 <body>
     <div id="app">
-        <canvas id="graph"></canvas>
+        <canvas id="graph" v-show="web_show_lines"></canvas>
         <div
             class="param"
             v-if="params_init" 
@@ -49,6 +49,6 @@
             {{ status_text }}
         </div>        
     </div>
-    <script src="vueapp.js?v.4"></script>
+    <script src="vueapp.js?v.5"></script>
 </body>
 </html>
