@@ -14,7 +14,9 @@ var app = new Vue({
         draw_interval: null,
         //
         web_show_lines: false,
-        web_interval: 50
+        web_interval: 50,
+        //
+        params_descriptions: new Map()
     },
     methods: {
         get_param_by_name: function(aParams, aName) {
@@ -82,6 +84,22 @@ var app = new Vue({
             this.new_params = JSON.parse(JSON.stringify(this.cur_params));            
             this.check_params();
         },
+        get_config_map: function() {
+            this.server_request(
+                "Получение описаний параметров...",
+                "/get_config_map",
+                "GET",
+                null,
+                this.get_config_map_callback
+            );           
+        },
+        get_config_map_callback: function(data) {
+            let params = JSON.parse(JSON.stringify(data));
+            this.params_descriptions.clear();
+            for (item of params.result)
+                this.params_descriptions.set(item.name,
+                    { "type": item.type, "descr": item.descr });
+        },
         check_params: function() {
             this.web_show_lines = (this.get_param_by_name(this.cur_params, "WEB_SHOW_LINES") > 0);
             this.web_interval = parseInt(this.get_param_by_name(this.cur_params, "WEB_INTERVAL"));
@@ -148,7 +166,6 @@ var app = new Vue({
                 this.draw_canvas.width = canvas_width;
                 this.draw_canvas.height = canvas_height;
             }
-
             //
             let offset = 0;
             for (let i = 0; i < 2; i++) {                
@@ -199,7 +216,7 @@ var app = new Vue({
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);
-            var res = params_descriptions.get(param_name);
+            var res = this.params_descriptions.get(param_name);
             return res;
         },
         is_checkbox_param: function(name) {
@@ -264,38 +281,10 @@ var app = new Vue({
         }
     },
     mounted: function () {
+        this.get_config_map();
         this.get_params();
         //
         this.draw_canvas = document.getElementById("graph");
         this.draw_context =  this.draw_canvas.getContext("2d");      
     }
 });
-
-// type: 1 - int; 2 - string; 3 - bool; 4 - ip
-var params_descriptions = new Map([
-    ['CAM_ADDR_1',  { type: 2, descr: 'RTSP адрес 1й камеры'}],
-    ['CAM_ADDR_2',  { type: 2, descr: 'RTSP адрес 2й камеры'}],    
-    ['UDP_PORT',    { type: 1, descr: 'UDP порт для обмена данными'}],
-    //
-    ['NUM_ROI',     { type: 1, descr: 'Количество горизонтальных полос'}],
-	['NUM_ROI_H',   { type: 1, descr: 'Количество горизонтальных полос, которые делим на вертикальные'}],
-	['NUM_ROI_V',   { type: 1, descr: 'Количество вертикальных полос'}],
-	//	
-	['SHOW_GRAY',       { type: 3, descr: 'Показывать изображение после преобразований'}],
-	['DRAW_DETAILED',   { type: 3, descr: 'Показывать детали анализа изображения'}],
-	['DRAW_GRID',       { type: 3, descr: 'Показывать сетку разбиения изображения'}],
-	['DRAW',            { type: 3, descr: 'Показывать изображение'}],
-	//
-	['MIN_CONT_LEN',    { type: 1, descr: 'Минимальная длина контура при поиске фрагмента линии'}],
-	['HOR_COLLAPSE',    { type: 1, descr: 'Усреднение горизонтальных линий, если расстояние между ними меньше чем'}],
-	//
-	['GAUSSIAN_BLUR_KERNEL',    { type: 1, descr: 'Ядро преобразования для GaussianBlur - (NxN)'}],
-	['MORPH_OPEN_KERNEL',       { type: 1, descr: 'Ядро преобразования для MorphologyEx(MORPH_OPEN) - (NxN)'}],
-	['MORPH_CLOSE_KERNEL',      { type: 1, descr: 'Ядро преобразования для MorphologyEx(MORPH_CLOSE) - (NxN)'}],
-	//
-	['THRESHOLD_THRESH', { type: 1, descr: 'Параметр (thresh) функции Threshold'}],
-	['THRESHOLD_MAXVAL', { type: 1, descr: 'Параметр (maxval) функции Threshold'}],
-    //
-    ['WEB_SHOW_LINES',  { type: 3, descr: 'Показывать результаты распознавания в веб-интерфейсе'}],
-    ['WEB_INTERVAL',    { type: 1, descr: 'Интервал обновления визуализации в веб-интерфейсе'}]
-]);
