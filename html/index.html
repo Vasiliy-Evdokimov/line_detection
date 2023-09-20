@@ -47,6 +47,7 @@
         </div>
         <div class="status" v-bind:class="{ status_error_class: !status_ok, status_ok_class: status_ok }">
             {{ status_text }}
+            <span v-if="status_ok">успешно!</span><span v-else>возникла ошибка!</span>
         </div>        
     </div>
     <script src="vueapp.js?v.5"></script>

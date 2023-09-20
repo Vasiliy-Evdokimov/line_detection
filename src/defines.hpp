@@ -9,7 +9,7 @@
 #define DEFINES_HPP_
 
 #define	NO_GUI
-#define	RELEASE
+//#define	RELEASE
 
 #define CAM_COUNT	2
 

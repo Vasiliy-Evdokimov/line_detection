@@ -56,24 +56,23 @@ var app = new Vue({
             })
             .then(() => {
                 if (aApplyStatus) {
-                    this.status_ok = true;
-                    this.status_text += ' успешно!';
+                    this.status_ok = true;                    
                 }
             })
             .catch((err) => {
                 if (aApplyStatus) {
-                    this.status_ok = false;
-                    this.status_text += ' возникла ошибка!';
+                    this.status_ok = false;                    
                 }                    
             });
         },        
-        get_params: function() {
+        get_params: function(aApplyStatus = true) {
             this.server_request(
                 "Получение текущих параметров...",
                 "/get_params",
                 "GET",
                 null,
-                this.get_params_callback
+                this.get_params_callback,
+                aApplyStatus
             );           
         },
         get_params_callback: function(data) {
@@ -137,7 +136,7 @@ var app = new Vue({
             );
         },
         save_params_callback: function(data) {            
-            this.get_params();            
+            this.get_params(false);            
         },
         get_points: function() {            
             this.server_request(

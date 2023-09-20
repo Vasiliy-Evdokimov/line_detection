@@ -227,7 +227,25 @@ void save_config(ConfigData aConfig)
 		}
 	}
 
-	cfg.writeFile(cfg_filename);
+
+	try
+	{
+		cfg.writeFile(cfg_filename);
+	}
+	catch(const FileIOException &fioex)
+	{
+		cout << "I/O error while writing file.\n" << fioex.what() << endl;
+		throw std::exception();
+	}
+	catch (const std::exception& e) {
+		cout << "An exception occurred:\n" << e.what() << endl;
+		throw std::exception();
+	}
+	catch (...)
+	{
+		cout << "Another error while writing file.\n";
+		throw std::exception();
+	}
 
 }
 
