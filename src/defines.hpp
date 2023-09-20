@@ -8,12 +8,10 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-//#define	NO_GUI
-//#define	RELEASE
+#define	NO_GUI
+#define	RELEASE
 
 #define CAM_COUNT	2
-
-#define THREAD_NAMING	1
 
 #define DIR_LEFT	-1
 #define DIR_RIGHT	1

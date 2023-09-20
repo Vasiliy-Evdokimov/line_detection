@@ -11,6 +11,8 @@
 
 #include "ZXing/ReadBarcode.h"
 
+#include "defines.hpp"
+
 using namespace std;
 
 inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
@@ -19,9 +21,9 @@ inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
 
 	auto fmt = ImageFormat::None;
 	switch (image.channels()) {
-	case 1: fmt = ImageFormat::Lum; break;
-	case 3: fmt = ImageFormat::BGR; break;
-	case 4: fmt = ImageFormat::BGRX; break;
+		case 1: fmt = ImageFormat::Lum; break;
+		case 3: fmt = ImageFormat::BGR; break;
+		case 4: fmt = ImageFormat::BGRX; break;
 	}
 
 	if (image.depth() != CV_8U || fmt == ImageFormat::None)
@@ -43,8 +45,18 @@ inline void DrawResult(cv::Mat& img, ZXing::Result res)
 	const auto* pts = contour.data();
 	int npts = contour.size();
 
+#ifndef NO_GUI
+	cv::Moments M = cv::moments(contour);
+	cv::Point center(M.m10 / M.m00, M.m01 / M.m00);
+	cv::circle(img, center, 3, CLR_YELLOW, -1, cv::LINE_AA);
+
 	cv::polylines(img, &pts, &npts, 1, true, CV_RGB(0, 255, 0));
 	cv::putText(img, res.text(), zx2cv(pos[3]) + cv::Point(0, 20), cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(0, 255, 0));
+
+//	cv::line(img, zx2cv(pos[0]), zx2cv(pos[1]),	CLR_RED, 2, cv::LINE_AA, 0);
+//	cv::line(img, zx2cv(pos[1]), zx2cv(pos[2]),	CLR_CYAN, 2, cv::LINE_AA, 0);
+#endif
+
 }
 
 string last_bc;

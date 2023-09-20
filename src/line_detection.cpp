@@ -12,35 +12,38 @@ using namespace std;
 void work_func()
 {
 
-	if (THREAD_NAMING)
-		pthread_setname_np(pthread_self(), "work thread");
+	pthread_setname_np(pthread_self(), "work thread");
 
 	kill_threads = false;
 
 	cout << "work_func() started!\n";
 	cout << "work_func() entered infinity loop.\n";
 
+	thread cam_threads[CAM_COUNT];
+
 	while (!kill_threads) {
 
 		init_config_sm(config);
+		//
+		string cam_addresses[CAM_COUNT] = { config.CAM_ADDR_1, config.CAM_ADDR_2 };
 		//
 		cout << "config_sm_id = " << config_sm_id << endl;
 		cout << "config_sm_ptr = " << config_sm_ptr << endl;
 		cout << "config_sm_ptr->PID = " << config_sm_ptr->PID << endl;
 		//
 		//	создаем потоки для камер
-		thread cam1_thread(camera_func, "Cam1", config.CAM_ADDR_1, 0);
-		std::this_thread::sleep_for(2s);
-		thread cam2_thread(camera_func, "Cam2", config.CAM_ADDR_2, 1);
-		std::this_thread::sleep_for(2s);
+		for (int i = 0; i < CAM_COUNT; i++) {
+			cam_threads[i] = thread(camera_func, "Cam" + to_string(i + 1), cam_addresses[i], i);
+			std::this_thread::sleep_for(2s);
+		}
 		//	создаем поток для передачи по UDP
 		thread udp_thread(udp_func);
 		udp_thread_id = udp_thread.native_handle();
 		//
-		if (cam1_thread.joinable()) cam1_thread.join();
-		if (cam2_thread.joinable()) cam2_thread.join();
+		for (int i = 0; i < CAM_COUNT; i++)
+			if (cam_threads[i].joinable()) cam_threads[i].join();
 		if (udp_thread.joinable()) udp_thread.join();
-
+		//
 		restart_threads = false;
 
 	};

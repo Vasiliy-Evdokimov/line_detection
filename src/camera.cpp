@@ -5,9 +5,15 @@
  *      Author: vevdokimov
  */
 
+#include "defines.hpp"
+
 #include "opencv2/opencv.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
-#include "opencv2/highgui/highgui.hpp"
+
+#ifndef NO_GUI
+	#include "opencv2/highgui/highgui.hpp"
+#endif
+
 #include "opencv2/imgproc/imgproc.hpp"
 
 #include <string.h>
@@ -16,8 +22,6 @@
 
 using namespace cv;
 using namespace std;
-
-#include "defines.hpp"
 #include "config.hpp"
 #include "contours.hpp"
 #include "horizontal.hpp"
@@ -35,8 +39,7 @@ ResultFixed parse_results[2];
 void visualizer_func()
 {
 
-	if (THREAD_NAMING)
-		pthread_setname_np(pthread_self(), "visualizer thread");
+	pthread_setname_np(pthread_self(), "visualizer thread");
 
 	cv::Mat mergedGray;
 	cv::Mat mergedColor;
