@@ -24,11 +24,4 @@
 		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
 		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>line_detection</name>
-			<type>1</type>
-			<location>/home/vevdokimov/eclipse-workspace/line_detection/src/line_detection</location>
-		</link>
-	</linkedResources>
 </projectDescription>

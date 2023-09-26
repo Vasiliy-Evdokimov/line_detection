@@ -55,7 +55,7 @@ main-build: line_detection
 line_detection: $(OBJS) $(USER_OBJS) makefile $(OPTIONAL_TOOL_DEPS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: GCC C++ Linker'
-	g++ -pthread -o "line_detection" $(OBJS) $(USER_OBJS) $(LIBS) -lopencv_core -lopencv_ximgproc -lopencv_video -lopencv_imgproc -lopencv_highgui -lopencv_videoio -lconfig++ -lZXing -ldrogon -ltrantor -lz -luuid -lssl -lcrypto -ljsoncpp
+	g++ -pthread -o "line_detection" $(OBJS) $(USER_OBJS) $(LIBS) -lopencv_core -lopencv_ximgproc -lopencv_video -lopencv_imgproc -lopencv_highgui -lopencv_videoio -lconfig++ -lZXing -ldrogon -ltrantor -lz -luuid -lssl -lcrypto -ljsoncpp -lzbar
 	@echo 'Finished building target: $@'
 	@echo ' '
 
