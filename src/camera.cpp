@@ -6,6 +6,7 @@
  */
 
 #include "defines.hpp"
+#include "common_types.hpp"
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
@@ -22,6 +23,7 @@
 
 using namespace cv;
 using namespace std;
+
 #include "config.hpp"
 #include "contours.hpp"
 #include "horizontal.hpp"
@@ -33,7 +35,7 @@ mutex frames_mtx[2];
 cv::Mat frames_to_show[2];
 cv::Mat grays_to_show[2];
 
-mutex parse_results_mtx[2];
+//mutex parse_results_mtx[2];
 ResultFixed parse_results[2];
 
 void visualizer_func()
@@ -141,9 +143,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			parse_image(
 				aThreadName,
 				frame,
-				parse_result.res_points,
-				parse_result.hor_ys,
-				parse_result.fl_error,
+				parse_result,
 				aIndex
 			);
 			//
@@ -189,8 +189,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 }
 
 void parse_image(string aThreadName, cv::Mat imgColor,
-	vector<cv::Point>& res_points, vector<int>& hor_ys,
-	bool& fl_error, int aIndex)
+	ParseImageResult& parse_result, int aIndex)
 {
 
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
@@ -223,7 +222,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	int imgOffset = imgHeight / config.NUM_ROI;
 	int imgOffsetV = imgWidth / config.NUM_ROI_V;
 
-	fl_error = false;
+	parse_result.fl_error = false;
 
 	int k = 0;
 
@@ -246,7 +245,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Point pt(imgWidth / 2, imgHeight);
 	cv::Point* lpCenter = &pt;
 
-	res_points.clear();
+	parse_result.res_points.clear();
 
 	vector<RectData*> buf_points;
 
@@ -274,7 +273,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
 
 	//	поиск горизонтальных пересечений
-	find_horizontal(imgColor, buf_points, hor_ys);
+	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
 
 	//	добавляем нижнюю центральную точку в список для построения линии
 	RectData crd;
@@ -312,31 +311,32 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				}
 			}
 			if (k > 0)
-				res_points.push_back(buf_points[k]->center);
+				parse_result.res_points.push_back(buf_points[k]->center);
 			else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);
 		}
 	}
 
-	fl_error = fl_error || (res_points.size() < (size_t)(config.NUM_ROI));
+	parse_result.fl_error = parse_result.fl_error ||
+		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
 
 	//	поиск и рисование штрихкодов
-	find_barcodes(imgColor);
+	find_barcodes(imgColor, parse_result);
 
 #ifndef NO_GUI
 	if (config.DRAW) {
-		if (fl_error) {
+		if (parse_result.fl_error) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}
 		else {
-			for (size_t i = 0; i < hor_ys.size(); i++)
-				cv::line(imgColor, cv::Point(0, hor_ys[i]), cv::Point(imgWidth, hor_ys[i]),
+			for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
+				cv::line(imgColor, cv::Point(0, parse_result.hor_ys[i]), cv::Point(imgWidth, parse_result.hor_ys[i]),
 					CLR_RED, 2, cv::LINE_AA, 0);
 			//
 			cv::Point line_pt(imgWidth / 2, imgHeight);
-			for (size_t i = 0; i < res_points.size(); i++) {
-				cv::line(imgColor, line_pt, res_points[i], CLR_GREEN, 2, cv::LINE_AA, 0);
-				line_pt = res_points[i];
+			for (size_t i = 0; i < parse_result.res_points.size(); i++) {
+				cv::line(imgColor, line_pt, parse_result.res_points[i], CLR_GREEN, 2, cv::LINE_AA, 0);
+				line_pt = parse_result.res_points[i];
 			}
 		}
 		//

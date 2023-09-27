@@ -46,7 +46,9 @@ std::map<std::string, void*> config_pointers = {
 	{ "THRESHOLD_THRESH",		&config_buf.THRESHOLD_THRESH },
 	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
-	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL }
+	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
+	{ "BARCODE_WIDTH",			&config_buf.BARCODE_WIDTH },
+	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH }
 };
 
 std::map<std::string, ConfigItem> config_map;

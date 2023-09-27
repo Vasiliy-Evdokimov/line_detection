@@ -60,6 +60,9 @@ struct ConfigData
 	//
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
+	//
+	int BARCODE_WIDTH;
+	int DATAMATRIX_WIDTH;
 
 	void recount_data_size();
 };

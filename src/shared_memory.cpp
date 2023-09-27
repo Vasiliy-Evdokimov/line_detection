@@ -25,7 +25,10 @@ ResultFixed* results_sm_ptr[CAM_COUNT];
 
 int init_shared_memory()
 {
-	//	shmctl(9 /* shmid из ipcs -m */, IPC_RMID, nullptr);
+//	shmctl(25 /* shmid из ipcs -m */, IPC_RMID, nullptr);	//	588 - config
+//	shmctl(26 /* shmid из ipcs -m */, IPC_RMID, nullptr);	//	72 - result_1
+//	shmctl(27 /* shmid из ipcs -m */, IPC_RMID, nullptr);	//	72 - result_2
+//	exit(1);
 
 	key_t config_key = ftok(SM_NAME, CONFIG_SM_ID);
 	if (config_key == -1) { perror("ftok"); return 1; }

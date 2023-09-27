@@ -8,8 +8,9 @@
 #ifndef BARCODE_HPP_
 #define BARCODE_HPP_
 
-#include "opencv2/opencv.hpp"
+#include "opencv2/core/types.hpp"
+#include "common_types.hpp"
 
-void find_barcodes(cv::Mat& imgColor);
+void find_barcodes(cv::Mat& img, ParseImageResult& parse_result);
 
 #endif /* BARCODE_HPP_ */

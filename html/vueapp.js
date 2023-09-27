@@ -183,11 +183,7 @@ var app = new Vue({
                 ctx.strokeStyle = "black";
                 //
                 if (res.fl_error) {
-                    ctx.beginPath();                                
-                    ctx.fillStyle = "red";
-                    ctx.arc(50 + offset, 50, 20, 0, this.get_radians(360));
-                    ctx.stroke();
-                    ctx.fill();
+                    this.draw_flag_arc(50 + offset, "red");                    
                 } else {
                     ctx.lineWidth = 3;
                     ctx.strokeStyle = "green";
@@ -208,10 +204,35 @@ var app = new Vue({
                         ctx.stroke();
                     }
                 }
-
+                //
+                if ((res.zone_flags & 4) > 0)   // fl_slow_zone
+                    this.draw_flag_arc(80 + offset, "green");
+                //
+                if ((res.zone_flags & 2) > 0)   // fl_stop_zone
+                    this.draw_flag_arc(110 + offset, "blue");
+                //
+                if ((res.zone_flags & 1) > 0) { // fl_stop_mark
+                    let clr = "cyan";
+                    this.draw_flag_arc(140 + offset, clr);                    
+                    ctx.fillStyle = clr;
+                    ctx.strokeStyle = ctx.fillStyle;
+                    ctx.font = "italic 30pt Arial";
+                    ctx.fillText(res.stop_distance, 170 + offset, 50);
+                }                    
+                //
                 offset = width;
 
             }            
+        },
+        draw_flag_arc: function(aX, aColor) {
+            let ctx = this.draw_context;
+            ctx.beginPath();                                            
+            ctx.arc(aX, 50, 20, 0, this.get_radians(360));
+            ctx.closePath();
+            ctx.strokeStyle = aColor;
+            ctx.fillStyle = aColor;
+            ctx.stroke();
+            ctx.fill();
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);
