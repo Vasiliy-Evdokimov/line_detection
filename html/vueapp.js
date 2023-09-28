@@ -182,8 +182,17 @@ var app = new Vue({
                 ctx.stroke();
                 ctx.strokeStyle = "black";
                 //
-                if (res.fl_error) {
-                    this.draw_flag_arc(50 + offset, "red");                    
+                if (res.error_flags > 0) {
+                    if ((res.error_flags & 1) > 0) {    //  fl_err_line
+                        this.draw_flag_arc(50 + offset, "red");
+                    }
+                    if ((res.error_flags & 4) > 0) {    //  fl_err_camera
+                        let clr = "red";                    
+                        ctx.fillStyle = clr;
+                        ctx.strokeStyle = ctx.fillStyle;
+                        ctx.font = "italic 30pt Arial";
+                        ctx.fillText("Camera error!", 170 + offset, 50);
+                    }                        
                 } else {
                     ctx.lineWidth = 3;
                     ctx.strokeStyle = "green";
@@ -191,7 +200,7 @@ var app = new Vue({
                     ctx.beginPath();
                     ctx.moveTo((width / 2) + offset, height);
                     for (res_point of res.res_points)
-                        ctx.lineTo(res_point.x + offset, res_point.y);            
+                        ctx.lineTo(res_point.x + offset, res_point.y);
                     ctx.stroke();
                     //
                     ctx.strokeStyle = "red";

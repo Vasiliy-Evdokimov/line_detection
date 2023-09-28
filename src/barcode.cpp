@@ -67,13 +67,14 @@ void find_barcodes(cv::Mat& img, ParseImageResult& parse_result)
 		auto pos = res.position();
 		auto zx2cv = [](ZXing::PointI p) { return cv::Point(p.x, p.y); };
 		auto contour = std::vector<cv::Point>{zx2cv(pos[0]), zx2cv(pos[1]), zx2cv(pos[2]), zx2cv(pos[3])};
-		const auto* pts = contour.data();
-		int npts = contour.size();
 
 		cv::Moments M = cv::moments(contour);
 		cv::Point center(M.m10 / M.m00, M.m01 / M.m00);
 
 #ifndef NO_GUI
+		const auto* pts = contour.data();
+		int npts = contour.size();
+
 		cv::circle(img, center, 3, CLR_YELLOW, -1, cv::LINE_AA);
 		//
 		cv::polylines(img, &pts, &npts, 1, true, CLR_GREEN);
@@ -107,7 +108,7 @@ void find_barcodes(cv::Mat& img, ParseImageResult& parse_result)
 
 		}
 
-		std::cout << "Barcode detected = " << txt << std::endl;
+		//	std::cout << "Barcode detected = " << txt << std::endl;
 
 	}
 

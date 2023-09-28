@@ -22,7 +22,7 @@ struct ResultPoint {
 struct ResultFixed {
 	uint16_t img_width;
 	uint16_t img_height;
-	uint16_t error_flag;
+	uint16_t error_flags;
 	//
 	uint8_t max_points_count;
 	uint8_t points_count;
@@ -39,7 +39,7 @@ struct ResultFixed {
 struct ParseImageResult {
 	int width;
 	int height;
-	bool fl_error;
+	//
 	vector<cv::Point> res_points;
 	vector<int> hor_ys;
 	//
@@ -47,11 +47,15 @@ struct ParseImageResult {
 	bool fl_stop_zone;
 	bool fl_stop_mark;
 	int stop_mark_distance;
+	//
+	bool fl_err_line;
+	bool fl_err_parse;
+	bool fl_err_camera;
 
 	ParseImageResult() {
 		width = 0;
 		height = 0;
-		fl_error = false;
+		//
 		res_points.clear();
 		hor_ys.clear();
 		//
@@ -59,12 +63,16 @@ struct ParseImageResult {
 		fl_stop_zone = false;
 		fl_stop_mark = false;
 		stop_mark_distance = 0;
+		//
+		fl_err_line = false;
+		fl_err_parse = false;
+		fl_err_camera = false;
 	}
 
 	ParseImageResult(const ParseImageResult& src) {
 		width = src.width;
 		height = src.height;
-		fl_error = src.fl_error;
+		//
 		res_points.clear();
 		for (size_t i = 0; i < src.res_points.size(); i++)
 			res_points.push_back(cv::Point(src.res_points[i]));
@@ -75,13 +83,16 @@ struct ParseImageResult {
 		fl_stop_zone = src.fl_stop_zone;
 		fl_stop_mark = src.fl_stop_mark;
 		stop_mark_distance = src.stop_mark_distance;
+		//
+		fl_err_line = src.fl_err_line;
+		fl_err_parse = src.fl_err_parse;
+		fl_err_camera = src.fl_err_camera;
 	}
 
 	ResultFixed ToFixed() {
 		ResultFixed res;
 		res.img_width = width;
 		res.img_height = height;
-		res.error_flag = fl_error ? 1 : 0;
 		//
 		res.max_points_count = MAX_POINTS_COUNT;
 		res.points_count = res_points.size();
@@ -106,6 +117,11 @@ struct ParseImageResult {
 		res.zone_flags |= (fl_stop_mark << 0);
 		//
 		res.stop_distance = stop_mark_distance;
+		//
+		res.error_flags = 0;
+		res.error_flags |= (fl_err_line << 0);
+		res.error_flags |= (fl_err_parse << 1);
+		res.error_flags |= (fl_err_camera << 2);
 		//
 		return res;
 	}

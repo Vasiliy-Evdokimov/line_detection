@@ -84,12 +84,17 @@ void visualizer_func()
 
 }
 
+void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
+	ResultFixed rfx = parse_result.ToFixed();
+	write_results_sm(rfx, aIndex);
+}
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
 	pthread_setname_np(pthread_self(), aThreadName.c_str());
 
-    cout << aThreadName <<  " started!\n";
+    cout << aThreadName << " started!\n";
 
 	clock_t tStart;
 
@@ -99,39 +104,45 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	uint64_t read_err = 0;
 
-	cv::VideoCapture cap(aCamAddress);
-
-	if (!cap.isOpened()) {
-		cerr <<  aThreadName << " - error opening camera!\n";
-		return;
-	}
-
+	cv::VideoCapture cap;
 	cv::Mat frame;
 
-	//	очищаем буфер
-	for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
-		cap >> frame;
-
-	cout << aThreadName <<  " entered infinity loop.\n";
-
 	ParseImageResult parse_result;
-	ResultFixed rfx;
+	parse_result.fl_err_camera = true;	//	инициализация камеры
 
 	while (1) {
 
 		if (restart_threads || kill_threads) break;
 
+		if (parse_result.fl_err_camera) {
+
+			if (cap.isOpened())
+				cap.release();
+
+			parse_result.fl_err_camera = !cap.open(aCamAddress);
+			parse_result_to_sm(parse_result, aIndex);
+
+			if (parse_result.fl_err_camera)	{
+				cerr << aThreadName << " - error opening camera!\n";
+				continue;
+			}
+
+			//	очищаем буфер
+			for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
+				cap >> frame;
+
+			cout << aThreadName <<  " entered infinity loop.\n";
+
+		}
+
 		tStart = clock();
 
-		try {
-			if (!(cap.read(frame)))
-				read_err++;
-		}
-		catch (const std::exception& e) {
-			cout << aThreadName << " an exception occurred: " << e.what() << endl;
-		}
-		catch (...) {
+		parse_result.fl_err_camera = (!cap.isOpened()) || (!cap.read(frame));
+
+		if (parse_result.fl_err_camera) {
 			cout << aThreadName << " read error!\n";
+			parse_result_to_sm(parse_result, aIndex);
+			continue;
 		}
 
 		parse_result.width = frame.cols;
@@ -146,21 +157,28 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				parse_result,
 				aIndex
 			);
+			parse_result.fl_err_parse = false;
 			//
 			//parse_results_mtx[aIndex].lock();
 			//parse_results[aIndex] = parse_result.ToFixed();
 			//write_results_sm(parse_results[aIndex], aIndex);
-			rfx = parse_result.ToFixed();
-			write_results_sm(rfx, aIndex);
+			//parse_result_to_sm(parse_result, aIndex);
 			//parse_results_mtx[aIndex].unlock();
 
 		} catch (...) {
+			parse_result.fl_err_parse = true;
+		}
+
+		parse_result_to_sm(parse_result, aIndex);
+
+		if (parse_result.fl_err_parse) {
 			cout << aThreadName <<  " parse error!\n";
+			continue;
 		}
 
 		if (STATS_LOG) {
 
-			if (parse_result.fl_error)
+			if (parse_result.fl_err_line)
 				incorrect_lines++;
 			//
 			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
@@ -222,7 +240,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	int imgOffset = imgHeight / config.NUM_ROI;
 	int imgOffsetV = imgWidth / config.NUM_ROI_V;
 
-	parse_result.fl_error = false;
+	parse_result.fl_err_line = false;
 
 	int k = 0;
 
@@ -317,7 +335,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
-	parse_result.fl_error = parse_result.fl_error ||
+	parse_result.fl_err_line = parse_result.fl_err_line ||
 		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
 
 	//	поиск и рисование штрихкодов
@@ -325,7 +343,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifndef NO_GUI
 	if (config.DRAW) {
-		if (parse_result.fl_error) {
+		if (parse_result.fl_err_line) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}
 		else {

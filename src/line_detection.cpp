@@ -34,7 +34,7 @@ void work_func()
 		//	создаем потоки для камер
 		for (int i = 0; i < CAM_COUNT; i++) {
 			cam_threads[i] = thread(camera_func, "Cam" + to_string(i + 1), cam_addresses[i], i);
-			std::this_thread::sleep_for(2s);
+			std::this_thread::sleep_for(1s);
 		}
 		//	создаем поток для передачи по UDP
 		thread udp_thread(udp_func);
@@ -86,7 +86,7 @@ int main(int argc, char** argv)
 	//
 	//	создаем рабочий поток
 	thread work_thread(work_func);
-	std::this_thread::sleep_for(2s);
+	std::this_thread::sleep_for(1s);
 	//
 #ifndef NO_GUI
 	//	создаем поток визуализации
