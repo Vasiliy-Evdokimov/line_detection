@@ -25,6 +25,7 @@
 #include "udp.hpp"
 
 #include "string.h"
+#include "crc.hpp"
 
 #define UDP_BUFLEN 255
 
@@ -102,6 +103,10 @@ void udp_func()
 			read_results_sm(udp_pack.results[i], i);
 			//parse_results_mtx[i].unlock();
 		}
+
+		uint8_t buf[sizeof(udp_pack) - 2];
+		std::memcpy(&buf, &udp_pack, sizeof(buf));
+		udp_pack.crc = crc16(buf, sizeof(buf));
 
 		size_t sz = sizeof(udp_pack);
 		if (UDP_LOG) {

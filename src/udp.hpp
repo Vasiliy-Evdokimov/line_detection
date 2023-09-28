@@ -15,6 +15,7 @@ using namespace std;
 struct udp_package {
 	uint16_t counter;
 	ResultFixed results[2];
+	uint16_t crc;
 };
 
 extern pthread_t udp_thread_id;
