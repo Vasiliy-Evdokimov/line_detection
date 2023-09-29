@@ -5,6 +5,7 @@ using namespace std;
 
 #include "defines.hpp"
 #include "config.hpp"
+#include "log.hpp"
 #include "shared_memory.hpp"
 #include "camera.hpp"
 #include "udp.hpp"
@@ -16,8 +17,8 @@ void work_func()
 
 	kill_threads = false;
 
-	cout << "work_func() started!\n";
-	cout << "work_func() entered infinity loop.\n";
+	write_log("work_func() started!");
+	write_log("work_func() entered infinity loop.");
 
 	thread cam_threads[CAM_COUNT];
 
@@ -26,10 +27,6 @@ void work_func()
 		init_config_sm(config);
 		//
 		string cam_addresses[CAM_COUNT] = { config.CAM_ADDR_1, config.CAM_ADDR_2 };
-		//
-		cout << "config_sm_id = " << config_sm_id << endl;
-		cout << "config_sm_ptr = " << config_sm_ptr << endl;
-		cout << "config_sm_ptr->PID = " << config_sm_ptr->PID << endl;
 		//
 		//	создаем потоки для камер
 		for (int i = 0; i < CAM_COUNT; i++) {
@@ -48,21 +45,21 @@ void work_func()
 
 	};
 
-	cout << "work_func() is out of infinity loop.\n";
+	write_log("work_func() is out of infinity loop.");
 
 }
 
 void signalHandler( int signum ) {
 
 	if (signum == SIGINT) {
-		cout << "SIGINT received.\n";
+		write_log("SIGINT received.");
 		//
 		kill_udp_thread();
 		kill_threads = true;
 	} else
 	//
 	if (signum == SIGUSR1) {
-		cout << "SIGUSR1 received.\n";
+		write_log("SIGUSR1 received.");
 		//
 		kill_udp_thread();
 		restart_threads = true;
@@ -73,7 +70,7 @@ void signalHandler( int signum ) {
 int main(int argc, char** argv)
 {
 
-	cout << "Application started!\n";
+	write_log("Application started!");
 	//
 	signal(SIGINT, signalHandler);
 	signal(SIGUSR1, signalHandler);
@@ -104,7 +101,7 @@ int main(int argc, char** argv)
     	//
     }
     //
-    cout << "Application terminated!\n";
+    write_log("Application terminated!");
     //
     return 0;
 

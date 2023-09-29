@@ -7,6 +7,7 @@
 
 #include "defines.hpp"
 #include "common_types.hpp"
+#include "log.hpp"
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/objdetect/objdetect.hpp"
@@ -46,8 +47,8 @@ void visualizer_func()
 	cv::Mat mergedGray;
 	cv::Mat mergedColor;
 
-	cout << "visualizer_func() started!\n";
-	cout << "visualizer_func() entered infinity loop.\n";
+	write_log("visualizer_func() started!");
+	write_log("visualizer_func() entered infinity loop.");
 
 	cv::Mat frames[2];
 	cv::Mat grays[2];
@@ -80,7 +81,7 @@ void visualizer_func()
 
 	destroyAllWindows();
 
-	cout << "visualizer_func() is out of infinity loop.\n";
+	write_log("visualizer_func() is out of infinity loop.");
 
 }
 
@@ -94,7 +95,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	pthread_setname_np(pthread_self(), aThreadName.c_str());
 
-    cout << aThreadName << " started!\n";
+    write_log(aThreadName + " started!");
 
 	clock_t tStart;
 
@@ -123,7 +124,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			parse_result_to_sm(parse_result, aIndex);
 
 			if (parse_result.fl_err_camera)	{
-				cerr << aThreadName << " - error opening camera!\n";
+				write_log(aThreadName + " - error opening camera!");
 				continue;
 			}
 
@@ -131,7 +132,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
 				cap >> frame;
 
-			cout << aThreadName <<  " entered infinity loop.\n";
+			write_log(aThreadName + " entered infinity loop.");
 
 		}
 
@@ -140,7 +141,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		parse_result.fl_err_camera = (!cap.isOpened()) || (!cap.read(frame));
 
 		if (parse_result.fl_err_camera) {
-			cout << aThreadName << " read error!\n";
+			write_log(aThreadName + " read error!");
 			parse_result_to_sm(parse_result, aIndex);
 			continue;
 		}
@@ -172,7 +173,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		parse_result_to_sm(parse_result, aIndex);
 
 		if (parse_result.fl_err_parse) {
-			cout << aThreadName <<  " parse error!\n";
+			write_log(aThreadName + " parse error!");
 			continue;
 		}
 
@@ -188,9 +189,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			if (cnt >= AVG_CNT)
 			{
 				if (read_err)
-					cout << aThreadName <<  "thread Reading errors = " << read_err << endl;
-				cout << aThreadName <<  "thread Incorrect lines: " << incorrect_lines << endl;
-				cout << aThreadName <<  "thread Average time taken: " << sum / cnt << endl;
+					write_log(aThreadName + "thread Reading errors = " + to_string(read_err));
+				write_log(aThreadName + "thread Incorrect lines: " + to_string(incorrect_lines));
+				write_log(aThreadName + "thread Average time taken: " + to_string(sum / cnt));
 				//
 				incorrect_lines = 0;
 				cnt = 0;
@@ -202,7 +203,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	cap.release();
 
-	cout << aThreadName <<  " is out of infinity loop.\n";
+	write_log(aThreadName + " is out of infinity loop.");
 
 }
 

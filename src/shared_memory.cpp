@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include <iostream>
 #include <cstring>
 
 #include <sys/ipc.h>
@@ -14,6 +13,7 @@
 
 #include "common_types.hpp"
 #include "config.hpp"
+#include "log.hpp"
 #include "shared_memory.hpp"
 
 using namespace std;
@@ -84,7 +84,7 @@ int init_config_sm(ConfigData& aConfig) {
 	shmid_ds state;
 	shmctl(config_sm_id, IPC_STAT, &state);
 	//
-	cout << "state.shm_nattch = " << state.shm_nattch << endl;
+	write_log("state.shm_nattch = " + to_string(state.shm_nattch));
 	//	если количество подключенных к SM = 1, т.е. только это приложение
 	if (state.shm_nattch == 1) {
 		//	то записываем в SM данные из конфига прочитанного при инициализации

@@ -5,8 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include <iostream>
-
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -17,6 +15,7 @@
 
 #include "defines.hpp"
 #include "config.hpp"
+#include "log.hpp"
 #include "camera.hpp"
 #include "shared_memory.hpp"
 
@@ -46,7 +45,7 @@ void udp_func()
 
 	pthread_setname_np(pthread_self(), "udp thread");
 
-	std::cout << "UPD thread started!\n";
+	write_log("UPD thread started!");
 
 	struct sockaddr_in serverAddr{}, clientAddr{};
 	socklen_t addrLen = sizeof(clientAddr);
@@ -55,12 +54,12 @@ void udp_func()
 	try {
 		close(sockfd);
 	} catch (...) {
-		cout << "socket close error!\n";
+		write_err("socket close error!");
 	}
 	//
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0) {
-		std::cerr << "socket creating error!\n";
+		write_err("socket creating error!");
 		return;
 	}
 
@@ -69,13 +68,13 @@ void udp_func()
 	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
 	if (bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-		std::cerr << "socket binding error!\n";
+		write_err("socket binding error!");
 		return;
 	}
 
 	char buffer[UDP_BUFLEN];
 
-	std::cout << "UDP thread entered infinity loop.\n";
+	write_log("UDP thread entered infinity loop.");
 
 	uint16_t counter = 0;
 
@@ -87,11 +86,11 @@ void udp_func()
 
 		int numBytes = recvfrom( sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen );
 		if (numBytes < 0) {
-			std::cerr << "data receiving error!\n";
+			write_err("data receiving error!");
 			return;
 		}
 
-		//	std::cout << "Received: " << std::string(buffer, numBytes) << std::endl;
+		//	write_log("Received: " + string(buffer, numBytes));
 
 		counter++;
 
@@ -124,7 +123,7 @@ void udp_func()
 
 	}
 
-	std::cout << "UDP out of infinity loop.\n";
+	write_log("UDP out of infinity loop.");
 
 	close(sockfd);
 

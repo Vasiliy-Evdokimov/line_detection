@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include <iostream>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -13,6 +12,7 @@
 
 #include "defines.hpp"
 #include "config.hpp"
+#include "log.hpp"
 
 using namespace std;
 using namespace libconfig;
@@ -114,8 +114,8 @@ void ConfigData::recount_data_size() {
 
 void read_config()
 {
-
-	cout << "cfg_filename = " << cfg_filename << endl;
+	string str(cfg_filename);
+	write_log("cfg_filename = " + str);
 
 	Config cfg;
 
@@ -125,13 +125,13 @@ void read_config()
 	}
 	catch(const FileIOException &fioex)
 	{
-		cerr << "I/O error while reading file.\n";
+		write_err("I/O error while reading file.");
 		exit(1);
 	}
 	catch(const ParseException &pex)
 	{
-		cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-				<< " - " << pex.getError() << endl;
+		string str_file(pex.getFile());
+		write_err("Parse error at " + str_file + ":" + to_string(pex.getLine()) + " - " + pex.getError());
 		exit(1);
 	}
 
@@ -152,14 +152,14 @@ void read_config()
 		config.recount_data_size();
 
 		config.PID = getpid();
-		cout << "Application PID = " << config.PID << endl;
+		write_log("Application PID = " + to_string(config.PID));
 
 		restart_threads = false;
 
 	}
 	catch(const SettingNotFoundException &nfex)
 	{
-		cerr << "Critical setting was not found in configuration file.\n";
+		write_err("Critical setting was not found in configuration file.");
 		exit(1);
 	}
 
@@ -176,13 +176,13 @@ void save_config(ConfigData aConfig)
 	}
 	catch(const FileIOException &fioex)
 	{
-		cerr << "I/O error while reading file.\n";
+		write_err("I/O error while reading file.");
 		exit(1);
 	}
 	catch(const ParseException &pex)
 	{
-		cerr << "Parse error at " << pex.getFile() << ":" << pex.getLine()
-				<< " - " << pex.getError() << endl;
+		string str_file(pex.getFile());
+		write_err("Parse error at " + str_file + ":" + to_string(pex.getLine()) + " - " + pex.getError());
 		exit(1);
 	}
 
@@ -236,16 +236,18 @@ void save_config(ConfigData aConfig)
 	}
 	catch(const FileIOException &fioex)
 	{
-		cout << "I/O error while writing file.\n" << fioex.what() << endl;
+		string str(fioex.what());
+		write_log("I/O error while writing file: " + str);
 		throw std::exception();
 	}
 	catch (const std::exception& e) {
-		cout << "An exception occurred:\n" << e.what() << endl;
+		string str(e.what());
+		write_log("An exception occurred: " + str);
 		throw std::exception();
 	}
 	catch (...)
 	{
-		cout << "Another error while writing file.\n";
+		write_log("Another error while writing file.");
 		throw std::exception();
 	}
 
@@ -302,8 +304,7 @@ void fill_config_form_json(Json::Value js, ConfigData& aConfig)
 	config_buf = aConfig;
 	//
 	for (const auto& field : js.getMemberNames()) {
-		//	std::cout << "Field: " << field << ", Value: " << js[field] << std::endl;
-		//
+
 		if ((config_map.count(field) == 0) || (config_pointers.count(field) == 0))
 			continue;
 		//
@@ -337,6 +338,7 @@ void fill_config_form_json(Json::Value js, ConfigData& aConfig)
 				break;
 			}
 		}
+
 	}
 	//
 	aConfig = config_buf;

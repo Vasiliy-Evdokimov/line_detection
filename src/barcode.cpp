@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include <iostream>
 #include <string>
 #include <cmath>
 
@@ -16,6 +15,7 @@
 
 #include "defines.hpp"
 #include "config.hpp"
+#include "log.hpp"
 #include "barcode.hpp"
 
 inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
@@ -108,7 +108,7 @@ void find_barcodes(cv::Mat& img, ParseImageResult& parse_result)
 
 		}
 
-		//	std::cout << "Barcode detected = " << txt << std::endl;
+		//	write_log("Barcode detected = " + txt);
 
 	}
 
