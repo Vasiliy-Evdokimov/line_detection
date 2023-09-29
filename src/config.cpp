@@ -48,7 +48,8 @@ std::map<std::string, void*> config_pointers = {
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
 	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
 	{ "BARCODE_WIDTH",			&config_buf.BARCODE_WIDTH },
-	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH }
+	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH },
+	{ "LINE_WIDTH",		&config_buf.LINE_WIDTH }
 };
 
 std::map<std::string, ConfigItem> config_map;

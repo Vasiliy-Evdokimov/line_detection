@@ -267,6 +267,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.res_points.clear();
 
 	vector<RectData*> buf_points;
+	vector<RectData*> buf_rd;
 
 	for (int i = 0; i < config.DATA_SIZE; ++i)
 	{
@@ -329,8 +330,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 					}
 				}
 			}
-			if (k > 0)
+			if (k > 0) {
+				buf_rd.push_back(buf_points[k]);
 				parse_result.res_points.push_back(buf_points[k]->center);
+			}
 			else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);
 		}
@@ -338,6 +341,24 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	parse_result.fl_err_line = parse_result.fl_err_line ||
 		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
+
+	// /* In progress */ измерения отклонений от центра в миллиметрах
+
+	for (int i = 0; i < buf_rd.size(); i++) {
+		cv::Point c(buf_rd[i]->center);
+		cv::Point c_img(imgColor.cols / 2, buf_rd[i]->center.y);
+		cv::line(imgColor, c, c_img, CLR_YELLOW, 1, cv::LINE_AA, 0);
+	}
+
+	if (buf_rd.size() > 2) {
+		cv::Rect r(buf_rd[1]->bound);
+		cv::rectangle(imgColor, r, CLR_CYAN);
+		//
+		cv::Point c(buf_rd[1]->center);
+		cv::Point pt1(r.x, c.y);			//	r.y + r.height
+		cv::Point pt2(r.x + r.width, c.y);	//	r.y + r.height
+		cv::line(imgColor, pt1, pt2, CLR_MAGENTA, 1, cv::LINE_AA, 0);
+	}
 
 	//	поиск и рисование штрихкодов
 	find_barcodes(imgColor, parse_result);

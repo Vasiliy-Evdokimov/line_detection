@@ -63,6 +63,8 @@ struct ConfigData
 	//
 	int BARCODE_WIDTH;
 	int DATAMATRIX_WIDTH;
+	//
+	int LINE_WIDTH;
 
 	void recount_data_size();
 };
