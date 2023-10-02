@@ -49,6 +49,7 @@ struct ConfigData
 	int DRAW;
 	//
 	int MIN_CONT_LEN;
+	int MIN_RECT_WIDTH;
 	int HOR_COLLAPSE;
 	//
 	int GAUSSIAN_BLUR_KERNEL;
@@ -61,6 +62,7 @@ struct ConfigData
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
 	//
+	int BARCODE_LEFT;
 	int BARCODE_WIDTH;
 	int DATAMATRIX_WIDTH;
 	//

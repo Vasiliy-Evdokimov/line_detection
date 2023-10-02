@@ -51,7 +51,8 @@ double GetPointDist(cv::Point pt1, cv::Point pt2) {
 std::string last_bc;
 int cnt = 0;
 
-void find_barcodes(cv::Mat& img, ParseImageResult& parse_result)
+void find_barcodes(cv::Mat& img, ParseImageResult& parse_result,
+	std::vector<std::vector<cv::Point>>& contours)
 {
 	auto results = ReadBarcodes(img);
 
@@ -67,6 +68,8 @@ void find_barcodes(cv::Mat& img, ParseImageResult& parse_result)
 		auto pos = res.position();
 		auto zx2cv = [](ZXing::PointI p) { return cv::Point(p.x, p.y); };
 		auto contour = std::vector<cv::Point>{zx2cv(pos[0]), zx2cv(pos[1]), zx2cv(pos[2]), zx2cv(pos[3])};
+
+		contours.push_back(contour);
 
 		cv::Moments M = cv::moments(contour);
 		cv::Point center(M.m10 / M.m00, M.m01 / M.m00);

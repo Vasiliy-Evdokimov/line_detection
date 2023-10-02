@@ -39,6 +39,7 @@ std::map<std::string, void*> config_pointers = {
 	{ "DRAW_GRID",		&config_buf.DRAW_GRID },
 	{ "DRAW",			&config_buf.DRAW },
 	{ "MIN_CONT_LEN",	&config_buf.MIN_CONT_LEN },
+	{ "MIN_RECT_WIDTH",	&config_buf.MIN_RECT_WIDTH },
 	{ "HOR_COLLAPSE",	&config_buf.HOR_COLLAPSE },
 	{ "GAUSSIAN_BLUR_KERNEL",	&config_buf.GAUSSIAN_BLUR_KERNEL },
 	{ "MORPH_OPEN_KERNEL",		&config_buf.MORPH_OPEN_KERNEL },
@@ -47,6 +48,7 @@ std::map<std::string, void*> config_pointers = {
 	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
 	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
+	{ "BARCODE_LEFT",			&config_buf.BARCODE_LEFT },
 	{ "BARCODE_WIDTH",			&config_buf.BARCODE_WIDTH },
 	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH },
 	{ "LINE_WIDTH",		&config_buf.LINE_WIDTH }

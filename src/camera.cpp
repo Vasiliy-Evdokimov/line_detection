@@ -211,6 +211,20 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	ParseImageResult& parse_result, int aIndex)
 {
 
+	//	поиск штрихкодов
+	std::vector<std::vector<cv::Point>> bc_contours;
+	//
+	find_barcodes(imgColor, parse_result, bc_contours);
+	//
+	int minX = imgColor.cols;
+	int maxX = 0;
+	for (size_t i = 0; i < bc_contours.size(); i++)
+		for (size_t j = 0; j < bc_contours[i].size(); j++) {
+			cv::Point point = bc_contours[i][j];
+			if (point.x < minX) minX = point.x;
+			if (point.x > maxX) maxX = point.x;
+		}
+
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
@@ -225,6 +239,19 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Mat gray;
 	cv::threshold(trImage, gray,
 		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+//		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_OTSU);
+
+//	cv::bitwise_not(gray, gray);
+
+//	for (size_t i = 0; i < bc_contours.size(); i++)
+//		cv::rectangle(gray, cv::boundingRect(bc_contours[i]), CLR_BLACK, -1);
+	if (bc_contours.size() > 0) {
+		if (config.BARCODE_LEFT)
+			cv::rectangle(gray, cv::Point(0, 0), cv::Point(maxX, gray.rows), CLR_BLACK, -1);
+		else
+			cv::rectangle(gray, cv::Point(minX, 0), cv::Point(gray.cols, gray.rows), CLR_BLACK, -1);
+
+	}
 
 #ifndef NO_GUI
 	if (config.DRAW && config.SHOW_GRAY) {
@@ -285,6 +312,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		if (config.DRAW && config.DRAW_DETAILED) {
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
 			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
+			//
+//			cv::putText(imgColor, std::to_string(rd->bound.width), rd->center + cv::Point(0, 20),
+//				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
 		}
 #endif
 	}
@@ -319,8 +349,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				if (
 					true
 					//&& ((rd1->roi_row - rd2->roi_row) == 1)				//	если точки в соседних строках
-					&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
-					&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
+					//&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
+					//&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
 					)
 				{
 					double len = length(rd1->center, rd2->center);
@@ -334,7 +364,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				buf_rd.push_back(buf_points[k]);
 				parse_result.res_points.push_back(buf_points[k]->center);
 			}
-			else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
+			//else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);
 		}
 	}
@@ -342,29 +372,32 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_err_line = parse_result.fl_err_line ||
 		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
 
-	// /* In progress */ измерения отклонений от центра в миллиметрах
-
-	for (int i = 0; i < buf_rd.size(); i++) {
-		cv::Point c(buf_rd[i]->center);
-		cv::Point c_img(imgColor.cols / 2, buf_rd[i]->center.y);
-		cv::line(imgColor, c, c_img, CLR_YELLOW, 1, cv::LINE_AA, 0);
-	}
-
-	if (buf_rd.size() > 2) {
-		cv::Rect r(buf_rd[1]->bound);
-		cv::rectangle(imgColor, r, CLR_CYAN);
-		//
-		cv::Point c(buf_rd[1]->center);
-		cv::Point pt1(r.x, c.y);			//	r.y + r.height
-		cv::Point pt2(r.x + r.width, c.y);	//	r.y + r.height
-		cv::line(imgColor, pt1, pt2, CLR_MAGENTA, 1, cv::LINE_AA, 0);
-	}
-
-	//	поиск и рисование штрихкодов
-	find_barcodes(imgColor, parse_result);
-
 #ifndef NO_GUI
 	if (config.DRAW) {
+
+		// /* In progress */ измерения отклонений от центра в миллиметрах
+
+		for (size_t i = 0; i < buf_rd.size(); i++) {
+			cv::Point c(buf_rd[i]->center);
+			cv::Point c_img(imgColor.cols / 2, buf_rd[i]->center.y);
+			if (config.DRAW_DETAILED)
+				cv::line(imgColor, c, c_img, CLR_YELLOW, 1, cv::LINE_AA, 0);
+		}
+
+		if (buf_rd.size() > 2) {
+			cv::Rect r(buf_rd[1]->bound);
+			cv::Point c(buf_rd[1]->center);
+			cv::Point pt1(r.x, c.y);			//	r.y + r.height
+			cv::Point pt2(r.x + r.width, c.y);	//	r.y + r.height
+			//
+			if (config.DRAW_DETAILED) {
+				cv::rectangle(imgColor, r, CLR_CYAN);
+				cv::line(imgColor, pt1, pt2, CLR_MAGENTA, 1, cv::LINE_AA, 0);
+			}
+		}
+
+		//
+
 		if (parse_result.fl_err_line) {
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}

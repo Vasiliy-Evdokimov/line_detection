@@ -9,7 +9,7 @@
 #include "config.hpp"
 #include "contours.hpp"
 
-void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, double min_cont_len, int roi_row, int roi_col)
+void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row, int roi_col)
 {
 	cv::Mat roiImg;
 	std::vector<std::vector<cv::Point2i>> cont;
@@ -24,14 +24,18 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, double min_c
 		RectData rd;
 
 		cv::Moments M = cv::moments(*i);
+		cv::Rect R = cv::boundingRect(*i);
 
-		if (M.m00 < min_cont_len)
+		if (M.m00 < config.MIN_CONT_LEN)
+			continue;
+
+		if (R.width < config.MIN_RECT_WIDTH)
 			continue;
 
 		rd.len = M.m00;
 		rd.center.x = int(M.m10 / M.m00) + roi.x;
 		rd.center.y = int(M.m01 / M.m00) + roi.y;
-		rd.bound = cv::boundingRect(*i);
+		rd.bound = R;
 		rd.bound.x += roi.x;
 		rd.bound.y += roi.y;
 
@@ -88,7 +92,7 @@ void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& d
 		cv::rectangle(imgColor, roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
 #endif
 
-	get_contur_params(imgGray, roi, dataItem, config.MIN_CONT_LEN, roi_row, roi_col);
+	get_contur_params(imgGray, roi, dataItem, roi_row, roi_col);
 
 }
 
