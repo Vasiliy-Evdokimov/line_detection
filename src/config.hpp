@@ -35,6 +35,7 @@ struct ConfigData
 	//
 	char CAM_ADDR_1[255];
 	char CAM_ADDR_2[255];
+	int USE_CAM;
 	//
 	int UDP_PORT;
 	//

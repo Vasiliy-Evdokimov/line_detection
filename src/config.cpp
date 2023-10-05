@@ -30,6 +30,7 @@ const char* cfg_filename =
 std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
 	{ "CAM_ADDR_2",		&config_buf.CAM_ADDR_2 },
+	{ "USE_CAM",		&config_buf.USE_CAM },
 	{ "UDP_PORT",		&config_buf.UDP_PORT },
 	{ "NUM_ROI",		&config_buf.NUM_ROI },
 	{ "NUM_ROI_H",		&config_buf.NUM_ROI_H },

@@ -32,48 +32,63 @@ using namespace std;
 #include "shared_memory.hpp"
 #include "camera.hpp"
 
-mutex frames_mtx[2];
-cv::Mat frames_to_show[2];
-cv::Mat grays_to_show[2];
+mutex frames_mtx[CAM_COUNT];
+cv::Mat frames_to_show[CAM_COUNT];
+cv::Mat grays_to_show[CAM_COUNT];
 
-//mutex parse_results_mtx[2];
-ResultFixed parse_results[2];
+//mutex parse_results_mtx[CAM_COUNT];
+ResultFixed parse_results[CAM_COUNT];
 
 void visualizer_func()
 {
 
 	pthread_setname_np(pthread_self(), "visualizer thread");
 
-	cv::Mat mergedGray;
-	cv::Mat mergedColor;
-
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
 
-	cv::Mat frames[2];
-	cv::Mat grays[2];
-
 	while (!kill_threads) {
 
-		for	(int i = 0; i < 2; i++) {
+		cv::Mat mergedGray;
+		cv::Mat mergedColor;
+		//
+		std::vector<cv::Mat> frames;
+		std::vector<cv::Mat> grays;
+		//
+		for	(int i = 0; i < CAM_COUNT; i++) {
+			if (!(config.USE_CAM & (1 << i))) continue;
+			//
+			cv::Mat frame;
+			cv::Mat gray;
+			//
 			frames_mtx[i].lock();
 			if (!(frames_to_show[i].empty()))
-				frames[i] = frames_to_show[i].clone();
+				frame = frames_to_show[i].clone();
 			if (config.SHOW_GRAY && !(grays_to_show[i].empty()))
-				grays[i] = grays_to_show[i].clone();
+				gray = grays_to_show[i].clone();
 			frames_mtx[i].unlock();
+			//
+			if (!(frame.empty())) {
+				cv::putText(frame, "Camera " + to_string(i + 1), cv::Point2f(10, 20),
+					cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+				frames.push_back(frame);
+			}
+			if (!(gray.empty())) {
+				cv::putText(gray, "Camera " + to_string(i + 1), cv::Point2f(10, 20),
+					cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_BLACK);
+				grays.push_back(gray);
+			}
 		}
-
-		if (config.SHOW_GRAY && !(grays[0].empty() || grays[1].empty()))
-			cv::hconcat(grays[0], grays[1], mergedGray);
-		if (!(frames[0].empty() || frames[1].empty()))
-			cv::hconcat(frames[0], frames[1], mergedColor);
-
+		//
+		if (config.SHOW_GRAY && (grays.size() > 0))
+			cv::hconcat(grays, mergedGray);
+		if (frames.size() > 0)
+			cv::hconcat(frames, mergedColor);
 		//
 		if (config.SHOW_GRAY && !mergedGray.empty())
-			cv::imshow("Cameras 1 & 2 Gray", mergedGray);
+			cv::imshow("Camera(s) Gray", mergedGray);
 		if (!mergedColor.empty())
-			cv::imshow("Cameras 1 & 2 Color", mergedColor);
+			cv::imshow("Camera(s) Color", mergedColor);
 		//
 		cv::waitKey(1);
 
@@ -228,23 +243,20 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
 
-	Size2i gbk = Size(config.GAUSSIAN_BLUR_KERNEL, config.GAUSSIAN_BLUR_KERNEL);
-	cv::GaussianBlur(trImage, trImage, gbk, 0);
+	int gbk = config.GAUSSIAN_BLUR_KERNEL;
+	cv::GaussianBlur(trImage, trImage, Size2i(gbk, gbk), 0);
 
-	Size2i mok = Size(config.MORPH_OPEN_KERNEL, config.MORPH_OPEN_KERNEL);
-	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, mok));
-	Size2i mck = Size(config.MORPH_CLOSE_KERNEL, config.MORPH_CLOSE_KERNEL);
-	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, mck));
+	int mok = config.MORPH_OPEN_KERNEL;
+	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size2i(mok, mok)));
+	int mck = config.MORPH_CLOSE_KERNEL;
+	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
 	cv::Mat gray;
-	cv::threshold(trImage, gray,
-		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
-//		config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_OTSU);
-
-//	cv::bitwise_not(gray, gray);
+	cv::threshold(trImage, gray, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 
 //	for (size_t i = 0; i < bc_contours.size(); i++)
 //		cv::rectangle(gray, cv::boundingRect(bc_contours[i]), CLR_BLACK, -1);
+
 	if (bc_contours.size() > 0) {
 		if (config.BARCODE_LEFT)
 			cv::rectangle(gray, cv::Point(0, 0), cv::Point(maxX, gray.rows), CLR_BLACK, -1);

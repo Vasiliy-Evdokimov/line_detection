@@ -1,7 +1,9 @@
+#include <chrono>
 #include <thread>
 #include <csignal>
 
 using namespace std;
+using namespace std::chrono_literals;
 
 #include "defines.hpp"
 #include "config.hpp"
@@ -30,6 +32,8 @@ void work_func()
 		//
 		//	создаем потоки для камер
 		for (int i = 0; i < CAM_COUNT; i++) {
+			if (!(config.USE_CAM & (1 << i))) continue;
+			//
 			cam_threads[i] = thread(camera_func, "Cam" + to_string(i + 1), cam_addresses[i], i);
 			std::this_thread::sleep_for(1s);
 		}
@@ -37,8 +41,11 @@ void work_func()
 		thread udp_thread(udp_func);
 		udp_thread_id = udp_thread.native_handle();
 		//
-		for (int i = 0; i < CAM_COUNT; i++)
+		for (int i = 0; i < CAM_COUNT; i++) {
+			if (!(config.USE_CAM & (1 << i))) continue;
+			//
 			if (cam_threads[i].joinable()) cam_threads[i].join();
+		}
 		if (udp_thread.joinable()) udp_thread.join();
 		//
 		restart_threads = false;
@@ -98,6 +105,8 @@ int main(int argc, char** argv)
     //
     //	бесконечный цикл для ожидания сигналов
     while (!kill_threads) {
+    	//
+    	this_thread::sleep_for(100ms);
     	//
     }
     //
