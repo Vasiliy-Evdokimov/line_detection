@@ -194,24 +194,28 @@ var app = new Vue({
                         ctx.fillText("Camera error!", 170 + offset, 50);
                     }                        
                 } else {
-                    ctx.lineWidth = 3;
-                    ctx.strokeStyle = "green";
-                    let res_point;
-                    ctx.beginPath();
-                    ctx.moveTo((width / 2) + offset, height);
-                    for (res_point of res.res_points)
-                        ctx.lineTo(res_point.x + offset, res_point.y);
-                    ctx.stroke();
-                    //
-                    ctx.strokeStyle = "red";
-                    let hor_y;
-                    for (hor_y of res.hor_ys)
-                    {
+                    ctx.lineWidth = 3;                    
+                    if (res.res_points) {
+                        ctx.strokeStyle = "green";
+                        let res_point;
                         ctx.beginPath();
-                        ctx.moveTo(offset, hor_y);
-                        ctx.lineTo(width + offset, hor_y);
+                        ctx.moveTo((width / 2) + offset, height);                    
+                        for (res_point of res.res_points)
+                            ctx.lineTo(res_point.x + offset, res_point.y);
                         ctx.stroke();
-                    }
+                    }                        
+                    //
+                    if (res.hor_ys) {
+                        ctx.strokeStyle = "red";
+                        let hor_y;
+                        for (hor_y of res.hor_ys)
+                        {
+                            ctx.beginPath();
+                            ctx.moveTo(offset, hor_y);
+                            ctx.lineTo(width + offset, hor_y);
+                            ctx.stroke();
+                        }
+                    }                        
                 }
                 //
                 if ((res.zone_flags & 4) > 0)   // fl_slow_zone
