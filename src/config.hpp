@@ -38,6 +38,7 @@ struct ConfigData
 	int USE_CAM;
 	//
 	int UDP_PORT;
+	char UDP_REQUEST[50];
 	//
 	int NUM_ROI;
 	int NUM_ROI_H;

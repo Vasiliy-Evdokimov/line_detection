@@ -8,13 +8,14 @@
 #ifndef UDP_HPP_
 #define UDP_HPP_
 
+#include "defines.hpp"
 #include "common_types.hpp"
 
 using namespace std;
 
 struct udp_package {
 	uint16_t counter;
-	ResultFixed results[2];
+	ResultFixed results[CAM_COUNT];
 	uint16_t crc;
 };
 

@@ -90,7 +90,11 @@ void udp_func()
 			return;
 		}
 
-		//	write_log("Received: " + string(buffer, numBytes));
+		string receivedReq = string(buffer, numBytes);
+		//write_log("Received: " + receivedReq);
+
+		if (receivedReq != config.UDP_REQUEST)
+			continue;
 
 		counter++;
 

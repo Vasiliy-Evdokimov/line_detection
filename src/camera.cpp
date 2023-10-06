@@ -248,8 +248,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	int mok = config.MORPH_OPEN_KERNEL;
 	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size2i(mok, mok)));
-	int mck = config.MORPH_CLOSE_KERNEL;
-	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
+//	int mck = config.MORPH_CLOSE_KERNEL;
+//	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
 	cv::Mat gray;
 	cv::threshold(trImage, gray, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
