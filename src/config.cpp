@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <cstring>
 #include <libconfig.h++>
 
 #include "defines.hpp"
@@ -332,6 +333,8 @@ void fill_config_form_json(Json::Value js, ConfigData& aConfig)
 			{
 				string s = js[field].asString();
 				char* val = (char*)ptr;
+				string buf(val);
+				memset(val, 0, buf.length());
 				strncpy(val, s.c_str(), s.length());
 				break;
 			}
