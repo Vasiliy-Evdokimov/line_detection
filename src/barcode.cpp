@@ -113,6 +113,9 @@ void find_barcodes(cv::Mat& img, ParseImageResult& parse_result,
 			double dist1 = GetPointDist(zx2cv(pos[1]), zx2cv(pos[2]));
 			double dist2 = GetPointDist(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
 
+			// расстояние отрицательное, если мы не доехали до центра изображения
+			if (center.y < p1.y) dist2 *= -1;
+
 //			cv::Point2f res;
 //			pundistors(res, center, img.cols, img.rows, -1000);
 //			cv::putText(img, to_string(res.x) + ";" + to_string(res.y),

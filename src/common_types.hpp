@@ -15,25 +15,25 @@
 using namespace std;
 
 struct ResultPoint {
-	uint16_t x;
-	uint16_t y;
+	int16_t x;
+	int16_t y;
 };
 
 struct ResultFixed {
-	uint16_t img_width;
-	uint16_t img_height;
-	uint16_t error_flags;
+	int16_t img_width;
+	int16_t img_height;
+	int16_t error_flags;
 	//
-	uint8_t max_points_count;
-	uint8_t points_count;
+	int16_t max_points_count;
+	int16_t points_count;
 	ResultPoint points[MAX_POINTS_COUNT];
 	//
-	uint8_t max_hor_count;
-	uint8_t hor_count;
-	uint16_t points_hor[MAX_HOR_COUNT];
+	int16_t max_hor_count;
+	int16_t hor_count;
+	int16_t points_hor[MAX_HOR_COUNT];
 	//
-	uint8_t zone_flags;
-	uint8_t stop_distance;
+	int16_t zone_flags;
+	int16_t stop_distance;
 };
 
 struct ParseImageResult {

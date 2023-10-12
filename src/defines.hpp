@@ -32,7 +32,7 @@
 
 #define AVG_CNT		100
 #define STATS_LOG	1
-#define UDP_LOG		0
+#define UDP_LOG		1
 
 #define MAX_POINTS_COUNT	10
 #define MAX_HOR_COUNT		10
