@@ -69,6 +69,8 @@ struct ConfigData
 	int DATAMATRIX_WIDTH;
 	//
 	int LINE_WIDTH;
+	//
+	int CAM_TIMEOUT;
 
 	void recount_data_size();
 };

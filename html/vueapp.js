@@ -187,12 +187,11 @@ var app = new Vue({
                         this.draw_flag_arc(50 + offset, "red");
                     }
                     if ((res.error_flags & 4) > 0) {    //  fl_err_camera
-                        let clr = "red";                    
-                        ctx.fillStyle = clr;
-                        ctx.strokeStyle = ctx.fillStyle;
-                        ctx.font = "italic 30pt Arial";
-                        ctx.fillText("Camera error!", 170 + offset, 50);
-                    }                        
+                        this.draw_flag_text(170 + offset, 50, "red", "Camera error!");
+                    }
+                    if ((res.error_flags & 8) > 0) {    //  result timeout
+                        this.draw_flag_text(170 + offset, 80, "magenta", "Camera timeout!");
+                    }
                 } else {
                     ctx.lineWidth = 3;                    
                     if (res.res_points) {
@@ -246,6 +245,13 @@ var app = new Vue({
             ctx.fillStyle = aColor;
             ctx.stroke();
             ctx.fill();
+        },
+        draw_flag_text: function(aX, aY, aColor, aText) {
+            let ctx = this.draw_context;                   
+            ctx.fillStyle = aColor;
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.font = "italic 20pt Arial";
+            ctx.fillText(aText, aX, aY);
         },
         get_param_info: function(param_name) {
             param_name = param_name.slice(3);

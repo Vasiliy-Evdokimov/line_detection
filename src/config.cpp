@@ -54,7 +54,8 @@ std::map<std::string, void*> config_pointers = {
 	{ "BARCODE_LEFT",			&config_buf.BARCODE_LEFT },
 	{ "BARCODE_WIDTH",			&config_buf.BARCODE_WIDTH },
 	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH },
-	{ "LINE_WIDTH",		&config_buf.LINE_WIDTH }
+	{ "LINE_WIDTH",		&config_buf.LINE_WIDTH },
+	{ "CAM_TIMEOUT",	&config_buf.CAM_TIMEOUT }
 };
 
 std::map<std::string, ConfigItem> config_map;

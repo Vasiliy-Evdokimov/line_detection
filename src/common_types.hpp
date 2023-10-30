@@ -8,11 +8,14 @@
 #ifndef COMMON_TYPES_HPP_
 #define COMMON_TYPES_HPP_
 
+#include <chrono>
+
 #include "opencv2/core/types.hpp"
 
 #include "defines.hpp"
 
 using namespace std;
+using namespace chrono;
 
 struct ResultPoint {
 	int16_t x;
@@ -34,6 +37,8 @@ struct ResultFixed {
 	//
 	int16_t zone_flags;
 	int16_t stop_distance;
+	//
+	high_resolution_clock::time_point result_time_point;
 };
 
 struct ParseImageResult {
@@ -122,6 +127,7 @@ struct ParseImageResult {
 		res.error_flags |= (fl_err_line << 0);
 		res.error_flags |= (fl_err_parse << 1);
 		res.error_flags |= (fl_err_camera << 2);
+		//	3й бит - таймаут, выставляется при чтении из shared memory
 		//
 		return res;
 	}
