@@ -109,7 +109,8 @@ int write_results_sm(ResultFixed& aResult, int aIndex) {
 
 	if (results_sm_ptr[aIndex] == (void*) -1) return 1;
 	//
-	aResult.result_time_point = high_resolution_clock::now();
+	high_resolution_clock::time_point result_time_point = high_resolution_clock::now();
+	memcpy(aResult.result_time_point, &result_time_point, RESULT_TIME_SIZE);
 	//
 	memcpy(results_sm_ptr[aIndex], &aResult, sizeof(aResult));
 	//
@@ -122,10 +123,12 @@ int read_results_sm(ResultFixed& aResult, int aIndex) {
 	if (results_sm_ptr == (void*) -1) return 1;
 	//
 	memcpy(&aResult, results_sm_ptr[aIndex], sizeof(aResult));
+	high_resolution_clock::time_point result_time_point;
+	memcpy(&result_time_point, aResult.result_time_point, RESULT_TIME_SIZE);
 	//
 	high_resolution_clock::time_point now = high_resolution_clock::now();
 	//
-	auto duration = duration_cast<std::chrono::milliseconds>(now - aResult.result_time_point);
+	auto duration = duration_cast<std::chrono::milliseconds>(now - result_time_point);
 	aResult.error_flags |= (((duration.count() > config.CAM_TIMEOUT) ? 1 : 0) << 3);
 //	if (aResult.error_flags & 8)
 //		write_log("CamIndex: " + std::to_string(aIndex) + " timeout detected!");

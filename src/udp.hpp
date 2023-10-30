@@ -13,9 +13,12 @@
 
 using namespace std;
 
+//	не отправляем по UDP время результата
+const int UDP_RESULT_SIZE = (sizeof(ResultFixed) - sizeof(high_resolution_clock::time_point));
+
 struct udp_package {
 	uint16_t counter;
-	ResultFixed results[CAM_COUNT];
+	uint8_t results[UDP_RESULT_SIZE * 2];
 	uint16_t crc;
 };
 

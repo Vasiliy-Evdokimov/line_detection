@@ -100,12 +100,17 @@ void udp_func()
 
 		udp_pack.counter = counter;
 
+		ResultFixed results_buf[CAM_COUNT];
+
 		for (int i = 0; i < CAM_COUNT; i++) {
 			//parse_results_mtx[i].lock();
 			//udp_pack.results[i] = parse_results[i];
-			read_results_sm(udp_pack.results[i], i);
+			read_results_sm(results_buf[i], i);
 			//parse_results_mtx[i].unlock();
 		}
+
+		for (int i = 0; i < CAM_COUNT; i++)
+			std::memcpy(&udp_pack.results[UDP_RESULT_SIZE * i], &results_buf[i], UDP_RESULT_SIZE);
 
 		uint8_t buf[sizeof(udp_pack) - 2];
 		std::memcpy(&buf, &udp_pack, sizeof(buf));
