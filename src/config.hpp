@@ -8,6 +8,7 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
+#include <opencv2/core.hpp>
 #include <string.h>
 #include <libconfig.h++>
 #include <json/json.h>
@@ -80,6 +81,9 @@ extern std::map<std::string, ConfigItem> config_map;
 
 extern bool restart_threads;
 extern bool kill_threads;
+
+extern cv::Mat cameraMatrix;
+extern cv::Mat distCoeffs;
 
 void read_config();
 void save_config(ConfigData aConfig);

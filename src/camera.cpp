@@ -17,6 +17,7 @@
 #endif
 
 #include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/calib3d/calib3d.hpp"
 
 #include <string.h>
 #include <thread>
@@ -32,12 +33,61 @@ using namespace std;
 #include "shared_memory.hpp"
 #include "camera.hpp"
 
-mutex frames_mtx[CAM_COUNT];
+//mutex frames_mtx[CAM_COUNT];
+cv::Mat sources_to_show[CAM_COUNT];
+cv::Mat undistorteds_to_show[CAM_COUNT];
 cv::Mat frames_to_show[CAM_COUNT];
 cv::Mat grays_to_show[CAM_COUNT];
 
 //mutex parse_results_mtx[CAM_COUNT];
 ResultFixed parse_results[CAM_COUNT];
+
+std::vector<cv::Point2f> calib_pts;
+
+const double D2R = ((2.0 * M_PI) / 360.0);
+const double R2D = (180/M_PI);
+
+void pundistors(cv::Point2f &r, const cv::Point2f &a, double w, double h, double dist_fov) // , double dist, double fov
+{
+	float camWDelta = tan((w * 0.25) * D2R * D2R);
+	float posXDelta = tan((a.x * 0.5) * D2R * D2R);
+	float camXMid = 2.0 * (dist_fov * camWDelta);	//	(dist - fov)
+	float ptX = 2.0 * (dist_fov * posXDelta);
+	r.x = camXMid - ptX;
+	//
+	float camHDelta = tan((h * 0.25) * D2R * D2R);
+	float posYDelta = tan((a.y * 0.5) * D2R * D2R);
+	float camYMid = 2.0 * (dist_fov * camHDelta);
+	float ptY = 2.0 * (dist_fov * posYDelta);
+	r.y = camYMid - ptY;
+}
+
+void onMouse(int event, int x, int y, int flags, void* userdata)
+{
+    if (event == cv::EVENT_LBUTTONDOWN)
+    {
+        std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+        //
+        if (calib_pts.size() == 2) calib_pts.clear();
+        calib_pts.push_back(cv::Point(x, y));
+    }
+    else if (event == cv::EVENT_RBUTTONDOWN)
+    {
+        //	std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+    }
+    else if (event == cv::EVENT_MBUTTONDOWN)
+    {
+    	//	std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+    	calib_pts.clear();
+    }
+    else if (event == cv::EVENT_MOUSEMOVE)
+    {
+    	//	std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+    }
+}
+
+const string COLOR_WND_NAME = "Camera(s) Color";
+const string GRAY_WND_NAME = "Camera(s) Gray";
 
 void visualizer_func()
 {
@@ -47,31 +97,75 @@ void visualizer_func()
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
 
+	if (config.SHOW_GRAY) {
+		namedWindow(GRAY_WND_NAME);
+		setMouseCallback(GRAY_WND_NAME, onMouse, 0);
+	}
+
+	namedWindow(COLOR_WND_NAME);
+	setMouseCallback(COLOR_WND_NAME, onMouse, 0);
+
 	while (!kill_threads) {
 
+		cv::Mat mergedSource;
+		cv::Mat mergedUndistorted;
 		cv::Mat mergedGray;
-		cv::Mat mergedColor;
+		cv::Mat mergedFrames;
 		//
-		std::vector<cv::Mat> frames;
+		std::vector<cv::Mat> sources;
+		std::vector<cv::Mat> undistorteds;
 		std::vector<cv::Mat> grays;
+		std::vector<cv::Mat> frames;
 		//
 		for	(int i = 0; i < CAM_COUNT; i++) {
 			if (!(config.USE_CAM & (1 << i))) continue;
 			//
-			cv::Mat frame;
+			cv::Mat source;
+			cv::Mat undistorted;
 			cv::Mat gray;
+			cv::Mat frame;
 			//
-			frames_mtx[i].lock();
-			if (!(frames_to_show[i].empty()))
-				frame = frames_to_show[i].clone();
+			//frames_mtx[i].lock();
+			if (!(sources_to_show[i].empty()))
+				source = sources_to_show[i].clone();
+			if (!(undistorteds_to_show[i].empty()))
+				undistorted = undistorteds_to_show[i].clone();
 			if (config.SHOW_GRAY && !(grays_to_show[i].empty()))
 				gray = grays_to_show[i].clone();
-			frames_mtx[i].unlock();
+			if (!(frames_to_show[i].empty()))
+				frame = frames_to_show[i].clone();
+			//frames_mtx[i].unlock();
 			//
 			if (!(frame.empty())) {
+
 				cv::putText(frame, "Camera " + to_string(i + 1), cv::Point2f(10, 20),
 					cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+				//
+				//
+				for (size_t j = 0; j < calib_pts.size(); j++)
+					cv::circle(frame, calib_pts[j], 3, CLR_RED, 1, cv::LINE_AA);
+				//
+				if (calib_pts.size() == 2) {
+					cv::line(frame, calib_pts[0], calib_pts[1], CLR_RED, 1, cv::LINE_AA, 0);
+					//
+					cv::Point cnt(frame.cols / 2, frame.rows / 2);
+					//
+					double dist_fov = -1250;
+					//
+					cv::Point2f pt0, pt1;
+					pundistors(pt0, calib_pts[0], frame.cols, frame.rows, dist_fov);
+					pundistors(pt1, calib_pts[1], frame.cols, frame.rows, dist_fov);
+					//
+					double dist1 = GetPointDist(calib_pts[0], calib_pts[1]);
+					double dist2 = GetPointDist(pt0, pt1);
+					putText(frame, to_string((int)std::round(dist1)) + "px", calib_pts[0] + cv::Point2f(10, 20), 1, 1, CLR_RED);
+					putText(frame, to_string((int)std::round(dist2)) + "mm", calib_pts[0] + cv::Point2f(10, 40), 1, 1, CLR_RED);
+				}
+				//
+				sources.push_back(source);
+				undistorteds.push_back(undistorted);
 				frames.push_back(frame);
+
 			}
 			if (!(gray.empty())) {
 				cv::putText(gray, "Camera " + to_string(i + 1), cv::Point2f(10, 20),
@@ -80,15 +174,23 @@ void visualizer_func()
 			}
 		}
 		//
+		if (sources.size() > 0)
+			cv::hconcat(sources, mergedSource);
+		if (undistorteds.size() > 0)
+			cv::hconcat(undistorteds, mergedUndistorted);
 		if (config.SHOW_GRAY && (grays.size() > 0))
 			cv::hconcat(grays, mergedGray);
 		if (frames.size() > 0)
-			cv::hconcat(frames, mergedColor);
+			cv::hconcat(frames, mergedFrames);
 		//
+		if (!mergedSource.empty())
+			cv::imshow("Camera(s) Source", mergedSource);
+		if (!mergedUndistorted.empty())
+			cv::imshow("Camera(s) Undistorted", mergedUndistorted);
 		if (config.SHOW_GRAY && !mergedGray.empty())
 			cv::imshow("Camera(s) Gray", mergedGray);
-		if (!mergedColor.empty())
-			cv::imshow("Camera(s) Color", mergedColor);
+		if (!mergedFrames.empty())
+			cv::imshow("Camera(s) Color", mergedFrames);
 		//
 		cv::waitKey(1);
 
@@ -122,6 +224,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	cv::VideoCapture cap;
 	cv::Mat frame;
+	cv::Mat undistorted;
 
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
@@ -161,6 +264,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			continue;
 		}
 
+		undistort(frame, undistorted, cameraMatrix, distCoeffs);
+
+		//frames_mtx[aIndex].lock();
+		sources_to_show[aIndex] = frame.clone();
+		undistorteds_to_show[aIndex] = undistorted.clone();
+		//frames_mtx[aIndex].unlock();
+
 		parse_result.width = frame.cols;
 		parse_result.height = frame.rows;
 
@@ -169,7 +279,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			//	ищем центры областей и горизонтальные пересечения
 			parse_image(
 				aThreadName,
-				frame,
+				undistorted,	//	frame,
 				parse_result,
 				aIndex
 			);
@@ -267,9 +377,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifndef NO_GUI
 	if (config.DRAW && config.SHOW_GRAY) {
-		frames_mtx[aIndex].lock();
+		//frames_mtx[aIndex].lock();
 		grays_to_show[aIndex] = gray.clone();
-		frames_mtx[aIndex].unlock();
+		//frames_mtx[aIndex].unlock();
 	}
 #endif
 
@@ -425,9 +535,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 		}
 		//
-		frames_mtx[aIndex].lock();
+		//frames_mtx[aIndex].lock();
 		frames_to_show[aIndex] = imgColor.clone();
-		frames_mtx[aIndex].unlock();
+		//frames_mtx[aIndex].unlock();
 	}
 #endif
 

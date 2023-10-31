@@ -14,4 +14,6 @@
 void find_barcodes(cv::Mat& img, ParseImageResult& parse_result,
 	std::vector<std::vector<cv::Point>>& contours);
 
+double GetPointDist(cv::Point pt1, cv::Point pt2);
+
 #endif /* BARCODE_HPP_ */

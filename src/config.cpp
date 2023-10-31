@@ -5,6 +5,8 @@
  *      Author: vevdokimov
  */
 
+
+#include <opencv2/core.hpp>
 #include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -21,11 +23,32 @@ using namespace libconfig;
 ConfigData config;
 ConfigData config_buf;
 
+cv::Mat cameraMatrix = (cv::Mat1d(3, 3) <<
+	377.5630128614225, 0, 328.1520651044124,
+	0, 386.5449622827862, 188.3472213658638,
+	0, 0, 1
+);
+
+cv::Mat distCoeffs = (cv::Mat1d(1, 5) <<
+	-0.386705831196635,
+	0.1762622672378806,
+	-0.001368489900499306,
+	0.0003638213921085288,
+	-0.04023776807252091
+);
+
 const char* cfg_filename =
 	#ifndef RELEASE
 		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
 	#else
 		"/home/user/line_detection/line_detection.cfg";
+	#endif
+
+const char* calibration_filename =
+	#ifndef RELEASE
+		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/calibration.cfg";
+	#else
+		"/home/user/line_detection/calibration.cfg";
 	#endif
 
 std::map<std::string, void*> config_pointers = {
