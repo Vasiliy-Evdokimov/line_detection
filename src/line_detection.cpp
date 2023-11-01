@@ -85,6 +85,9 @@ int main(int argc, char** argv)
 	//	читаем параметры из конфигурационного файла
 	read_config();
 	//
+	//	читаем параметры калибровки камеры
+	read_calibration();
+	//
 	//	инициализируем shared memory
 	init_shared_memory();
 	//

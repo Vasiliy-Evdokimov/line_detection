@@ -85,6 +85,8 @@ extern bool kill_threads;
 extern cv::Mat cameraMatrix;
 extern cv::Mat distCoeffs;
 
+void read_calibration();
+
 void read_config();
 void save_config(ConfigData aConfig);
 

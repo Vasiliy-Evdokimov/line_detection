@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-
 #include <opencv2/core.hpp>
 #include <string.h>
 #include <sys/types.h>
@@ -23,21 +22,9 @@ using namespace libconfig;
 ConfigData config;
 ConfigData config_buf;
 
-cv::Mat cameraMatrix = (cv::Mat1d(3, 3) <<
-	377.5630128614225, 0, 328.1520651044124,
-	0, 386.5449622827862, 188.3472213658638,
-	0, 0, 1
-);
+cv::Mat cameraMatrix, distCoeffs;
 
-cv::Mat distCoeffs = (cv::Mat1d(1, 5) <<
-	-0.386705831196635,
-	0.1762622672378806,
-	-0.001368489900499306,
-	0.0003638213921085288,
-	-0.04023776807252091
-);
-
-const char* cfg_filename =
+const char* config_filename =
 	#ifndef RELEASE
 		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
 	#else
@@ -46,9 +33,9 @@ const char* cfg_filename =
 
 const char* calibration_filename =
 	#ifndef RELEASE
-		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/calibration.cfg";
+		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/calibration.xml";
 	#else
-		"/home/user/line_detection/calibration.cfg";
+		"/home/user/line_detection/calibration.xml";
 	#endif
 
 std::map<std::string, void*> config_pointers = {
@@ -142,20 +129,34 @@ void ConfigData::recount_data_size() {
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
 }
 
+void read_calibration() {
+
+	string str(calibration_filename);
+	write_log("calibration_filename = " + str);
+
+	cv::FileStorage fs(str, cv::FileStorage::READ);
+
+	fs["cameraMatrix"] >> cameraMatrix;
+	fs["distCoeffs"] >> distCoeffs;
+
+	fs.release();
+
+}
+
 void read_config()
 {
-	string str(cfg_filename);
-	write_log("cfg_filename = " + str);
+	string str(config_filename);
+	write_log("config_filename = " + str);
 
 	Config cfg;
 
 	try
 	{
-		cfg.readFile(cfg_filename);
+		cfg.readFile(config_filename);
 	}
 	catch(const FileIOException &fioex)
 	{
-		write_err("I/O error while reading file.");
+		write_err(str + " I/O error while reading file.");
 		exit(1);
 	}
 	catch(const ParseException &pex)
@@ -202,7 +203,7 @@ void save_config(ConfigData aConfig)
 
 	try
 	{
-		cfg.readFile(cfg_filename);
+		cfg.readFile(config_filename);
 	}
 	catch(const FileIOException &fioex)
 	{
@@ -262,7 +263,7 @@ void save_config(ConfigData aConfig)
 
 	try
 	{
-		cfg.writeFile(cfg_filename);
+		cfg.writeFile(config_filename);
 	}
 	catch(const FileIOException &fioex)
 	{

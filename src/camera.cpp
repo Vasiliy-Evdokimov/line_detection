@@ -45,7 +45,7 @@ ResultFixed parse_results[CAM_COUNT];
 std::vector<cv::Point2f> calib_pts;
 
 const double D2R = ((2.0 * M_PI) / 360.0);
-const double R2D = (180/M_PI);
+const double R2D = (180 / M_PI);
 
 void pundistors(cv::Point2f &r, const cv::Point2f &a, double w, double h, double dist_fov) // , double dist, double fov
 {
