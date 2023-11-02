@@ -5,6 +5,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/barcode.cpp \
+../src/calibration.cpp \
 ../src/camera.cpp \
 ../src/config.cpp \
 ../src/contours.cpp \
@@ -17,6 +18,7 @@ CPP_SRCS += \
 
 CPP_DEPS += \
 ./src/barcode.d \
+./src/calibration.d \
 ./src/camera.d \
 ./src/config.d \
 ./src/contours.d \
@@ -29,6 +31,7 @@ CPP_DEPS += \
 
 OBJS += \
 ./src/barcode.o \
+./src/calibration.o \
 ./src/camera.o \
 ./src/config.o \
 ./src/contours.o \
@@ -52,7 +55,7 @@ src/%.o: ../src/%.cpp src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/barcode.d ./src/barcode.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/crc.d ./src/crc.o ./src/horizontal.d ./src/horizontal.o ./src/line_detection.d ./src/line_detection.o ./src/log.d ./src/log.o ./src/shared_memory.d ./src/shared_memory.o ./src/udp.d ./src/udp.o
+	-$(RM) ./src/barcode.d ./src/barcode.o ./src/calibration.d ./src/calibration.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/crc.d ./src/crc.o ./src/horizontal.d ./src/horizontal.o ./src/line_detection.d ./src/line_detection.o ./src/log.d ./src/log.o ./src/shared_memory.d ./src/shared_memory.o ./src/udp.d ./src/udp.o
 
 .PHONY: clean-src
 
