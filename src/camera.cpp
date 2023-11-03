@@ -62,8 +62,6 @@ void visualizer_func()
 
 	load_calib_points();
 
-	int key = -1;
-
 	while (!kill_threads) {
 
 		cv::Mat mergedSource;
@@ -99,7 +97,7 @@ void visualizer_func()
 				sources.push_back(source);
 			//
 			if (!(undistorted.empty())) {
-				calib_points(undistorted, key);
+				calib_points(undistorted);
 				undistorteds.push_back(undistorted);
 			}
 			//
@@ -134,7 +132,12 @@ void visualizer_func()
 //		if (!mergedFrames.empty())
 //			cv::imshow(COLOR_WND_NAME, mergedFrames);
 		//
-		key = cv::waitKey(1);
+		int key = cv::waitKey(1);
+		if (key != -1)
+		{
+			write_log(to_string(key));
+			toggle_key(key);
+		}
 
 	}
 
