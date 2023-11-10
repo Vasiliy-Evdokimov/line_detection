@@ -34,7 +34,13 @@ const int VK_KEY_DEL = 255;
 
 extern std::map<int, bool> keys_toggle;
 
-extern std::vector<cv::Point2f> calib_pts;
+struct calib_point {
+	cv::Point2f point;
+	int col;
+	int row;
+};
+
+extern std::vector<calib_point> calib_pts;
 
 bool is_key_on(int aKey);
 
