@@ -21,9 +21,12 @@ using namespace cv;
 using namespace std;
 
 const int VK_KEY_A = 97;
+const int VK_KEY_B = 98;
+const int VK_KEY_I = 105;
+const int VK_KEY_L = 108;
+const int VK_KEY_Q = 113;
 const int VK_KEY_S = 115;
 const int VK_KEY_X = 120;
-const int VK_KEY_L = 108;
 
 const int VK_KEY_UP = 114; 		//r //82;
 const int VK_KEY_DOWN = 102;	//f //84;
@@ -36,8 +39,11 @@ extern std::map<int, bool> keys_toggle;
 
 struct calib_point {
 	cv::Point2f point;
+	cv::Point2f point_cnt;
+	cv::Point2f point_mm;
 	int col;
 	int row;
+	int quarter;
 };
 
 extern std::vector<calib_point> calib_pts;

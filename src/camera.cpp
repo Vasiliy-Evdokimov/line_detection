@@ -49,6 +49,8 @@ const string UNDISTORTED_WND_NAME = "Camera(s) Undistorted";
 const string GRAY_WND_NAME = "Camera(s) Gray";
 const string COLOR_WND_NAME = "Camera(s) Color";
 
+cv::Mat undistorted;
+
 void visualizer_func()
 {
 
@@ -58,9 +60,7 @@ void visualizer_func()
 	write_log("visualizer_func() entered infinity loop.");
 
 	namedWindow(UNDISTORTED_WND_NAME);
-	setMouseCallback(UNDISTORTED_WND_NAME, onMouse, 0);
-
-	load_calib_points();
+	setMouseCallback(UNDISTORTED_WND_NAME, onMouse, &undistorted);
 
 	while (!kill_threads) {
 
@@ -78,7 +78,7 @@ void visualizer_func()
 			if (!(config.USE_CAM & (1 << i))) continue;
 			//
 			cv::Mat source;
-			cv::Mat undistorted;
+			undistorted.release();
 			cv::Mat gray;
 			cv::Mat frame;
 			//
