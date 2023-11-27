@@ -44,6 +44,8 @@ struct calib_point {
 	int col;
 	int row;
 	int quarter;
+	double angle_row; // угол между этой точкой и следующей в строке
+	double angle_col; // угол между этой точкой и следующей в столбце
 };
 
 extern std::vector<calib_point> calib_pts;

@@ -27,20 +27,17 @@ std::map<int, bool> keys_toggle = {
 	{VK_KEY_DEL, false}
 };
 
-struct Intersections;
-
 struct Line {
 	Point2f pt1;
 	Point2f pt2;
 	Point2f	mid;
 	int dir;
-	std::vector<Intersections> IntersectionsArray;
 	int index;
 };
 
-struct Intersections {
-	Line line;
-	Point2f points;
+struct CalibPointLine {
+	std::vector<calib_point> points;
+	int index;
 };
 
 const int CHESS_SIZE = 10;
@@ -49,8 +46,15 @@ std::vector<calib_point> manual_calib_points;
 std::vector<calib_point> intersections;
 std::vector<calib_point> rule_points;
 
+std::vector<CalibPointLine>intersections_rows;
+std::vector<CalibPointLine>intersections_cols;
+
+
 int selected_pt_idx = -1;
+
 int nearest_intersection_idx = -1;
+int nearest_intersection_idx_row = -1;
+int nearest_intersection_idx_col = -1;
 
 const int CALIB_PT_R = 6;
 
@@ -113,6 +117,17 @@ Point2f findIntersection(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2
     }
     //
     return intersection;
+}
+
+int get_vector_calib_point_index(std::vector<calib_point> aVector, calib_point aPoint)
+{
+	int res = -1;
+	for (int i = 0; i < aVector.size(); i++)
+		if (aPoint.point_cnt == aVector[i].point_cnt) {
+			res = i;
+			break;
+		}
+	return res;
 }
 
 void recount_cols_rows(cv::Point2f center)
@@ -191,6 +206,9 @@ Point2f get_point_cnt(cv::Mat& img, Point2f aPoint)
 	cv::Point2f cnt(img.cols / 2, img.rows / 2);
 	return cv::Point2f(aPoint.x - cnt.x, cnt.y - aPoint.y);
 }
+
+
+int col_idx, row_idx;
 
 void fill_intersection_points(cv::Mat& img)
 {
@@ -290,6 +308,9 @@ void fill_intersection_points(cv::Mat& img)
 
 	intersections.clear();
 	//
+	int min_col = 100, max_col = -100;
+	int min_row = 100, max_row = -100;
+	//
 	for (size_t i = 0; i < lines_arr.size(); i++)
 	{
 		Line line1 = lines_arr[i];
@@ -309,10 +330,44 @@ void fill_intersection_points(cv::Mat& img)
 			cp.point_mm = cv::Point2f(cp.col * CHESS_SIZE, cp.row * CHESS_SIZE);
 			cp.quarter = get_point_quarter(cp.point_cnt);
 			intersections.push_back(cp);
+			//
+			if (cp.col < min_col) min_col = cp.col;
+			if (cp.col > max_col) max_col = cp.col;
+			if (cp.row < min_row) min_row = cp.row;
+			if (cp.row > max_row) max_row = cp.row;
 		}
 	}
 	//
 	write_log("intersections.size() = " + to_string(intersections.size()));
+	//
+	intersections_cols.clear();
+	for (col_idx = min_col; col_idx <= max_col; col_idx++) {
+		CalibPointLine intersections_col;
+		intersections_col.index = col_idx;
+		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_col.points), [](calib_point ipt) {
+			return ipt.col == col_idx;
+		});
+		std::sort(intersections_col.points.begin(), intersections_col.points.end(),
+			[] (const calib_point& a, const calib_point& b) { return a.row < b.row; });
+		intersections_cols.push_back(intersections_col);
+	}
+	write_log("intersections_cols.size() = " + to_string(intersections_cols.size()));
+	//
+	intersections_rows.clear();
+	for (row_idx = min_row; row_idx <= max_row; row_idx++) {
+		CalibPointLine intersections_row;
+		intersections_row.index = row_idx;
+		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_row.points), [](calib_point ipt) {
+			return ipt.row == row_idx;
+		});
+		std::sort(intersections_row.points.begin(), intersections_row.points.end(),
+			[] (const calib_point& a, const calib_point& b) { return a.col < b.col; });
+		intersections_rows.push_back(intersections_row);
+	}
+	write_log("intersections_rows.size() = " + to_string(intersections_rows.size()));
+	//
+	// { ToDo findAngle(cp.point, intersections[j].point); }
+
 }
 
 int get_point_quarter(Point2f pt)
@@ -329,7 +384,7 @@ int get_point_quarter(Point2f pt)
 	return quarter;
 }
 
-int get_nearest_inbtersection_index(calib_point &pt)
+int get_nearest_intersection_index(calib_point &pt)
 {
 	int idx = -1;
 	double min = 10000, buf;
@@ -348,9 +403,81 @@ int get_nearest_inbtersection_index(calib_point &pt)
 	return idx;
 }
 
+calib_point base_ipt;
+
 void find_point_mm(calib_point &pt)
 {
-	nearest_intersection_idx = get_nearest_inbtersection_index(pt);
+	nearest_intersection_idx = get_nearest_intersection_index(pt);
+	if (nearest_intersection_idx < 0) return;
+	//
+	base_ipt = intersections[nearest_intersection_idx];
+	//
+	//	точки в одной строке с базовой
+	std::vector<calib_point> ipt_row;
+	std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(ipt_row), [](calib_point ipt) {
+		return ipt.row == base_ipt.row;
+	});
+	std::sort(ipt_row.begin(), ipt_row.end(),
+		[] (const calib_point& a, const calib_point& b) { return a.col < b.col; });
+	//
+	//	точки в одном столбце с базовой
+	std::vector<calib_point> ipt_col;
+	std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(ipt_col), [](calib_point ipt) {
+		return ipt.col == base_ipt.col;
+	});
+	std::sort(ipt_col.begin(), ipt_col.end(),
+		[] (const calib_point& a, const calib_point& b) { return a.row < b.row; });
+	//
+	int dir;
+	//
+	//	соседняя точка в строке
+	int row_idx = -1;
+	for (size_t i = 0; i < ipt_row.size(); i++) {
+		if (ipt_row[i].point_cnt != base_ipt.point_cnt) continue;
+		//
+		dir = (pt.point_cnt.x < base_ipt.point_cnt.x) ?	-1 : 1;
+		if ((i + dir) < ipt_row.size()) row_idx = i + dir;
+		else if ((i - dir) >= 0) row_idx = i - dir;
+		//
+		break;
+	}
+	nearest_intersection_idx_row = (row_idx > -1)
+		? get_vector_calib_point_index(intersections, ipt_row[row_idx])
+		: -1;
+	//
+	//	соседняя точка в столбце
+	int col_idx = -1;
+	for (size_t i = 0; i < ipt_col.size(); i++) {
+		if (ipt_col[i].point_cnt != base_ipt.point_cnt) continue;
+		//
+		dir = (pt.point_cnt.y < base_ipt.point_cnt.y) ?	-1 : 1;
+		if ((i + dir) < ipt_col.size()) col_idx = i + dir;
+		else if ((i - dir) >= 0) col_idx = i - dir;
+		//
+		break;
+	}
+	nearest_intersection_idx_col = (col_idx > -1)
+		? get_vector_calib_point_index(intersections, ipt_col[col_idx])
+		: -1;
+	//
+	if ((nearest_intersection_idx_row > -1) &&
+		(nearest_intersection_idx_col > -1)) {
+		//
+		calib_point row_ipt = intersections[nearest_intersection_idx_row];
+		double row_k = distance(base_ipt.point_mm, row_ipt.point_mm) / distance(base_ipt.point_cnt, row_ipt.point_cnt);
+		calib_point col_ipt = intersections[nearest_intersection_idx_col];
+		double col_k = distance(base_ipt.point_mm, col_ipt.point_mm) / distance(base_ipt.point_cnt, col_ipt.point_cnt);
+		//
+		if (base_ipt.point_cnt.x > row_ipt.point_cnt.x)
+			pt.point_mm.x = row_ipt.point_mm.x + (pt.point_cnt.x - row_ipt.point_cnt.x) * row_k;
+		else
+			pt.point_mm.x = base_ipt.point_mm.x + (pt.point_cnt.x - base_ipt.point_cnt.x) * row_k;
+		//
+		if (base_ipt.point_cnt.y > col_ipt.point_cnt.y)
+			pt.point_mm.y = col_ipt.point_mm.y + (pt.point_cnt.y - col_ipt.point_cnt.y) * col_k;
+		else
+			pt.point_mm.y = base_ipt.point_mm.y + (pt.point_cnt.y - base_ipt.point_cnt.y) * col_k;
+	}
 }
 
 void onMouse(int event, int x, int y, int flags, void* userdata)
@@ -401,7 +528,8 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
     else if (event == cv::EVENT_MBUTTONDOWN)
     {
     	//	std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
-    	manual_calib_points.erase(manual_calib_points.end() - 1);
+    	if (manual_calib_points.size())
+    		manual_calib_points.erase(manual_calib_points.end() - 1);
     	//calib_points.clear();
     }
     else if (event == cv::EVENT_MOUSEMOVE)
@@ -457,7 +585,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_DEL);
 		if (selected_pt_idx == -1) return;
-		write_log("point " + to_string(selected_pt_idx) +  " delete");
+		write_log("manual_calib_point " + to_string(selected_pt_idx) +  " delete");
 		//
 		manual_calib_points.erase(manual_calib_points.begin() + selected_pt_idx);
 		selected_pt_idx = -1;
@@ -467,7 +595,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_UP);
 		if (selected_pt_idx == -1) return;
-		write_log("point " + to_string(selected_pt_idx) +  " up");
+		write_log("manual_calib_point " + to_string(selected_pt_idx) +  " up");
 		//
 		manual_calib_points[selected_pt_idx].point.y -= 1;
 	}
@@ -476,7 +604,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_DOWN);
 		if (selected_pt_idx == -1) return;
-		write_log("point " + to_string(selected_pt_idx) +  " down");
+		write_log("manual_calib_point " + to_string(selected_pt_idx) +  " down");
 		//
 		manual_calib_points[selected_pt_idx].point.y += 1;
 	}
@@ -485,7 +613,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_LEFT);
 		if (selected_pt_idx == -1) return;
-		write_log("point " + to_string(selected_pt_idx) +  " left");
+		write_log("manual_calib_point " + to_string(selected_pt_idx) +  " left");
 		//
 		manual_calib_points[selected_pt_idx].point.x -= 1;
 	}
@@ -494,7 +622,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_RIGHT);
 		if (selected_pt_idx == -1) return;
-		write_log("point " + to_string(selected_pt_idx) +  " right");
+		write_log("manual_calib_point " + to_string(selected_pt_idx) +  " right");
 		//
 		manual_calib_points[selected_pt_idx].point.x += 1;
 	}
@@ -514,20 +642,40 @@ void draw_intersection_points(cv::Mat& img)
 	for (size_t i = 0; i < intersections.size(); i++)
 	{
 		calib_point cp = intersections[i];
-		Scalar clr = (i == nearest_intersection_idx) ? CLR_MAGENTA : CLR_RED;
+		Scalar clr = (
+				(i == nearest_intersection_idx) ||
+				(i == nearest_intersection_idx_col) ||
+				(i == nearest_intersection_idx_row)
+			)
+			? CLR_MAGENTA
+			: CLR_RED;
 		cv::circle(img, cp.point, circleRadius, clr, 1, cv::LINE_AA);
+		//
+		if (i == nearest_intersection_idx) {
+			cv::line(img, cp.point - cv::Point2f(0, 10), cp.point + cv::Point2f(0, 10), clr, 1, cv::LINE_AA, 0);
+			cv::line(img, cp.point - cv::Point2f(10, 0), cp.point + cv::Point2f(10, 0), clr, 1, cv::LINE_AA, 0);
+		}
+		//
+		for (size_t j = 0; j < intersections.size(); j++)
+			if ((cp.point_cnt != intersections[j].point_cnt) &&
+				(cp.col == intersections[j].col) &&
+				(cp.row == (intersections[j].row - 1)))
+			{
+				double angle = findAngle(cp.point, intersections[j].point);
+				putText(img,
+					to_string((int)round(angle)),
+					cp.point + cv::Point2f(2, 12),
+					fontFace, fontScale, fontColor);
+				break;
+			}
 //		putText(img,
-//			to_string(cp.col) + ";" + to_string(cp.row),
-//			cp.point + cv::Point2f(3, ((cp.col % 2 == 0) ? 8 : 16)),
+//			show_cols_rows ? to_string(cp.col) : to_string((int)cp.point_cnt.x),
+//			cp.point + cv::Point2f(5, 8),
 //			fontFace, fontScale, fontColor);
-		putText(img,
-			show_cols_rows ? to_string(cp.col) : to_string((int)cp.point_cnt.x),
-			cp.point + cv::Point2f(5, 8),
-			fontFace, fontScale, fontColor);
-		putText(img,
-			show_cols_rows ? to_string(cp.row) : to_string((int)cp.point_cnt.y),
-			cp.point + cv::Point2f(5, 16),
-			fontFace, fontScale, fontColor);
+//		putText(img,
+//			show_cols_rows ? to_string(cp.row) : to_string((int)cp.point_cnt.y),
+//			cp.point + cv::Point2f(5, 16),
+//			fontFace, fontScale, fontColor);
 	}
 }
 
@@ -630,15 +778,25 @@ void draw_rule_points(cv::Mat& img)
 	//
 	for (size_t i = 0; i < rule_points.size(); i++)
 	{
+		calib_point pt = rule_points[i];
 		cv::circle(img, rule_points[i].point, CALIB_PT_R, clr, 1, cv::LINE_AA);
 		cv::line(img,
-			rule_points[i].point - cv::Point2f(10, 0),
-			rule_points[i].point + cv::Point2f(10, 0),
+			pt.point - cv::Point2f(10, 0),
+			pt.point + cv::Point2f(10, 0),
 			clr, 1, cv::LINE_AA, 0);
 		cv::line(img,
-			rule_points[i].point - cv::Point2f(0, 10),
-			rule_points[i].point + cv::Point2f(0, 10),
+			pt.point - cv::Point2f(0, 10),
+			pt.point + cv::Point2f(0, 10),
 			clr, 1, cv::LINE_AA, 0);
+		//
+		putText(img,
+			to_string((int)round(pt.point_mm.x)),
+			pt.point + cv::Point2f(5, 8),
+			1, 0.5, clr);
+		putText(img,
+			to_string((int)round(pt.point_mm.y)),
+			pt.point + cv::Point2f(5, 16),
+			1, 0.5, clr);
 	}
 	//
 	if (rule_points.size() == 2)
