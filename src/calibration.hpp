@@ -24,6 +24,7 @@ const int VK_KEY_A = 97;
 const int VK_KEY_B = 98;
 const int VK_KEY_I = 105;
 const int VK_KEY_L = 108;
+const int VK_KEY_N = 110;
 const int VK_KEY_Q = 113;
 const int VK_KEY_S = 115;
 const int VK_KEY_X = 120;
