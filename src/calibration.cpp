@@ -14,6 +14,7 @@ using namespace std;
 std::map<int, bool> keys_toggle = {
 	{VK_KEY_A, false},
 	{VK_KEY_B, false},
+	{VK_KEY_C, false},
 	{VK_KEY_I, false},
 	{VK_KEY_L, false},
 	{VK_KEY_N, false},
@@ -66,6 +67,7 @@ const string app_folder = "/home/vevdokimov/eclipse-workspace/line_detection/Deb
 
 const string calib_points_file = app_folder + "calib_points.xml";
 const string intersection_points_file = app_folder + "intersections.xml";
+const string intersection_points_csv_file = app_folder + "intersections_csv.csv";
 
 bool show_cols_rows = false;
 const double D2R = ((2.0 * M_PI) / 360.0);
@@ -77,6 +79,16 @@ int get_point_quarter(Point2f pt);
 void fill_intersection_counted_fields(calib_point& aPoint);
 void fill_sorted_cols_rows();
 
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args )
+{
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
 
 void pundistors(cv::Point2f &r, const cv::Point2f &a, double w, double h, double dist_fov) // , double dist, double fov
 {
@@ -221,6 +233,38 @@ void load_intersection_points()
 	write_log("load_intersection_points() successfull!");
 
 	fill_sorted_cols_rows();
+}
+
+void save_intersection_points_csv()
+{
+	if (intersections.size() == 0)
+	{
+		write_log("save_intersection_points_csv() aborted - intersections are empty!");
+		return;
+	}
+
+	std::ofstream file(intersection_points_csv_file);
+	//
+	if (file.is_open())
+	{
+		file
+			<< "point_cnt.x," << "point_cnt.y,"
+			<< "point_mm.x," << "point_mm.y"
+			<< std::endl;
+		//
+		for (size_t i = 0; i < intersections.size(); i++) {
+			calib_point cp = intersections[i];
+			file
+				<< cp.point_cnt.x << "," << cp.point_cnt.y << ","
+				<< cp.point_mm.x << "," << cp.point_mm.y
+			<< std::endl;
+		}
+		//
+		file.close();
+		write_log("save_intersection_points_csv() successfull!");
+	} else {
+		write_log("save_intersection_points_csv() file open error!");
+	}
 }
 
 Point2f get_point_cnt(cv::Mat& img, Point2f aPoint)
@@ -611,6 +655,12 @@ void handle_keys(cv::Mat& img)
 		save_intersection_points();
 	}
 	//
+	if (is_key_on(VK_KEY_C))
+	{
+		toggle_key(VK_KEY_C);
+		save_intersection_points_csv();
+	}
+	//
 	if (is_key_on(VK_KEY_N))
 	{
 		toggle_key(VK_KEY_N);
@@ -690,12 +740,12 @@ void handle_keys(cv::Mat& img)
 
 void draw_intersection_points(cv::Mat& img)
 {
-//	int fontFace = 1;
-//	double fontScale = 0.5;
-//	Scalar fontColor = CLR_GREEN;	//	CLR_RED;	CLR_GREEN;
+	int fontFace = 1;
+	double fontScale = 0.5;
+	Scalar fontColor = CLR_GREEN;	//	CLR_RED;	CLR_GREEN;
 	int circleRadius = CALIB_PT_R;	//	4;
 	//
-//	bool show_cols_rows = false;
+	bool show_cols_rows = false;
 	//
 	for (size_t i = 0; i < intersections_cols.size(); i++)
 	{
@@ -827,8 +877,14 @@ void draw_rule_points(cv::Mat& img)
 {
 	cv::Scalar clr = CLR_GREEN;
 	//
+	const double fontScale = 0.8;
+	const int offsetY = 10;
+	//
+	int r;
+	//
 	for (size_t i = 0; i < rule_points.size(); i++)
 	{
+		r = 1;
 		calib_point pt = rule_points[i];
 		cv::circle(img, rule_points[i].point, CALIB_PT_R, clr, 1, cv::LINE_AA);
 		cv::line(img,
@@ -841,25 +897,26 @@ void draw_rule_points(cv::Mat& img)
 			clr, 1, cv::LINE_AA, 0);
 		//
 		putText(img,
-			to_string((int)round(pt.point_mm.x)),
-			pt.point + cv::Point2f(5, 8),
-			1, 0.5, clr);
+			string_format("%.3f", pt.point_mm.x),
+			//((int)round(pt.point_mm.x)),
+			pt.point + cv::Point2f(5, offsetY * r++),
+			1, fontScale, clr);
 		putText(img,
-			to_string((int)round(pt.point_mm.y)),
-			pt.point + cv::Point2f(5, 16),
-			1, 0.5, clr);
+			string_format("%.3f", pt.point_mm.y),
+			//((int)round(pt.point_mm.y)),
+			pt.point + cv::Point2f(5, offsetY * r++),
+			1, fontScale, clr);
 	}
 	//
 	if (rule_points.size() == 2)
 	{
 		cv::line(img, rule_points[0].point, rule_points[1].point, clr, 1, cv::LINE_AA, 0);
+		double dist = getDistance(rule_points[0].point_mm, rule_points[1].point_mm);
 		putText(img,
-			to_string((int)round(getDistance(
-				rule_points[0].point_mm,
-				rule_points[1].point_mm
-			))),
-			rule_points[1].point + cv::Point2f(5, 24),
-			1, 0.5, CLR_MAGENTA
+			string_format("L=%.3f", dist),
+			//to_string((int)round(dist)),
+			rule_points[1].point + cv::Point2f(5, offsetY * r++),
+			1, fontScale, CLR_MAGENTA
 		);
 	}
 }

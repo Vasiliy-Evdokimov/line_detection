@@ -22,6 +22,7 @@ using namespace std;
 
 const int VK_KEY_A = 97;
 const int VK_KEY_B = 98;
+const int VK_KEY_C = 99;
 const int VK_KEY_I = 105;
 const int VK_KEY_L = 108;
 const int VK_KEY_N = 110;
