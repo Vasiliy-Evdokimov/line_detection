@@ -50,22 +50,78 @@ struct calib_point {
 	double angle_col; // угол между этой точкой и следующей в столбце
 };
 
-extern std::vector<calib_point> calib_pts;
+struct Line {
+	Point2f pt1;
+	Point2f pt2;
+	Point2f	mid;
+	int dir;
+	int index;
+};
+
+struct CalibPointLine {
+	std::vector<calib_point> points;
+	int index;
+};
+
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args );
+
+void pundistors(cv::Point2f &r, const cv::Point2f &a, double w, double h, double dist_fov);
+
+double getAngle(cv::Point pt1, cv::Point pt2);
+
+Point2f getMiddle(cv::Point2f pt1, cv::Point2f pt2);
+
+double getDistance(cv::Point2f pt1, cv::Point2f pt2);
+
+Point2f getIntersection(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2f D);
+
+int get_vector_calib_point_index(std::vector<calib_point> aVector, calib_point aPoint);
+
+void save_manual_calib_points();
+
+void load_manual_calib_points();
+
+void save_intersection_points();
+
+void load_intersection_points();
+
+void save_intersection_points_csv();
+
+Point2f get_point_cnt(cv::Mat& img, Point2f aPoint);
+
+void fill_sorted_cols_rows();
+
+void fill_intersection_counted_fields(calib_point& aPoint);
+
+void fill_intersection_points(cv::Mat& img);
+
+int get_point_quarter(Point2f pt);
+
+int get_nearest_intersection_index(calib_point &pt);
+
+CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector, int aIndex);
+
+void find_point_mm(calib_point &pt);
+
+void onMouse(int event, int x, int y, int flags, void* userdata);
+
+void handle_keys(cv::Mat& img);
+
+void draw_intersection_points(cv::Mat& img);
+
+void calib_points(cv::Mat& img);
 
 bool is_key_on(int aKey);
 
 void toggle_key(int aKey);
 
-void draw_calib_pts(cv::Mat& img);
+void draw_manual_calib_points(cv::Mat& img);
 
 int select_calib_pt(int x, int y);
 
-void save_calib_points();
+void draw_rule_points(cv::Mat& img);
 
-void load_calib_points();
 
-void onMouse(int event, int x, int y, int flags, void* userdata);
-
-void calib_points(cv::Mat& und);
 
 #endif /* CALIBRATION_HPP_ */

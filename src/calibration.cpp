@@ -6,6 +6,7 @@
  */
 
 #include <fstream>
+#include <cmath>
 
 #include "calibration.hpp"
 
@@ -27,19 +28,6 @@ std::map<int, bool> keys_toggle = {
 	{VK_KEY_LEFT, false},
 	{VK_KEY_RIGHT, false},
 	{VK_KEY_DEL, false}
-};
-
-struct Line {
-	Point2f pt1;
-	Point2f pt2;
-	Point2f	mid;
-	int dir;
-	int index;
-};
-
-struct CalibPointLine {
-	std::vector<calib_point> points;
-	int index;
 };
 
 const int CHESS_SIZE = 10;
@@ -64,7 +52,6 @@ Point2f nearest_intersection_row;
 Point2f nearest_intersection_col;
 
 const string app_folder = "/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
-
 const string calib_points_file = app_folder + "calib_points.xml";
 const string intersection_points_file = app_folder + "intersections.xml";
 const string intersection_points_csv_file = app_folder + "intersections_csv.csv";
@@ -73,11 +60,55 @@ bool show_cols_rows = false;
 const double D2R = ((2.0 * M_PI) / 360.0);
 const double R2D = (180 / M_PI);
 
-void draw_rule_points(cv::Mat& img);
-void draw_manual_calib_points(cv::Mat& img);
-int get_point_quarter(Point2f pt);
-void fill_intersection_counted_fields(calib_point& aPoint);
-void fill_sorted_cols_rows();
+Point2f find_point_mm2(
+		//	координаты искомой точки в пикселах
+		double xn, double yn,
+		//	координаты углов в мм
+		double x1, double x2,
+		double y1, double y4,
+		//	координаты углов в пикселах
+		double xn1,	double yn1,
+		double xn2, double yn2,
+		double xn3, double yn3,
+		double xn4,	double yn4
+	)
+{
+	double x = (
+			x1*xn1*yn - x2*xn1*yn + x1*xn3*yn - x2*xn3*yn -
+			x1*xn4*yn + x2*xn4*yn - x1*xn*yn1 + x2*xn*yn1 + x1*xn3*yn1 +
+			x2*xn3*yn1 - 2*x2*xn4*yn1 + x1*xn*yn2 - x2*xn*yn2 - 2*x1*xn3*yn2 +
+			x1*xn4*yn2 + x2*xn4*yn2 - x1*xn*yn3 + x2*xn*yn3 - x1*xn1*yn3 -
+			x2*xn1*yn3 + x1*xn*yn4 - x2*xn*yn4 + 2*x2*xn1*yn4 -
+			xn2*(x2*(-yn + yn4) + x1*(yn - 2*yn3 + yn4)) -
+			//
+			x1 * sqrt(4*((xn3 - xn4)*(yn1 - yn2) - (xn1 - xn2)*(yn3 - yn4))*(xn4*(-yn + yn1) + xn1*(yn - yn4) +	xn*(-yn1 + yn4)) +
+						pow((xn3*yn - xn4*yn - xn3*yn1 + 2*xn4*yn1 - xn4*yn2 + xn1*(yn + yn3 - 2*yn4) + xn2*(-yn + yn4) +
+						xn*(-yn1 + yn2 - yn3 + yn4)), 2)) +
+			//
+			x2 * sqrt(4*((xn3 - xn4)*(yn1 - yn2) - (xn1 - xn2)*(yn3 - yn4))*(xn4*(-yn + yn1) + xn1*(yn - yn4) + xn*(-yn1 + yn4)) +
+						pow((xn3*yn - xn4*yn - xn3*yn1 + 2*xn4*yn1 - xn4*yn2 + xn1*(yn + yn3 - 2*yn4) + xn2*(-yn + yn4) +
+						xn*(-yn1 + yn2 - yn3 + yn4)), 2))
+		) / (2*(xn3 - xn4)*(yn1 - yn2) - 2*(xn1 - xn2)*(yn3 - yn4));
+	//
+	double y = (
+			-xn2*y1*yn + xn3*y1*yn - xn4*y1*yn + xn2*y4*yn -
+			xn3*y4*yn + xn4*y4*yn - xn*y1*yn1 + xn3*y1*yn1 + xn*y4*yn1 -
+			2*xn2*y4*yn1 + xn3*y4*yn1 + xn*y1*yn2 - xn4*y1*yn2 - xn*y4*yn2 -
+			xn4*y4*yn2 + xn1*y1*(yn - yn3) - xn*y1*yn3 + 2*xn4*y1*yn3 +
+			xn*y4*yn3 - xn1*y4*(yn - 2*yn2 + yn3) + xn*y1*yn4 + xn2*y1*yn4 -
+			2*xn3*y1*yn4 - xn*y4*yn4 + xn2*y4*yn4 +
+			//
+			y1 * sqrt(4*((xn3 - xn4)*(yn1 - yn2) - (xn1 - xn2)*(yn3 - yn4))*(xn4*(-yn + yn1) + xn1*(yn - yn4) + xn*(-yn1 + yn4)) +
+						pow((xn3*yn - xn4*yn - xn3*yn1 + 2*xn4*yn1 - xn4*yn2 + xn1*(yn + yn3 - 2*yn4) + xn2*(-yn + yn4) +
+						xn*(-yn1 + yn2 - yn3 + yn4)), 2)) -
+			//
+			y4 * sqrt(4*((xn3 - xn4)*(yn1 - yn2) - (xn1 - xn2)*(yn3 - yn4))*(xn4*(-yn + yn1) + xn1*(yn - yn4) + xn*(-yn1 + yn4)) +
+						pow((xn3*yn - xn4*yn - xn3*yn1 + 2*xn4*yn1 - xn4*yn2 + xn1*(yn + yn3 - 2*yn4) + xn2*(-yn + yn4) +
+						xn*(-yn1 + yn2 - yn3 + yn4)), 2))
+		) / (2*(xn1 - xn4)*(yn2 - yn3) - 2*(xn2 - xn3)*(yn1 - yn4));
+	//
+	return Point2f(x, y);
+}
 
 template<typename ... Args>
 std::string string_format( const std::string& format, Args ... args )
@@ -210,6 +241,45 @@ void save_intersection_points()
 
 void load_intersection_points()
 {
+//	Point2f pt = find_point_mm2(
+//		//	координаты искомой точки в пикселах
+//		75, -70,	//	xn,	yn
+//		//
+//		//	координаты углов в мм
+//		-100, 100,	//	x1,	x2
+//		-100, 100,	//	y1, y4
+//		//
+//		-80, -65,
+//		75, -70,
+//		50, 90,
+//		-60, 30
+//	);
+//	Point2f pt = find_point_mm2(
+//		//	координаты искомой точки в пикселах
+//		131, 23,	//	xn,	yn
+//		//	координаты углов в мм
+//		10, 20,	//	x1,	x2
+//		10, 10,	//	y1, y4
+//		//	координаты углов в пикселах
+//		20, 23,
+//		42, 23,
+//		42, 44,
+//		19, 44
+//	);
+	Point2f pt = find_point_mm2(
+		//	координаты искомой точки в пикселах
+		131, 23,	//	xn,	yn
+		//	координаты углов в мм
+		-120, 120,	//	x1,	x2
+		-70, 70,	//	y1, y4
+		//	координаты углов в пикселах
+		-306, -172,
+		296, -172,
+		237, 142,
+		-246, 142
+	);
+	write_log(string_format("x=%.3f y=%.3f", pt.x, pt.y));
+
 	std::ifstream file(intersection_points_file);
 	if (!file) {
 		write_log("load_intersection_points() file open error!");
@@ -490,7 +560,7 @@ int get_nearest_intersection_index(calib_point &pt)
 	//
 	for (size_t i = 0; i < intersections.size(); i++)
 	{
-		if (pt.quarter != intersections[i].quarter) continue;
+		//if (pt.quarter != intersections[i].quarter) continue;
 		//
 		buf = getDistance(pt.point_cnt, intersections[i].point_cnt);
 		if (buf < min) {
@@ -529,10 +599,10 @@ void find_point_mm(calib_point &pt)
 	//
 	//	соседняя точка в строке
 	int row_idx = -1;
+	dir = (pt.point_cnt.x < base_ipt.point_cnt.x) ?	-1 : 1;
 	for (size_t i = 0; i < ipt_row.size(); i++) {
 		if (ipt_row[i].point_cnt != base_ipt.point_cnt) continue;
 		//
-		dir = (pt.point_cnt.x < base_ipt.point_cnt.x) ?	-1 : 1;
 		if ((i + dir) < ipt_row.size()) row_idx = i + dir;
 		else if ((i - dir) >= 0) row_idx = i - dir;
 		//
@@ -545,10 +615,10 @@ void find_point_mm(calib_point &pt)
 	//
 	//	соседняя точка в столбце
 	int col_idx = -1;
+	dir = (pt.point_cnt.y < base_ipt.point_cnt.y) ?	-1 : 1;
 	for (size_t i = 0; i < ipt_col.size(); i++) {
 		if (ipt_col[i].point_cnt != base_ipt.point_cnt) continue;
-		//
-		dir = (pt.point_cnt.y < base_ipt.point_cnt.y) ?	-1 : 1;
+
 		if ((i + dir) < ipt_col.size()) col_idx = i + dir;
 		else if ((i - dir) >= 0) col_idx = i - dir;
 		//
@@ -560,22 +630,18 @@ void find_point_mm(calib_point &pt)
 	nearest_intersection_col = intersections[nearest_intersection_idx_col].point_cnt;
 	//
 	if ((nearest_intersection_idx_row > -1) &&
-		(nearest_intersection_idx_col > -1)) {
-		//
+		(nearest_intersection_idx_col > -1))
+	{
 		calib_point row_ipt = intersections[nearest_intersection_idx_row];
 		double row_k = getDistance(base_ipt.point_mm, row_ipt.point_mm) / getDistance(base_ipt.point_cnt, row_ipt.point_cnt);
 		calib_point col_ipt = intersections[nearest_intersection_idx_col];
 		double col_k = getDistance(base_ipt.point_mm, col_ipt.point_mm) / getDistance(base_ipt.point_cnt, col_ipt.point_cnt);
 		//
-		if (base_ipt.point_cnt.x > row_ipt.point_cnt.x)
-			pt.point_mm.x = row_ipt.point_mm.x + (pt.point_cnt.x - row_ipt.point_cnt.x) * row_k;
-		else
-			pt.point_mm.x = base_ipt.point_mm.x + (pt.point_cnt.x - base_ipt.point_cnt.x) * row_k;
+		int dir_x = (base_ipt.point_cnt.x > pt.point_cnt.x) ? -1 : 1;
+		pt.point_mm.x = base_ipt.point_mm.x + dir_x * abs(base_ipt.point_cnt.x - pt.point_cnt.x) * row_k;
 		//
-		if (base_ipt.point_cnt.y > col_ipt.point_cnt.y)
-			pt.point_mm.y = col_ipt.point_mm.y + (pt.point_cnt.y - col_ipt.point_cnt.y) * col_k;
-		else
-			pt.point_mm.y = base_ipt.point_mm.y + (pt.point_cnt.y - base_ipt.point_cnt.y) * col_k;
+		int dir_y = (base_ipt.point_cnt.y > pt.point_cnt.y) ? -1 : 1;
+		pt.point_mm.y = base_ipt.point_mm.y + dir_y * abs(base_ipt.point_cnt.y - pt.point_cnt.y) * col_k;
 	}
 }
 
@@ -747,6 +813,10 @@ void draw_intersection_points(cv::Mat& img)
 	//
 	bool show_cols_rows = false;
 	//
+	int lbl_row = 0;
+	int lbl_start = -2;
+	int lbl_offset = 8;
+	//
 	for (size_t i = 0; i < intersections_cols.size(); i++)
 	{
 		for (size_t j = 0; j < intersections_cols[i].points.size(); j++)
@@ -777,17 +847,18 @@ void draw_intersection_points(cv::Mat& img)
 			}
 //			putText(img,
 //					to_string((int)round(cp.angle_col)),
-//					cp.point + cv::Point2f(2, 12),
+//					cp.point + cv::Point2f(5, 12),
 //					fontFace, fontScale, fontColor);
 			//
 //			putText(img,
 //				show_cols_rows ? to_string(cp.col) : to_string((int)cp.point_cnt.x),
-//				cp.point + cv::Point2f(5, 8),
+//				cp.point + cv::Point2f(5, lbl_start + lbl_offset * lbl_row++),
 //				fontFace, fontScale, fontColor);
 //			putText(img,
 //				show_cols_rows ? to_string(cp.row) : to_string((int)cp.point_cnt.y),
-//				cp.point + cv::Point2f(5, 16),
+//				cp.point + cv::Point2f(5, lbl_start + lbl_offset * lbl_row++),
 //				fontFace, fontScale, fontColor);
+//			lbl_row = 0;
 		}
 	}
 }
@@ -848,7 +919,7 @@ void draw_manual_calib_points(cv::Mat& img)
 			mcp.point - cv::Point2f(CALIB_PT_CROSS, 0),
 			mcp.point + cv::Point2f(CALIB_PT_CROSS, 0),
 			clr, 1, cv::LINE_AA, 0);
-		putText(img, to_string(mcp.col) + ";" + to_string(mcp.row),
+		putText(img, string_format("%.0f; %.0f", mcp.point_cnt.x, mcp.point_cnt.y),
 				mcp.point + cv::Point2f(10, 10), 1, 1, CLR_RED);
 	}
 }
