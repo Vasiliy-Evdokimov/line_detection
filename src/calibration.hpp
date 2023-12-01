@@ -25,19 +25,29 @@ const int VK_KEY_B = 98;
 const int VK_KEY_C = 99;
 const int VK_KEY_I = 105;
 const int VK_KEY_L = 108;
+const int VK_KEY_M = 109;
 const int VK_KEY_N = 110;
 const int VK_KEY_Q = 113;
 const int VK_KEY_S = 115;
 const int VK_KEY_X = 120;
 
-const int VK_KEY_UP = 114; 		//r //82;
-const int VK_KEY_DOWN = 102;	//f //84;
-const int VK_KEY_LEFT = 100;	//d //81;
-const int VK_KEY_RIGHT = 103;	//g //83;
+const int VK_KEY_UP = 82;
+const int VK_KEY_DOWN = 84;
+const int VK_KEY_LEFT = 81;
+const int VK_KEY_RIGHT = 83;
 
 const int VK_KEY_DEL = 255;
 
+const int MODE_NOT_SELECTED = 0;
+const int MODE_SELECT_LINE = 1;
+const int MODE_SELECT_POINT = 2;
+const int MODE_ADD_USER_LINE = 3;
+const int MODE_ADD_USER_POINT = 4;
+const int MODE_RULER = 5;
+
 extern std::map<int, bool> keys_toggle;
+extern std::map<int, string> modes_list;
+extern std::set<int> current_modes;
 
 struct calib_point {
 	cv::Point2f point;
@@ -56,6 +66,7 @@ struct Line {
 	Point2f	mid;
 	int dir;
 	int index;
+	int type; // 1 - OpenCV; 2 - User;
 };
 
 struct CalibPointLine {
@@ -94,6 +105,8 @@ void fill_sorted_cols_rows();
 
 void fill_intersection_counted_fields(calib_point& aPoint);
 
+void fill_opencv_intersections_lines(cv::Mat& img);
+
 void fill_intersection_points(cv::Mat& img);
 
 int get_point_quarter(Point2f pt);
@@ -117,6 +130,8 @@ bool is_key_on(int aKey);
 void toggle_key(int aKey);
 
 void draw_manual_calib_points(cv::Mat& img);
+
+int select_calib_line(int x, int y);
 
 int select_calib_pt(int x, int y);
 
