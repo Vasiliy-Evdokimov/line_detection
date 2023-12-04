@@ -20,21 +20,24 @@
 using namespace cv;
 using namespace std;
 
-const int VK_KEY_A = 97;
-const int VK_KEY_B = 98;
-const int VK_KEY_C = 99;
-const int VK_KEY_I = 105;
-const int VK_KEY_L = 108;
-const int VK_KEY_M = 109;
-const int VK_KEY_N = 110;
-const int VK_KEY_Q = 113;
-const int VK_KEY_S = 115;
-const int VK_KEY_X = 120;
+const int VK_KEY_A = 97;	//	влево
+const int VK_KEY_B = 98;	//	сохранить точки пересечения
+const int VK_KEY_C = 99;	//	сохранить точки пересечения в формате csv
+const int VK_KEY_D = 100;	//	вправо
+const int VK_KEY_F = 102;	//	выбор режима
+const int VK_KEY_I = 105;	//	сформировать точки пересечения
+const int VK_KEY_L = 108;	//	?
+const int VK_KEY_M = 109;	//	?
+const int VK_KEY_N = 110;	//	загрузить точки пересечения
+const int VK_KEY_Q = 113;	//	?
+const int VK_KEY_S = 115;	//	вниз
+const int VK_KEY_W = 119;	//	вверх
+const int VK_KEY_X = 120;	//	?
 
-const int VK_KEY_UP = 82;
-const int VK_KEY_DOWN = 84;
-const int VK_KEY_LEFT = 81;
-const int VK_KEY_RIGHT = 83;
+const int VK_KEY_UP = VK_KEY_W;
+const int VK_KEY_DOWN = VK_KEY_S;
+const int VK_KEY_LEFT = VK_KEY_A;
+const int VK_KEY_RIGHT = VK_KEY_D;
 
 const int VK_KEY_DEL = 255;
 
@@ -55,7 +58,6 @@ struct calib_point {
 	cv::Point2f point_mm;
 	int col;
 	int row;
-	int quarter;
 	double angle_row; // угол между этой точкой и следующей в строке
 	double angle_col; // угол между этой точкой и следующей в столбце
 };
@@ -77,8 +79,6 @@ struct CalibPointLine {
 template<typename ... Args>
 std::string string_format( const std::string& format, Args ... args );
 
-void pundistors(cv::Point2f &r, const cv::Point2f &a, double w, double h, double dist_fov);
-
 double getAngle(cv::Point pt1, cv::Point pt2);
 
 Point2f getMiddle(cv::Point2f pt1, cv::Point2f pt2);
@@ -88,10 +88,6 @@ double getDistance(cv::Point2f pt1, cv::Point2f pt2);
 Point2f getIntersection(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2f D);
 
 int get_vector_calib_point_index(std::vector<calib_point> aVector, calib_point aPoint);
-
-void save_manual_calib_points();
-
-void load_manual_calib_points();
 
 void save_intersection_points();
 
@@ -123,20 +119,18 @@ void handle_keys(cv::Mat& img);
 
 void draw_intersection_points(cv::Mat& img);
 
-void calib_points(cv::Mat& img);
+void calibration(cv::Mat& img);
 
 bool is_key_on(int aKey);
 
 void toggle_key(int aKey);
 
-void draw_manual_calib_points(cv::Mat& img);
-
 int select_calib_line(int x, int y);
 
-int select_calib_pt(int x, int y);
+int select_calib_point(int x, int y);
 
-void draw_rule_points(cv::Mat& img);
+void draw_ruler_points(cv::Mat& img);
 
-
+int get_status_bar_height();
 
 #endif /* CALIBRATION_HPP_ */

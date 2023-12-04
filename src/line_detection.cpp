@@ -56,7 +56,8 @@ void work_func()
 
 }
 
-void signalHandler( int signum ) {
+void signalHandler( int signum )
+{
 
 	if (signum == SIGINT) {
 		write_log("SIGINT received.");

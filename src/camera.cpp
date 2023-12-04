@@ -49,7 +49,9 @@ const string UNDISTORTED_WND_NAME = "Camera(s) Undistorted";
 const string GRAY_WND_NAME = "Camera(s) Gray";
 const string COLOR_WND_NAME = "Camera(s) Color";
 
-cv::Mat undistorted;
+const string CALIBRATION_WND_NAME = "Calibration editor";
+
+cv::Mat calibration_img;
 
 void visualizer_func()
 {
@@ -59,8 +61,8 @@ void visualizer_func()
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
 
-	namedWindow(UNDISTORTED_WND_NAME);
-	setMouseCallback(UNDISTORTED_WND_NAME, onMouse, &undistorted);
+	namedWindow(CALIBRATION_WND_NAME);
+	setMouseCallback(CALIBRATION_WND_NAME, onMouse, &calibration_img);
 
 	while (!kill_threads) {
 
@@ -78,7 +80,7 @@ void visualizer_func()
 			if (!(config.USE_CAM & (1 << i))) continue;
 			//
 			cv::Mat source;
-			undistorted.release();
+			cv::Mat undistorted;
 			cv::Mat gray;
 			cv::Mat frame;
 			//
@@ -93,13 +95,18 @@ void visualizer_func()
 				frame = frames_to_show[i].clone();
 			//frames_mtx[i].unlock();
 			//
+			if (config.CALIBRATE_CAM == (i + 1))
+			{
+				calibration_img = undistorted.clone();
+				if (!(calibration_img.empty()))
+					calibration(calibration_img);
+			}
+			//
 			if (!(source.empty()))
 				sources.push_back(source);
 			//
-			if (!(undistorted.empty())) {
-				calib_points(undistorted);
+			if (!(undistorted.empty()))
 				undistorteds.push_back(undistorted);
-			}
 			//
 			if (!(gray.empty())) {
 				cv::putText(gray, "Camera " + to_string(i + 1), cv::Point2f(10, 20),
@@ -123,14 +130,20 @@ void visualizer_func()
 		if (frames.size() > 0)
 			cv::hconcat(frames, mergedFrames);
 		//
-//		if (!mergedSource.empty())
-//			cv::imshow(SOURCE_WND_NAME, mergedSource);
-		if (!mergedUndistorted.empty())
-			cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
-		if (config.SHOW_GRAY && !mergedGray.empty())
-			cv::imshow(GRAY_WND_NAME, mergedGray);
-//		if (!mergedFrames.empty())
-//			cv::imshow(COLOR_WND_NAME, mergedFrames);
+		if (config.CALIBRATE_CAM && !calibration_img.empty())
+			cv::imshow(CALIBRATION_WND_NAME, calibration_img);
+		//
+		if (!config.CALIBRATE_CAM)
+		{
+			if (!mergedSource.empty())
+				cv::imshow(SOURCE_WND_NAME, mergedSource);
+			if (!mergedUndistorted.empty())
+				cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
+			if (config.SHOW_GRAY && !mergedGray.empty())
+				cv::imshow(GRAY_WND_NAME, mergedGray);
+			if (!mergedFrames.empty())
+				cv::imshow(COLOR_WND_NAME, mergedFrames);
+		}
 		//
 		int key = cv::waitKey(1);
 		if (key != -1)

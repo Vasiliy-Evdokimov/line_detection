@@ -72,6 +72,8 @@ struct ConfigData
 	int LINE_WIDTH;
 	//
 	int CAM_TIMEOUT;
+	//
+	int CALIBRATE_CAM;
 
 	void recount_data_size();
 };
