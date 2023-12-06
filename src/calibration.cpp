@@ -51,8 +51,8 @@ const int CHESS_SIZE = 10;
 const int CALIB_PT_R = 4;
 const int CALIB_PT_CROSS = 8;
 
-std::vector<calib_point> intersections;
-std::vector<calib_point> rule_points;
+std::vector<CalibPoint> intersections;
+std::vector<CalibPoint> rule_points;
 std::vector<Point2f> new_line_points;
 
 std::vector<CalibPointLine>intersections_rows;
@@ -68,9 +68,13 @@ Point2f nearest_intersection;
 Point2f nearest_intersection_row;
 Point2f nearest_intersection_col;
 
-const string app_folder = "/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
+const string app_folder =
+	#ifndef RELEASE
+		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
+	#else
+		"/home/user/line_detection/";
+	#endif
 
-const string calib_points_file = app_folder + "calib_points.xml";
 const string intersection_points_file = app_folder + "intersections.xml";
 const string intersection_lines_file = app_folder + "intersections_lines.xml";
 const string intersection_points_csv_file = app_folder + "intersections_csv.csv";
@@ -132,7 +136,7 @@ double getDistanceToLine(Point2f pt, Point2f pt1, Point2f pt2)
     return numerator / denominator;
 }
 
-int get_vector_calib_point_index(std::vector<calib_point> aVector, calib_point aPoint)
+int get_vector_calib_point_index(std::vector<CalibPoint> aVector, CalibPoint aPoint)
 {
 	int res = -1;
 	for (int i = 0; i < aVector.size(); i++)
@@ -156,7 +160,7 @@ void save_intersection_points()
 	if (file.is_open())
 	{
 		for (size_t i = 0; i < intersections.size(); i++) {
-			calib_point cp = intersections[i];
+			CalibPoint cp = intersections[i];
 			file
 				<< cp.point.x << " " << cp.point.y << " "
 				<< cp.point_cnt.x << " " << cp.point_cnt.y << " "
@@ -210,7 +214,7 @@ void load_intersection_points()
 	}
 
 	intersections.clear();
-	calib_point cp;
+	CalibPoint cp;
 
 	while (file
 		>> cp.point.x >> cp.point.y
@@ -273,7 +277,7 @@ void save_intersection_points_csv()
 			<< std::endl;
 		//
 		for (size_t i = 0; i < intersections.size(); i++) {
-			calib_point cp = intersections[i];
+			CalibPoint cp = intersections[i];
 			file
 				<< cp.point_cnt.x << "," << cp.point_cnt.y << ","
 				<< cp.point_mm.x << "," << cp.point_mm.y
@@ -304,7 +308,7 @@ void fill_sorted_cols_rows()
 	//
 	for (size_t i = 0; i < intersections.size(); i++)
 	{
-		calib_point cp = intersections[i];
+		CalibPoint cp = intersections[i];
 		//
 		if (cp.col < min_col) min_col = cp.col;
 		if (cp.col > max_col) max_col = cp.col;
@@ -318,11 +322,11 @@ void fill_sorted_cols_rows()
 	{
 		CalibPointLine intersections_col;
 		intersections_col.index = col_idx;
-		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_col.points), [](calib_point ipt) {
+		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_col.points), [](CalibPoint ipt) {
 			return ipt.col == col_idx;
 		});
 		std::sort(intersections_col.points.begin(), intersections_col.points.end(),
-			[] (const calib_point& a, const calib_point& b) { return a.row < b.row; });
+			[] (const CalibPoint& a, const CalibPoint& b) { return a.row < b.row; });
 		//	расчитываем углы между точками
 		for (size_t i = 0; i < intersections_col.points.size() - 1; i++)
 			intersections_col.points[i].angle_col = getAngle(
@@ -339,11 +343,11 @@ void fill_sorted_cols_rows()
 	for (row_idx = min_row; row_idx <= max_row; row_idx++) {
 		CalibPointLine intersections_row;
 		intersections_row.index = row_idx;
-		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_row.points), [](calib_point ipt) {
+		std::copy_if(intersections.begin(), intersections.end(), std::back_inserter(intersections_row.points), [](CalibPoint ipt) {
 			return ipt.row == row_idx;
 		});
 		std::sort(intersections_row.points.begin(), intersections_row.points.end(),
-			[] (const calib_point& a, const calib_point& b) { return a.col < b.col; });
+			[] (const CalibPoint& a, const CalibPoint& b) { return a.col < b.col; });
 		//	расчитываем углы между точками
 		for (size_t i = 0; i < intersections_row.points.size() - 1; i++)
 			intersections_row.points[i].angle_row = getAngle(
@@ -356,7 +360,7 @@ void fill_sorted_cols_rows()
 	write_log("intersections_rows.size() = " + to_string(intersections_rows.size()));
 }
 
-void fill_intersection_counted_fields(calib_point& aPoint)
+void fill_intersection_counted_fields(CalibPoint& aPoint)
 {
 	aPoint.point_mm = cv::Point2f(aPoint.col * CHESS_SIZE, aPoint.row * CHESS_SIZE);
 	aPoint.angle_col = 0;
@@ -480,7 +484,7 @@ void fill_intersection_points(cv::Mat& img)
 			cv::Point2f intersection = getIntersection(line1.pt1, line1.pt2, line2.pt1, line2.pt2);
 			if (intersection.x < 0) continue;
 			//
-			calib_point new_cp;
+			CalibPoint new_cp;
 			new_cp.point = intersection;
 			new_cp.point_cnt = get_point_cnt(img, new_cp.point);
 			new_cp.col = (line1.dir == 2) ? line1.index : line2.index;
@@ -495,7 +499,7 @@ void fill_intersection_points(cv::Mat& img)
 	fill_sorted_cols_rows();
 }
 
-int get_nearest_intersection_index(calib_point &pt)
+int get_nearest_intersection_index(CalibPoint &pt)
 {
 	int idx = -1;
 	double min = 10000, buf;
@@ -526,16 +530,16 @@ CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector
 	return res;
 }
 
-void find_point_mm(calib_point &pt)
+void find_point_mm(CalibPoint &pt)
 {
 	nearest_intersection_idx = get_nearest_intersection_index(pt);
 	if (nearest_intersection_idx < 0) return;
 	//
-	calib_point base_ipt = intersections[nearest_intersection_idx];
+	CalibPoint base_ipt = intersections[nearest_intersection_idx];
 	nearest_intersection = base_ipt.point_cnt;
 	//
-	std::vector<calib_point> ipt_row = get_calib_point_line_by_index(intersections_rows, base_ipt.row).points;
-	std::vector<calib_point> ipt_col = get_calib_point_line_by_index(intersections_cols, base_ipt.col).points;
+	std::vector<CalibPoint> ipt_row = get_calib_point_line_by_index(intersections_rows, base_ipt.row).points;
+	std::vector<CalibPoint> ipt_col = get_calib_point_line_by_index(intersections_cols, base_ipt.col).points;
 	//
 	int dir;
 	//
@@ -574,9 +578,9 @@ void find_point_mm(calib_point &pt)
 	if ((nearest_intersection_idx_row > -1) &&
 		(nearest_intersection_idx_col > -1))
 	{
-		calib_point row_ipt = intersections[nearest_intersection_idx_row];
+		CalibPoint row_ipt = intersections[nearest_intersection_idx_row];
 		double row_k = getDistance(base_ipt.point_mm, row_ipt.point_mm) / getDistance(base_ipt.point_cnt, row_ipt.point_cnt);
-		calib_point col_ipt = intersections[nearest_intersection_idx_col];
+		CalibPoint col_ipt = intersections[nearest_intersection_idx_col];
 		double col_k = getDistance(base_ipt.point_mm, col_ipt.point_mm) / getDistance(base_ipt.point_cnt, col_ipt.point_cnt);
 		//
 		int dir_x = (base_ipt.point_cnt.x > pt.point_cnt.x) ? -1 : 1;
@@ -878,7 +882,7 @@ void draw_intersection_points(cv::Mat& img)
 	for (size_t i = 0; i < intersections_cols.size(); i++)
 		for (size_t j = 0; j < intersections_cols[i].points.size(); j++)
 		{
-			calib_point cp = intersections_cols[i].points[j];
+			CalibPoint cp = intersections_cols[i].points[j];
 			//
 //			bool fl1 = false, fl2 = false, fl3 = false;
 //			if (cp.point_cnt == nearest_intersection)
@@ -994,7 +998,7 @@ int select_calib_line(int x, int y)
 
 int select_calib_point(int x, int y)
 {
-	calib_point cp;
+	CalibPoint cp;
 	for (size_t i = 0; i < intersections.size(); i++)
 	{
 		cp = intersections[i];
@@ -1024,7 +1028,7 @@ void draw_ruler_points(cv::Mat& img)
 	for (size_t i = 0; i < rule_points.size(); i++)
 	{
 		r = 1;
-		calib_point pt = rule_points[i];
+		CalibPoint pt = rule_points[i];
 		cv::circle(img, rule_points[i].point, CALIB_PT_R, clr, 1, cv::LINE_AA);
 		cv::line(img,
 			pt.point - cv::Point2f(CALIB_PT_CROSS, 0),

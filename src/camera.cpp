@@ -61,8 +61,10 @@ void visualizer_func()
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
 
-	namedWindow(CALIBRATION_WND_NAME);
-	setMouseCallback(CALIBRATION_WND_NAME, onMouse, &calibration_img);
+	if (config.CALIBRATE_CAM) {
+		namedWindow(CALIBRATION_WND_NAME);
+		setMouseCallback(CALIBRATION_WND_NAME, onMouse, &calibration_img);
+	}
 
 	while (!kill_threads) {
 
@@ -135,10 +137,10 @@ void visualizer_func()
 		//
 		if (!config.CALIBRATE_CAM)
 		{
-			if (!mergedSource.empty())
-				cv::imshow(SOURCE_WND_NAME, mergedSource);
-			if (!mergedUndistorted.empty())
-				cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
+//			if (!mergedSource.empty())
+//				cv::imshow(SOURCE_WND_NAME, mergedSource);
+//			if (!mergedUndistorted.empty())
+//				cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
 			if (config.SHOW_GRAY && !mergedGray.empty())
 				cv::imshow(GRAY_WND_NAME, mergedGray);
 			if (!mergedFrames.empty())
@@ -222,7 +224,17 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			continue;
 		}
 
-		undistort(frame, undistorted, cameraMatrix, distCoeffs);
+		try
+		{
+			undistort(frame, undistorted, cameraMatrix, distCoeffs);
+		}
+		catch (...)
+		{
+			parse_result.fl_err_camera = true;
+			write_log(aThreadName + " undistortion error!");
+			parse_result_to_sm(parse_result, aIndex);
+			continue;
+		}
 
 		//frames_mtx[aIndex].lock();
 		sources_to_show[aIndex] = frame.clone();

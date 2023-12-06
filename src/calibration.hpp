@@ -8,7 +8,6 @@
 #ifndef CALIBRATION_HPP_
 #define CALIBRATION_HPP_
 
-#include "defines.hpp"
 #include "log.hpp"
 
 #include "opencv2/opencv.hpp"
@@ -52,7 +51,7 @@ extern std::map<int, bool> keys_toggle;
 extern std::map<int, string> modes_list;
 extern std::set<int> current_modes;
 
-struct calib_point {
+struct CalibPoint {
 	cv::Point2f point;
 	cv::Point2f point_cnt;
 	cv::Point2f point_mm;
@@ -72,7 +71,7 @@ struct Line {
 };
 
 struct CalibPointLine {
-	std::vector<calib_point> points;
+	std::vector<CalibPoint> points;
 	int index;
 };
 
@@ -87,7 +86,7 @@ double getDistance(cv::Point2f pt1, cv::Point2f pt2);
 
 Point2f getIntersection(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2f D);
 
-int get_vector_calib_point_index(std::vector<calib_point> aVector, calib_point aPoint);
+int get_vector_calib_point_index(std::vector<CalibPoint> aVector, CalibPoint aPoint);
 
 void save_intersection_points();
 
@@ -99,7 +98,7 @@ Point2f get_point_cnt(cv::Mat& img, Point2f aPoint);
 
 void fill_sorted_cols_rows();
 
-void fill_intersection_counted_fields(calib_point& aPoint);
+void fill_intersection_counted_fields(CalibPoint& aPoint);
 
 void fill_opencv_intersections_lines(cv::Mat& img);
 
@@ -107,11 +106,11 @@ void fill_intersection_points(cv::Mat& img);
 
 int get_point_quarter(Point2f pt);
 
-int get_nearest_intersection_index(calib_point &pt);
+int get_nearest_intersection_index(CalibPoint &pt);
 
 CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector, int aIndex);
 
-void find_point_mm(calib_point &pt);
+void find_point_mm(CalibPoint &pt);
 
 void onMouse(int event, int x, int y, int flags, void* userdata);
 

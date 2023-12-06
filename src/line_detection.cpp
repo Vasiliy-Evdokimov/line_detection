@@ -2,6 +2,9 @@
 #include <thread>
 #include <csignal>
 
+#include <unistd.h>
+#include <stdio.h>
+
 using namespace std;
 using namespace std::chrono_literals;
 
@@ -75,10 +78,22 @@ void signalHandler( int signum )
 
 }
 
+void get_work_directory()
+{
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+		printf("Current work directory is %s\n", cwd);
+	} else {
+		perror("getcwd() error");
+	}
+}
+
 int main(int argc, char** argv)
 {
 
 	write_log("Application started!");
+	//
+	get_work_directory();
 	//
 	signal(SIGINT, signalHandler);
 	signal(SIGUSR1, signalHandler);

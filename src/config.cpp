@@ -24,19 +24,15 @@ ConfigData config_buf;
 
 cv::Mat cameraMatrix, distCoeffs;
 
-const char* config_filename =
+const string app_folder =
 	#ifndef RELEASE
-		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/line_detection.cfg";
+		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
 	#else
-		"/home/user/line_detection/line_detection.cfg";
+		"/home/user/line_detection/";
 	#endif
 
-const char* calibration_filename =
-	#ifndef RELEASE
-		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/calibration.xml";
-	#else
-		"/home/user/line_detection/calibration.xml";
-	#endif
+const string config_filename = app_folder + "line_detection.cfg";
+const string calibration_filename = app_folder + "calibration.xml";
 
 std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
@@ -153,7 +149,7 @@ void read_config()
 
 	try
 	{
-		cfg.readFile(config_filename);
+		cfg.readFile(config_filename.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
@@ -204,7 +200,7 @@ void save_config(ConfigData aConfig)
 
 	try
 	{
-		cfg.readFile(config_filename);
+		cfg.readFile(config_filename.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
@@ -264,7 +260,7 @@ void save_config(ConfigData aConfig)
 
 	try
 	{
-		cfg.writeFile(config_filename);
+		cfg.writeFile(config_filename.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
