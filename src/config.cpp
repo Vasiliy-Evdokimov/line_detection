@@ -138,9 +138,11 @@ void ConfigData::recount_data_size()
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
 }
 
-void read_config()
+void read_config(string config_file_path)
 {
-	string config_file_path = get_config_directory() + config_filename;
+	if (config_file_path == "")
+		config_file_path = get_config_directory() +	config_filename;
+	//
 	write_log("config_file_path = " + config_file_path);
 
 	Config cfg;
@@ -191,9 +193,10 @@ void read_config()
 
 }
 
-void save_config(ConfigData aConfig)
+void save_config(ConfigData aConfig, string config_file_path)
 {
-	string config_file_path = get_config_directory() + config_filename;
+	if (config_file_path == "")
+		config_file_path = get_config_directory() +	config_filename;
 
 	Config cfg;
 
