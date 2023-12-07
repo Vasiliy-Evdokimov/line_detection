@@ -84,10 +84,8 @@ extern std::map<std::string, ConfigItem> config_map;
 extern bool restart_threads;
 extern bool kill_threads;
 
-extern cv::Mat cameraMatrix;
-extern cv::Mat distCoeffs;
-
-void read_calibration();
+string get_work_directory();
+string get_config_directory();
 
 void read_config();
 void save_config(ConfigData aConfig);

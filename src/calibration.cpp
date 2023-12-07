@@ -8,6 +8,7 @@
 #include <fstream>
 #include <cmath>
 
+#include "config.hpp"
 #include "calibration.hpp"
 
 using namespace std;
@@ -47,6 +48,8 @@ std::map<int, string> modes_list =
 
 std::set<int> current_modes;
 
+cv::Mat cameraMatrix, distCoeffs;
+
 const int CHESS_SIZE = 10;
 const int CALIB_PT_R = 4;
 const int CALIB_PT_CROSS = 8;
@@ -68,16 +71,11 @@ Point2f nearest_intersection;
 Point2f nearest_intersection_row;
 Point2f nearest_intersection_col;
 
-const string app_folder =
-	#ifndef RELEASE
-		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
-	#else
-		"/home/user/line_detection/";
-	#endif
+const string calibration_filename = "calibration.xml";
 
-const string intersection_points_file = app_folder + "intersections.xml";
-const string intersection_lines_file = app_folder + "intersections_lines.xml";
-const string intersection_points_csv_file = app_folder + "intersections_csv.csv";
+const string intersection_points_filename = "intersections.xml";
+const string intersection_lines_filename = "intersections_lines.xml";
+const string intersection_points_csv_filename = "intersections_csv.csv";
 
 bool show_cols_rows = false;
 
@@ -147,6 +145,19 @@ int get_vector_calib_point_index(std::vector<CalibPoint> aVector, CalibPoint aPo
 	return res;
 }
 
+void read_calibration()
+{
+	string calibration_file_path = get_config_directory() + calibration_filename;
+	write_log("calibration_file_path = " + calibration_file_path);
+
+	cv::FileStorage fs(calibration_file_path, cv::FileStorage::READ);
+
+	fs["cameraMatrix"] >> cameraMatrix;
+	fs["distCoeffs"] >> distCoeffs;
+
+	fs.release();
+}
+
 void save_intersection_points()
 {
 	if (intersections.size() == 0)
@@ -155,7 +166,11 @@ void save_intersection_points()
 		return;
 	}
 
-	std::ofstream file(intersection_points_file);
+	string intersection_points_file_path =
+		get_config_directory() + intersection_points_filename;
+	write_log("intersection_points_file_path = " + intersection_points_file_path);
+
+	std::ofstream file(intersection_points_file_path);
 	//
 	if (file.is_open())
 	{
@@ -183,7 +198,11 @@ void save_intersection_lines()
 		return;
 	}
 
-	std::ofstream file(intersection_lines_file);
+	string intersection_lines_file_path =
+		get_config_directory() + intersection_lines_filename;
+	write_log("intersection_lines_file_path = " + intersection_lines_file_path);
+
+	std::ofstream file(intersection_lines_file_path);
 	//
 	if (file.is_open())
 	{
@@ -207,7 +226,11 @@ void save_intersection_lines()
 
 void load_intersection_points()
 {
-	std::ifstream file(intersection_points_file);
+	string intersection_points_file_path =
+		get_config_directory() + intersection_points_filename;
+	write_log("intersection_points_file_path = " + intersection_points_file_path);
+
+	std::ifstream file(intersection_points_file_path);
 	if (!file) {
 		write_log("load_intersection_points() file open error!");
 		return;
@@ -234,7 +257,11 @@ void load_intersection_points()
 
 void load_intersection_lines()
 {
-	std::ifstream file(intersection_lines_file);
+	string intersection_lines_file_path =
+		get_config_directory() + intersection_lines_filename;
+	write_log("intersection_lines_file_path = " + intersection_lines_file_path);
+
+	std::ifstream file(intersection_lines_file_path);
 	if (!file) {
 		write_log("load_intersection_lines() file open error!");
 		return;
@@ -267,7 +294,11 @@ void save_intersection_points_csv()
 		return;
 	}
 
-	std::ofstream file(intersection_points_csv_file);
+	string intersection_points_csv_file_path =
+			get_config_directory() + intersection_points_csv_filename;
+	write_log("intersection_points_csv_file_path = " + intersection_points_csv_file_path);
+
+	std::ofstream file(intersection_points_csv_file_path);
 	//
 	if (file.is_open())
 	{

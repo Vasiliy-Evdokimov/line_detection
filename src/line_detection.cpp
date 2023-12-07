@@ -13,6 +13,7 @@ using namespace std::chrono_literals;
 #include "log.hpp"
 #include "shared_memory.hpp"
 #include "camera.hpp"
+#include "calibration.hpp"
 #include "udp.hpp"
 
 void work_func()
@@ -78,22 +79,12 @@ void signalHandler( int signum )
 
 }
 
-void get_work_directory()
-{
-	char cwd[1024];
-	if (getcwd(cwd, sizeof(cwd)) != nullptr) {
-		printf("Current work directory is %s\n", cwd);
-	} else {
-		perror("getcwd() error");
-	}
-}
-
 int main(int argc, char** argv)
 {
 
 	write_log("Application started!");
 	//
-	get_work_directory();
+	write_log("Current work directory is " + get_work_directory());
 	//
 	signal(SIGINT, signalHandler);
 	signal(SIGUSR1, signalHandler);

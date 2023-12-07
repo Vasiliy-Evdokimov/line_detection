@@ -75,6 +75,9 @@ struct CalibPointLine {
 	int index;
 };
 
+extern cv::Mat cameraMatrix;
+extern cv::Mat distCoeffs;
+
 template<typename ... Args>
 std::string string_format( const std::string& format, Args ... args );
 
@@ -87,6 +90,8 @@ double getDistance(cv::Point2f pt1, cv::Point2f pt2);
 Point2f getIntersection(cv::Point2f A, cv::Point2f B, cv::Point2f C, cv::Point2f D);
 
 int get_vector_calib_point_index(std::vector<CalibPoint> aVector, CalibPoint aPoint);
+
+void read_calibration();
 
 void save_intersection_points();
 

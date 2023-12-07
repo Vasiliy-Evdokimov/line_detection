@@ -22,17 +22,7 @@ using namespace libconfig;
 ConfigData config;
 ConfigData config_buf;
 
-cv::Mat cameraMatrix, distCoeffs;
-
-const string app_folder =
-	#ifndef RELEASE
-		"/home/vevdokimov/eclipse-workspace/line_detection/Debug/";
-	#else
-		"/home/user/line_detection/";
-	#endif
-
-const string config_filename = app_folder + "line_detection.cfg";
-const string calibration_filename = app_folder + "calibration.xml";
+const string config_filename = "line_detection.cfg";
 
 std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
@@ -69,6 +59,27 @@ std::map<std::string, ConfigItem> config_map;
 
 bool restart_threads;
 bool kill_threads;
+
+string get_work_directory()
+{
+	string result = "";
+	char cwd[1024];
+	if (getcwd(cwd, sizeof(cwd)) != nullptr)
+	{
+		result.append(cwd);
+		result.append("/");
+	} else {
+		perror("getcwd() error");
+	}
+	return result;
+}
+
+string get_config_directory()
+{
+	string result = get_work_directory();
+	result.append("config/");
+	return result;
+}
 
 ConfigItem::ConfigItem()
 {
@@ -122,38 +133,25 @@ ConfigItem::ConfigItem(const ConfigItem& src)
 	description = src.description;
 }
 
-void ConfigData::recount_data_size() {
+void ConfigData::recount_data_size()
+{
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
-}
-
-void read_calibration() {
-
-	string str(calibration_filename);
-	write_log("calibration_filename = " + str);
-
-	cv::FileStorage fs(str, cv::FileStorage::READ);
-
-	fs["cameraMatrix"] >> cameraMatrix;
-	fs["distCoeffs"] >> distCoeffs;
-
-	fs.release();
-
 }
 
 void read_config()
 {
-	string str(config_filename);
-	write_log("config_filename = " + str);
+	string config_file_path = get_config_directory() + config_filename;
+	write_log("config_file_path = " + config_file_path);
 
 	Config cfg;
 
 	try
 	{
-		cfg.readFile(config_filename.c_str());
+		cfg.readFile(config_file_path.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
-		write_err(str + " I/O error while reading file.");
+		write_err("I/O error while reading file: " + config_file_path);
 		exit(1);
 	}
 	catch(const ParseException &pex)
@@ -195,16 +193,17 @@ void read_config()
 
 void save_config(ConfigData aConfig)
 {
+	string config_file_path = get_config_directory() + config_filename;
 
 	Config cfg;
 
 	try
 	{
-		cfg.readFile(config_filename.c_str());
+		cfg.readFile(config_file_path.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
-		write_err("I/O error while reading file.");
+		write_err("I/O error while reading file: " + config_file_path);
 		exit(1);
 	}
 	catch(const ParseException &pex)
@@ -260,12 +259,12 @@ void save_config(ConfigData aConfig)
 
 	try
 	{
-		cfg.writeFile(config_filename.c_str());
+		cfg.writeFile(config_file_path.c_str());
 	}
 	catch(const FileIOException &fioex)
 	{
 		string str(fioex.what());
-		write_log("I/O error while writing file: " + str);
+		write_log("I/O error while writing file: " + config_file_path);
 		throw std::exception();
 	}
 	catch (const std::exception& e) {

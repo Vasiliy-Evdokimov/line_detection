@@ -31,9 +31,8 @@ using namespace std;
 #include "horizontal.hpp"
 #include "barcode.hpp"
 #include "shared_memory.hpp"
-#include "camera.hpp"
-
 #include "calibration.hpp"
+#include "camera.hpp"
 
 //mutex frames_mtx[CAM_COUNT];
 cv::Mat sources_to_show[CAM_COUNT];
