@@ -14,8 +14,6 @@
 
 #include <string.h>
 
-#include "barcode.hpp"
-
 using namespace cv;
 using namespace std;
 

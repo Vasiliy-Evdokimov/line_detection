@@ -78,19 +78,20 @@ struct ConfigData
 	void recount_data_size();
 };
 
+extern const string debug_config_directory;
+
 extern ConfigData config;
 extern std::map<std::string, ConfigItem> config_map;
 
 extern bool restart_threads;
 extern bool kill_threads;
 
-extern const string config_filename;
-
 string get_work_directory();
 string get_config_directory();
+string get_actual_config_directory();
 
-void read_config(string config_file_path = "");
-void save_config(ConfigData aConfig, string config_file_path = "");
+void read_config();
+void save_config(ConfigData aConfig);
 
 void fill_json_form_config(ConfigData aConfig, Json::Value& js);
 void fill_config_form_json(Json::Value js, ConfigData& aConfig);

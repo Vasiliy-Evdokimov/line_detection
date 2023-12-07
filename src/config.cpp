@@ -24,6 +24,9 @@ ConfigData config_buf;
 
 const string config_filename = "line_detection.cfg";
 
+const string debug_config_directory =
+	"/home/vevdokimov/eclipse-workspace/line_detection/config/";
+
 std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
 	{ "CAM_ADDR_2",		&config_buf.CAM_ADDR_2 },
@@ -79,6 +82,16 @@ string get_config_directory()
 	string result = get_work_directory();
 	result.append("config/");
 	return result;
+}
+
+string get_actual_config_directory()
+{
+	return
+		#ifdef RELEASE
+			get_config_directory();
+		#else
+			debug_config_directory;
+		#endif
 }
 
 ConfigItem::ConfigItem()
@@ -138,11 +151,10 @@ void ConfigData::recount_data_size()
 	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
 }
 
-void read_config(string config_file_path)
+void read_config()
 {
-	if (config_file_path == "")
-		config_file_path = get_config_directory() +	config_filename;
-	//
+	string config_file_path =
+		get_actual_config_directory() +	config_filename;
 	write_log("config_file_path = " + config_file_path);
 
 	Config cfg;
@@ -193,10 +205,10 @@ void read_config(string config_file_path)
 
 }
 
-void save_config(ConfigData aConfig, string config_file_path)
+void save_config(ConfigData aConfig)
 {
-	if (config_file_path == "")
-		config_file_path = get_config_directory() +	config_filename;
+	string config_file_path =
+		get_actual_config_directory() +	config_filename;
 
 	Config cfg;
 
