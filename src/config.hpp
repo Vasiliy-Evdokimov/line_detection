@@ -8,8 +8,10 @@
 #ifndef CONFIG_HPP_
 #define CONFIG_HPP_
 
-#include <opencv2/core.hpp>
 #include <string.h>
+
+#include <opencv2/core.hpp>
+
 #include <libconfig.h++>
 #include <json/json.h>
 

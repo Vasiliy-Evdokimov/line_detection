@@ -967,7 +967,7 @@ const int mode_offset = 20;
 int get_status_bar_height()
 {
 	int cmsz = current_modes.size();
-	return mode_start + mode_offset * (cmsz ? cmsz : 1);
+	return mode_start + mode_offset * (cmsz ? cmsz : 1) - 15;
 }
 
 void calibration(cv::Mat& img)
@@ -997,7 +997,7 @@ void calibration(cv::Mat& img)
 		if (mode_id && current_modes.count(mode_id))
 			putText(status, mode_name,
 				cv::Point(5, mode_start + mode_offset * (mode_row++)),
-				1, 1.5, CLR_MAGENTA, 2
+				1, 1.5, CLR_WHITE, 2
 			);
 	merged.push_back(status);
 	//
