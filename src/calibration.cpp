@@ -8,8 +8,8 @@
 #include <fstream>
 #include <cmath>
 
-#include "config.hpp"
 #include "defines.hpp"
+#include "config_path.hpp"
 #include "calibration.hpp"
 
 using namespace std;

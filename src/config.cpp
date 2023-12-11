@@ -6,15 +6,15 @@
  */
 
 #include <opencv2/core.hpp>
-#include <string.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstring>
+#include <string>
 #include <libconfig.h++>
 
 #include "defines.hpp"
-#include "config.hpp"
+#include "config_path.hpp"
 #include "log.hpp"
+#include "config.hpp"
 
 using namespace std;
 using namespace libconfig;
@@ -23,9 +23,6 @@ ConfigData config;
 ConfigData config_buf;
 
 const string config_filename = "line_detection.cfg";
-
-const string debug_config_directory =
-	"/home/vevdokimov/eclipse-workspace/line_detection/config/";
 
 std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
@@ -62,37 +59,6 @@ std::map<std::string, ConfigItem> config_map;
 
 bool restart_threads;
 bool kill_threads;
-
-string get_work_directory()
-{
-	string result = "";
-	char cwd[1024];
-	if (getcwd(cwd, sizeof(cwd)) != nullptr)
-	{
-		result.append(cwd);
-		result.append("/");
-	} else {
-		perror("getcwd() error");
-	}
-	return result;
-}
-
-string get_config_directory()
-{
-	string result = get_work_directory();
-	result.append("config/");
-	return result;
-}
-
-string get_actual_config_directory()
-{
-	return
-		#ifdef RELEASE
-			get_config_directory();
-		#else
-			debug_config_directory;
-		#endif
-}
 
 ConfigItem::ConfigItem()
 {

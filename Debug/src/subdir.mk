@@ -8,6 +8,7 @@ CPP_SRCS += \
 ../src/calibration.cpp \
 ../src/camera.cpp \
 ../src/config.cpp \
+../src/config_path.cpp \
 ../src/contours.cpp \
 ../src/crc.cpp \
 ../src/horizontal.cpp \
@@ -21,6 +22,7 @@ CPP_DEPS += \
 ./src/calibration.d \
 ./src/camera.d \
 ./src/config.d \
+./src/config_path.d \
 ./src/contours.d \
 ./src/crc.d \
 ./src/horizontal.d \
@@ -34,6 +36,7 @@ OBJS += \
 ./src/calibration.o \
 ./src/camera.o \
 ./src/config.o \
+./src/config_path.o \
 ./src/contours.o \
 ./src/crc.o \
 ./src/horizontal.o \
@@ -55,7 +58,7 @@ src/%.o: ../src/%.cpp src/subdir.mk
 clean: clean-src
 
 clean-src:
-	-$(RM) ./src/barcode.d ./src/barcode.o ./src/calibration.d ./src/calibration.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/contours.d ./src/contours.o ./src/crc.d ./src/crc.o ./src/horizontal.d ./src/horizontal.o ./src/line_detection.d ./src/line_detection.o ./src/log.d ./src/log.o ./src/shared_memory.d ./src/shared_memory.o ./src/udp.d ./src/udp.o
+	-$(RM) ./src/barcode.d ./src/barcode.o ./src/calibration.d ./src/calibration.o ./src/camera.d ./src/camera.o ./src/config.d ./src/config.o ./src/config_path.d ./src/config_path.o ./src/contours.d ./src/contours.o ./src/crc.d ./src/crc.o ./src/horizontal.d ./src/horizontal.o ./src/line_detection.d ./src/line_detection.o ./src/log.d ./src/log.o ./src/shared_memory.d ./src/shared_memory.o ./src/udp.d ./src/udp.o
 
 .PHONY: clean-src
 

@@ -10,6 +10,7 @@ using namespace std::chrono_literals;
 
 #include "defines.hpp"
 #include "config.hpp"
+#include "config_path.hpp"
 #include "log.hpp"
 #include "shared_memory.hpp"
 #include "camera.hpp"
