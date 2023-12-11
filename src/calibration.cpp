@@ -736,7 +736,7 @@ void handle_keys(cv::Mat& img)
 		toggle_key(VK_KEY_F);
 		//
 		int maxKey = modes_list.rbegin()->first;
-		int mode_id = *current_modes.begin();
+		int mode_id = current_modes.size() ? *current_modes.begin() : 0;
 		mode_id = (mode_id == maxKey) ? 0 : (mode_id + 1);
 		current_modes.clear();
 		current_modes.insert(mode_id);
