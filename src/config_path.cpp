@@ -63,9 +63,13 @@ string get_config_directory()
 string get_actual_config_directory()
 {
 	return
-		#ifdef RELEASE
-			get_config_directory();
+		#ifdef STANDALONE
+			get_work_directory();
 		#else
-			debug_config_directory;
+			#ifdef RELEASE
+				get_config_directory();
+			#else
+				debug_config_directory;
+			#endif
 		#endif
 }
