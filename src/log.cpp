@@ -19,7 +19,15 @@ string GetCurrentTime() {
 	time_t currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	//
 	stringstream ss;
-	ss << put_time(localtime(&currentTime), "%Y-%m-%d %H:%M:%S");
+	struct tm timeinfo;
+
+#ifdef _WIN32
+	localtime_s(&timeinfo, &currentTime);
+#elif __linux__
+	timeinfo = *localtime(&currentTime);
+#endif
+
+	ss << put_time(&timeinfo, "%Y-%m-%d %H:%M:%S");
 	string currentTimeString = ss.str();
 	//
 	return currentTimeString;
