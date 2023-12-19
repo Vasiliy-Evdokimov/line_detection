@@ -96,6 +96,9 @@ int main(int argc, char** argv)
 	//	читаем параметры калибровки камеры
 	read_calibration();
 	//
+	//	читаем опорные точки калибровки
+	load_intersection_points();
+	//
 	//	инициализируем shared memory
 	init_shared_memory();
 	//

@@ -383,6 +383,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Point* lpCenter = &pt;
 
 	parse_result.res_points.clear();
+	parse_result.res_points_mm.clear();
 
 	vector<RectData*> buf_points;
 	vector<RectData*> buf_rd;
@@ -415,6 +416,13 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	//	поиск горизонтальных пересечений
 	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
+	//
+	parse_result.hor_ys_mm.clear();
+	for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
+		CalibPoint cb = get_calib_point(imgColor, Point2f(imgColor.cols / 2, parse_result.hor_ys[i]));
+		parse_result.hor_ys[i] = cb.point_cnt.y;
+		parse_result.hor_ys_mm.push_back(cb.point_mm.y);
+	}
 
 	//	добавляем нижнюю центральную точку в список для построения линии
 	RectData crd;
@@ -453,7 +461,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			}
 			if (k > 0) {
 				buf_rd.push_back(buf_points[k]);
-				parse_result.res_points.push_back(buf_points[k]->center);
+				//
+				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
+				parse_result.res_points.push_back(cb.point_cnt);
+				parse_result.res_points_mm.push_back(cb.point_mm);
 			}
 			//else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);
@@ -493,14 +504,45 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}
 		else {
-			for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
-				cv::line(imgColor, cv::Point(0, parse_result.hor_ys[i]), cv::Point(imgWidth, parse_result.hor_ys[i]),
+			for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
+				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point2f(0, parse_result.hor_ys[i]));
+				pt_draw.x = 0;
+				//
+				cv::line(imgColor, cv::Point(0, pt_draw.y), cv::Point(imgWidth, pt_draw.y),
 					CLR_RED, 2, cv::LINE_AA, 0);
+				//
+				cv::putText(imgColor,
+					to_string(parse_result.hor_ys[i]) + " px",
+					pt_draw + cv::Point(5, 20),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+				//
+				cv::putText(imgColor,
+					to_string(parse_result.hor_ys_mm[i]) + " mm",
+					pt_draw + cv::Point(5, 35),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+			}
 			//
 			cv::Point line_pt(imgWidth / 2, imgHeight);
 			for (size_t i = 0; i < parse_result.res_points.size(); i++) {
-				cv::line(imgColor, line_pt, parse_result.res_points[i], CLR_GREEN, 2, cv::LINE_AA, 0);
-				line_pt = parse_result.res_points[i];
+				cv::Point pt_src = parse_result.res_points[i];
+				cv::Point pt_src_mm = parse_result.res_points_mm[i];
+				cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
+				//
+				cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
+				cv::circle(imgColor, pt_draw, 3, CLR_YELLOW, -1, cv::LINE_AA);
+				//
+				//string s = string_format
+				cv::putText(imgColor,
+					"(" + to_string(pt_src.x) + ";" + to_string(pt_src.y) + ") px",
+					pt_draw + cv::Point(5, 20),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+				//
+				cv::putText(imgColor,
+					"(" + to_string(pt_src_mm.x) + ";" + to_string(pt_src_mm.y) + ") mm",
+					pt_draw + cv::Point(5, 35),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+				//
+				line_pt = pt_draw;
 			}
 		}
 		//

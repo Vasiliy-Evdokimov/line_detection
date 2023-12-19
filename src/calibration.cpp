@@ -325,10 +325,23 @@ void save_intersection_points_csv()
 	}
 }
 
-Point2f get_point_cnt(cv::Mat& img, Point2f aPoint)
+Point2f get_point_cnt(cv::Mat img, Point2f aPoint)
 {
 	cv::Point2f cnt(img.cols / 2, img.rows / 2);
 	return cv::Point2f(aPoint.x - cnt.x, cnt.y - aPoint.y);
+}
+
+Point2f point_cnt_to_topleft(cv::Mat img, Point2f aPoint)
+{
+	cv::Point2f cnt(img.cols / 2, img.rows / 2);
+	return cv::Point2f(aPoint.x + cnt.x, cnt.y - aPoint.y);
+}
+
+CalibPoint get_calib_point(cv::Mat img, cv::Point2f pt)
+{
+	CalibPoint res{ pt, get_point_cnt(img, pt) };
+	find_point_mm(res);
+	return res;
 }
 
 int col_idx, row_idx;
@@ -540,8 +553,6 @@ int get_nearest_intersection_index(CalibPoint &pt)
 	//
 	for (size_t i = 0; i < intersections.size(); i++)
 	{
-		//if (pt.quarter != intersections[i].quarter) continue;
-		//
 		buf = getDistance(pt.point_cnt, intersections[i].point_cnt);
 		if (buf < min) {
 			min = buf;
@@ -566,6 +577,8 @@ CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector
 
 void find_point_mm(CalibPoint &pt)
 {
+	if (!intersections.size()) return;
+	//
 	nearest_intersection_idx = get_nearest_intersection_index(pt);
 	if (nearest_intersection_idx < 0) return;
 	//

@@ -48,7 +48,10 @@ struct ParseImageResult {
 	int height;
 	//
 	vector<cv::Point> res_points;
+	vector<cv::Point> res_points_mm;
+	//
 	vector<int> hor_ys;
+	vector<int> hor_ys_mm;
 	//
 	bool fl_slow_zone;
 	bool fl_stop_zone;
@@ -64,6 +67,7 @@ struct ParseImageResult {
 		height = 0;
 		//
 		res_points.clear();
+		res_points_mm.clear();
 		hor_ys.clear();
 		//
 		fl_slow_zone = false;
@@ -81,10 +85,14 @@ struct ParseImageResult {
 		height = src.height;
 		//
 		res_points.clear();
-		for (size_t i = 0; i < src.res_points.size(); i++)
+		for (size_t i = 0; i < src.res_points.size(); i++) {
 			res_points.push_back(cv::Point(src.res_points[i]));
-		for (size_t i = 0; i < src.hor_ys.size(); i++)
+			res_points_mm.push_back(cv::Point(src.res_points_mm[i]));
+		}
+		for (size_t i = 0; i < src.hor_ys.size(); i++) {
 			hor_ys.push_back(src.hor_ys[i]);
+			hor_ys_mm.push_back(src.hor_ys_mm[i]);
+		}
 		//
 		fl_slow_zone = src.fl_slow_zone;
 		fl_stop_zone = src.fl_stop_zone;

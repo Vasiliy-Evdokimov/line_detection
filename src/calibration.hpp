@@ -97,7 +97,9 @@ void load_intersection_points();
 
 void save_intersection_points_csv();
 
-Point2f get_point_cnt(cv::Mat& img, Point2f aPoint);
+Point2f get_point_cnt(cv::Mat img, Point2f aPoint);
+
+Point2f point_cnt_to_topleft(cv::Mat img, Point2f aPoint);
 
 void fill_sorted_cols_rows();
 
@@ -107,13 +109,13 @@ void fill_opencv_intersections_lines(cv::Mat& img);
 
 void fill_intersection_points(cv::Mat& img);
 
-int get_point_quarter(Point2f pt);
-
 int get_nearest_intersection_index(CalibPoint &pt);
 
 CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector, int aIndex);
 
 void find_point_mm(CalibPoint &pt);
+
+CalibPoint get_calib_point(cv::Mat img, cv::Point2f pt);
 
 void onMouse(int event, int x, int y, int flags, void* userdata);
 
