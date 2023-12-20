@@ -471,13 +471,30 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
+	int y0_x = 10000;
+	for (size_t i = 1; i < parse_result.res_points.size(); i++) {
+		Point pt1 = parse_result.res_points[i - 1];
+		Point pt2 = parse_result.res_points[i];
+		if (pt1.y == 0) y0_x = pt1.x;
+		else if (pt2.y == 0) y0_x = pt2.x;
+		else if ((pt1.y < 0) && (pt2.y > 0))
+			y0_x = ((pt2.x - pt1.x) * (0 - pt1.y) / (pt2.y - pt1.y)) + pt1.x;
+		//
+		if (y0_x != 10000) {
+			parse_result.center_x = y0_x;
+			CalibPoint res{ Point(0, 0), Point(y0_x, 0) };
+			find_point_mm(res);
+			//
+			parse_result.center_x_mm = res.point_mm.x;
+			break;
+		}
+	}
+
 	parse_result.fl_err_line = parse_result.fl_err_line ||
 		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
 
 #ifndef NO_GUI
 	if (config.DRAW) {
-
-		// /* In progress */ измерения отклонений от центра в миллиметрах
 
 		for (size_t i = 0; i < buf_rd.size(); i++) {
 			cv::Point c(buf_rd[i]->center);
@@ -531,7 +548,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
 				cv::circle(imgColor, pt_draw, 3, CLR_YELLOW, -1, cv::LINE_AA);
 				//
-				//string s = string_format
 				cv::putText(imgColor,
 					"(" + to_string(pt_src.x) + ";" + to_string(pt_src.y) + ") px",
 					pt_draw + cv::Point(5, 20),
@@ -543,6 +559,20 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
 				//
 				line_pt = pt_draw;
+			}
+
+			if (y0_x != 10000) {
+				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point(parse_result.center_x, 0));
+				cv::circle(imgColor, pt_draw, 3, CLR_MAGENTA, -1, cv::LINE_AA);
+				cv::putText(imgColor,
+					to_string(parse_result.center_x) + " px",
+					pt_draw + cv::Point(5, 20),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
+				//
+				cv::putText(imgColor,
+					to_string(parse_result.center_x_mm) + " mm",
+					pt_draw + cv::Point(5, 35),
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
 			}
 		}
 		//
