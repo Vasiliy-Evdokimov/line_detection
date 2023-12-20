@@ -9,6 +9,8 @@
 
 #include <sys/types.h>
 
+#include "defines.hpp"
+
 #ifdef _WIN32
 	#include <direct.h>
 #elif __linux__

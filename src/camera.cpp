@@ -215,10 +215,16 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		tStart = clock();
 
-		parse_result.fl_err_camera = (!cap.isOpened()) || (!cap.read(frame));
+		bool err1 = (!cap.isOpened());
+		bool err2 = (!cap.read(frame));
+		bool err3 = (frame.empty());
+
+		parse_result.fl_err_camera = err1 || err2 || err3;
 
 		if (parse_result.fl_err_camera) {
-			write_log(aThreadName + " read error!");
+			write_log(aThreadName + " read error! " +
+				to_string(err1) + " " + to_string(err2) + " " + to_string(err3)
+			);
 			parse_result_to_sm(parse_result, aIndex);
 			continue;
 		}
@@ -226,6 +232,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		try
 		{
 			undistort(frame, undistorted, cameraMatrix, distCoeffs);
+			//undistorted = frame.clone();
 		}
 		catch (...)
 		{

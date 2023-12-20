@@ -32,18 +32,19 @@ struct ResultFixed {
 	int16_t max_points_count;
 	int16_t points_count;
 	ResultPoint points[MAX_POINTS_COUNT];
-	ResultPoint points_mm[MAX_POINTS_COUNT];
-	//
-	int16_t center_x;
-	int16_t center_x_mm;
 	//
 	int16_t max_hor_count;
 	int16_t hor_count;
 	int16_t points_hor[MAX_HOR_COUNT];
-	int16_t points_hor_mm[MAX_HOR_COUNT];
 	//
 	int16_t zone_flags;
 	int16_t stop_distance;
+	//
+	ResultPoint points_mm[MAX_POINTS_COUNT];
+	int16_t points_hor_mm[MAX_HOR_COUNT];
+	//
+	int16_t center_x;
+	int16_t center_x_mm;
 	//
 	int8_t result_time_point[RESULT_TIME_SIZE];
 };
