@@ -11,7 +11,11 @@
 #include <iomanip>
 #include <sstream>
 
+#include <mutex>
+
 #include "log.hpp"
+
+mutex log_mtx;
 
 using namespace std;
 
@@ -35,7 +39,9 @@ string GetCurrentTime() {
 
 void write_log(string aMessage)
 {
+	log_mtx.lock();
 	cout << GetCurrentTime() << ": " << aMessage << endl;
+	log_mtx.unlock();
 }
 
 void write_err(string aMessage)

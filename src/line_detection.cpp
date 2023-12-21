@@ -1,5 +1,6 @@
 #include <chrono>
 #include <thread>
+#include <pthread.h>
 #include <csignal>
 
 #include <unistd.h>
@@ -82,6 +83,7 @@ void signalHandler( int signum )
 
 int main(int argc, char** argv)
 {
+	pthread_setname_np(pthread_self(), "main thread");
 
 	write_log("Application started!");
 	//

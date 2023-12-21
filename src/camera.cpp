@@ -171,12 +171,26 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	pthread_setname_np(pthread_self(), aThreadName.c_str());
 
+//	// получение ID текущего потока
+//	pthread_t tid = pthread_self();
+//	// объявление структуры cpu_set_t для хранения маски ядер
+//	cpu_set_t cpuset;
+//	// инициализация структуры cpu_set_t
+//	CPU_ZERO(&cpuset);
+//	// установка маски ядер (в данном случае - первое ядро)
+//	CPU_SET(aIndex, &cpuset);
+//	// установка маски ядер для текущего потока
+//	if (int res = pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset))
+//	{
+//		write_log(aThreadName + " pthread_setaffinity_np ERROR = " + to_string(res));
+//	}
+
     write_log(aThreadName + " started!");
 
 	clock_t tStart;
 
-	double tt, sum = 0;
-	int cnt = 0;
+	double tt, tt_sum, tt_min, tt_max;
+	int tt_cnt = 0;
 	int incorrect_lines = 0;
 
 	uint64_t read_err = 0;
@@ -188,7 +202,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-	while (1) {
+	int TARGET_FPS, FPS, FPS_DIFF;
+	double FPS_DIFF2;
+
+	int fps_delta = 0;
+
+	while (1)
+	{
 
 		if (restart_threads || kill_threads) break;
 
@@ -205,12 +225,41 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				continue;
 			}
 
+			TARGET_FPS = 8;
+			//
+			FPS = (int)(cap.get(cv::CAP_PROP_FPS));
+			if (FPS > 25) FPS = 25;
+			//
+			FPS_DIFF = (int)(FPS / TARGET_FPS);
+			FPS_DIFF2 = (double)TARGET_FPS / FPS;
+
+			write_log(
+				aThreadName + ":" +
+				//" " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_COUNT))) +
+				" FPS = " + to_string((int)FPS) +
+				" TARGET_FPS = " +  to_string(TARGET_FPS) +
+				" FPS_DIFF = " +  to_string(FPS_DIFF) +
+				" FPS_DIFF2 = " +  to_string(FPS_DIFF2)
+//				 " cv::CAP_PROP_FRAME_WIDTH = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_WIDTH))) +
+//				 " cv::CAP_PROP_FRAME_HEIGHT = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_HEIGHT)))
+			);
+
 			//	очищаем буфер
 			for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
-				cap >> frame;
+				cap.grab();
 
 			write_log(aThreadName + " entered infinity loop.");
 
+		}
+
+		if (TARGET_FPS < FPS)
+		{
+			//	вручную реализуем FPS
+			//fps_delta = (fps_delta) ? 0 : 1;
+			int k = FPS_DIFF - fps_delta;
+			//int k = FPS * (1 - FPS_DIFF2);
+			while (k--)
+				cap.grab();
 		}
 
 		tStart = clock();
@@ -218,6 +267,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		bool err1 = (!cap.isOpened());
 		bool err2 = (!cap.read(frame));
 		bool err3 = (frame.empty());
+
 
 		parse_result.fl_err_camera = err1 || err2 || err3;
 
@@ -231,8 +281,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		try
 		{
-			undistort(frame, undistorted, cameraMatrix, distCoeffs);
-			//undistorted = frame.clone();
+			//undistort(frame, undistorted, cameraMatrix, distCoeffs);
+			undistorted = frame.clone();
 		}
 		catch (...)
 		{
@@ -284,22 +334,31 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				incorrect_lines++;
 			//
 			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-			sum += tt;
-			cnt++;
+			if (!tt_cnt) { tt_sum = 0; tt_max = tt; tt_min = tt; }
 			//
-			if (cnt >= AVG_CNT)
+			if (tt > tt_max) tt_max = tt;
+			if (tt < tt_min) tt_min = tt;
+			tt_sum += tt;
+			tt_cnt++;
+			//
+			if (tt_cnt >= AVG_CNT)
 			{
 				if (read_err)
-					write_log(aThreadName + "thread Reading errors = " + to_string(read_err));
-				write_log(aThreadName + "thread Incorrect lines: " + to_string(incorrect_lines));
-				write_log(aThreadName + "thread Average time taken: " + to_string(sum / cnt));
+					write_log(aThreadName + " reading errors = " + to_string(read_err));
+//				write_log(aThreadName + " incorrect lines: " + to_string(incorrect_lines));
+				write_log(aThreadName + " time taken:" +
+					" min=" + to_string(tt_min) +
+					" max=" + to_string(tt_max) +
+					" avg=" + to_string(tt_sum / tt_cnt));
 				//
 				incorrect_lines = 0;
-				cnt = 0;
-				sum = 0;
+				tt_cnt = 0;
 			}
 
 		}
+
+		//this_thread::sleep_for(10ms);
+
 	}
 
 	cap.release();
@@ -315,7 +374,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	поиск штрихкодов
 	std::vector<std::vector<cv::Point>> bc_contours;
 	//
-	find_barcodes(imgColor, parse_result, bc_contours);
+	find_barcodes(imgColor, parse_result, bc_contours);	//	+ ~50 мсек на irobo
 	//
 	int minX = imgColor.cols;
 	int maxX = 0;
