@@ -171,19 +171,19 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	pthread_setname_np(pthread_self(), aThreadName.c_str());
 
-//	// получение ID текущего потока
-//	pthread_t tid = pthread_self();
-//	// объявление структуры cpu_set_t для хранения маски ядер
-//	cpu_set_t cpuset;
-//	// инициализация структуры cpu_set_t
-//	CPU_ZERO(&cpuset);
-//	// установка маски ядер (в данном случае - первое ядро)
-//	CPU_SET(aIndex, &cpuset);
-//	// установка маски ядер для текущего потока
-//	if (int res = pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset))
-//	{
-//		write_log(aThreadName + " pthread_setaffinity_np ERROR = " + to_string(res));
-//	}
+	// получение ID текущего потока
+	pthread_t tid = pthread_self();
+	// объявление структуры cpu_set_t для хранения маски ядер
+	cpu_set_t cpuset;
+	// инициализация структуры cpu_set_t
+	CPU_ZERO(&cpuset);
+	// установка маски ядер (в данном случае - первое ядро)
+	CPU_SET(aIndex, &cpuset);
+	// установка маски ядер для текущего потока
+	if (int res = pthread_setaffinity_np(tid, sizeof(cpu_set_t), &cpuset))
+	{
+		write_log(aThreadName + " pthread_setaffinity_np ERROR = " + to_string(res));
+	}
 
     write_log(aThreadName + " started!");
 
@@ -229,17 +229,14 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			//
 			FPS = (int)(cap.get(cv::CAP_PROP_FPS));
 			if (FPS > 25) FPS = 25;
-			//
 			FPS_DIFF = (int)(FPS / TARGET_FPS);
-			FPS_DIFF2 = (double)TARGET_FPS / FPS;
 
 			write_log(
 				aThreadName + ":" +
 				//" " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_COUNT))) +
 				" FPS = " + to_string((int)FPS) +
 				" TARGET_FPS = " +  to_string(TARGET_FPS) +
-				" FPS_DIFF = " +  to_string(FPS_DIFF) +
-				" FPS_DIFF2 = " +  to_string(FPS_DIFF2)
+				" FPS_DIFF = " +  to_string(FPS_DIFF)
 //				 " cv::CAP_PROP_FRAME_WIDTH = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_WIDTH))) +
 //				 " cv::CAP_PROP_FRAME_HEIGHT = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_HEIGHT)))
 			);
@@ -252,20 +249,33 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		}
 
-		if (TARGET_FPS < FPS)
+//		if (TARGET_FPS < FPS)
+//		{
+//			//	вручную реализуем FPS
+//			//fps_delta = (fps_delta) ? 0 : 1;
+//			int k = FPS_DIFF - fps_delta;
+//			while (k--)
+//				cap.grab();
+//		}
+
+		double targetfps = 25;
+		double tt_elapsed, tt_prev = clock();
+		while (true)
 		{
-			//	вручную реализуем FPS
-			//fps_delta = (fps_delta) ? 0 : 1;
-			int k = FPS_DIFF - fps_delta;
-			//int k = FPS * (1 - FPS_DIFF2);
-			while (k--)
-				cap.grab();
+			tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
+			cap.grab();
+			//write_log(to_string(time_elapsed));
+			if (tt_elapsed > (1. / targetfps))
+			{
+				cap.retrieve(frame);
+				break;
+			}
 		}
 
 		tStart = clock();
 
 		bool err1 = (!cap.isOpened());
-		bool err2 = (!cap.read(frame));
+		bool err2 = false; // (!cap.read(frame));
 		bool err3 = (frame.empty());
 
 
@@ -356,8 +366,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			}
 
 		}
-
-		//this_thread::sleep_for(10ms);
 
 	}
 
