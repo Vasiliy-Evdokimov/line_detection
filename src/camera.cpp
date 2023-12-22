@@ -166,6 +166,9 @@ void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
 	write_results_sm(rfx, aIndex);
 }
 
+//#define BARCODES
+//#define UNDISTORT
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -202,10 +205,15 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-	int TARGET_FPS, FPS, FPS_DIFF;
-	double FPS_DIFF2;
 
-	int fps_delta = 0;
+	double targetfps = 25;
+	//6 	// c undistort, с barcodes
+	//10 	// c undistort, без barcodes
+	//13	// без undistort, с barcodes
+	//25+	// без undistort, без barcodes
+
+	double tt_elapsed, tt_prev = clock();
+	int fps_count = 0;
 
 	while (1)
 	{
@@ -225,22 +233,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				continue;
 			}
 
-			TARGET_FPS = 8;
-			//
-			FPS = (int)(cap.get(cv::CAP_PROP_FPS));
-			if (FPS > 25) FPS = 25;
-			FPS_DIFF = (int)(FPS / TARGET_FPS);
-
-			write_log(
-				aThreadName + ":" +
-				//" " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_COUNT))) +
-				" FPS = " + to_string((int)FPS) +
-				" TARGET_FPS = " +  to_string(TARGET_FPS) +
-				" FPS_DIFF = " +  to_string(FPS_DIFF)
-//				 " cv::CAP_PROP_FRAME_WIDTH = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_WIDTH))) +
-//				 " cv::CAP_PROP_FRAME_HEIGHT = " + to_string((int)(cap.get(cv::CAP_PROP_FRAME_HEIGHT)))
-			);
-
 			//	очищаем буфер
 			for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
 				cap.grab();
@@ -249,33 +241,24 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		}
 
-//		if (TARGET_FPS < FPS)
-//		{
-//			//	вручную реализуем FPS
-//			//fps_delta = (fps_delta) ? 0 : 1;
-//			int k = FPS_DIFF - fps_delta;
-//			while (k--)
-//				cap.grab();
-//		}
+		fps_count++;
+		cap.read(frame);
+		tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
+		if (tt_elapsed < (1. / targetfps))
+			continue;
 
-		double targetfps = 25;
-		double tt_elapsed, tt_prev = clock();
-		while (true)
-		{
-			tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
-			cap.grab();
-			//write_log(to_string(time_elapsed));
-			if (tt_elapsed > (1. / targetfps))
-			{
-				cap.retrieve(frame);
-				break;
-			}
-		}
+//		write_log(aThreadName +
+//			" fps_count = " + to_string(fps_count) +
+//			" tt_elapsed = " + to_string(tt_elapsed));
+
+		fps_count = 0;
+		tt_prev = clock();
 
 		tStart = clock();
 
 		bool err1 = (!cap.isOpened());
-		bool err2 = false; // (!cap.read(frame));
+		bool err2 = false;
+		//bool err2 = (!cap.read(frame));
 		bool err3 = (frame.empty());
 
 
@@ -291,8 +274,11 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		try
 		{
-			//undistort(frame, undistorted, cameraMatrix, distCoeffs);
+#ifdef UNDISTORT
+			undistort(frame, undistorted, cameraMatrix, distCoeffs);
+#else
 			undistorted = frame.clone();
+#endif
 		}
 		catch (...)
 		{
@@ -382,7 +368,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	поиск штрихкодов
 	std::vector<std::vector<cv::Point>> bc_contours;
 	//
+#ifdef BARCODES
 	find_barcodes(imgColor, parse_result, bc_contours);	//	+ ~50 мсек на irobo
+#endif
 	//
 	int minX = imgColor.cols;
 	int maxX = 0;
