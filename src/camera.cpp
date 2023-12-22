@@ -205,7 +205,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-
 	double targetfps = 25;
 	//6 	// c undistort, с barcodes
 	//10 	// c undistort, без barcodes
@@ -241,8 +240,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		}
 
-		fps_count++;
 		cap.read(frame);
+		fps_count++;
 		tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
 		if (tt_elapsed < (1. / targetfps))
 			continue;
@@ -253,6 +252,10 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		fps_count = 0;
 		tt_prev = clock();
+
+//		cv::imshow("FPS_Test", frame);
+//		cv::waitKey(1);
+//		continue;
 
 		tStart = clock();
 
@@ -462,6 +465,15 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 		lpCenter = &rd->center;
 
+
+cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
+cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
+		CLR_YELLOW, 1, cv::LINE_8, 0);
+cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
+	CLR_YELLOW, 1, cv::LINE_8, 0);
+
+
+
 #ifndef NO_GUI
 		if (config.DRAW && config.DRAW_DETAILED) {
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
@@ -593,12 +605,12 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				cv::putText(imgColor,
 					to_string(parse_result.hor_ys[i]) + " px",
 					pt_draw + cv::Point(5, 20),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
 				//
 				cv::putText(imgColor,
 					to_string(parse_result.hor_ys_mm[i]) + " mm",
 					pt_draw + cv::Point(5, 35),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
 			}
 			//
 			cv::Point line_pt(imgWidth / 2, imgHeight);

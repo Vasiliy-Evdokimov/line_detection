@@ -8,8 +8,8 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-#define	NO_GUI
-#define	RELEASE
+//#define	NO_GUI
+//#define	RELEASE
 
 #define CAM_COUNT	2
 
