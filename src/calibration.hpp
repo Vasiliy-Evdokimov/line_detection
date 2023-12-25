@@ -14,6 +14,8 @@
 
 #include <string.h>
 
+bool CENTER_CALIBRATION = true;
+
 using namespace cv;
 using namespace std;
 
@@ -55,8 +57,6 @@ struct CalibPoint {
 	cv::Point2f point_mm;
 	int col;
 	int row;
-	double angle_row; // угол между этой точкой и следующей в строке
-	double angle_col; // угол между этой точкой и следующей в столбце
 };
 
 struct Line {

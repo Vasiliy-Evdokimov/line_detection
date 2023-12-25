@@ -374,12 +374,6 @@ void fill_sorted_cols_rows()
 		});
 		std::sort(intersections_col.points.begin(), intersections_col.points.end(),
 			[] (const CalibPoint& a, const CalibPoint& b) { return a.row < b.row; });
-		//	расчитываем углы между точками
-		for (size_t i = 0; i < intersections_col.points.size() - 1; i++)
-			intersections_col.points[i].angle_col = getAngle(
-				intersections_col.points[i].point,
-				intersections_col.points[i + 1].point
-			);
 		//
 		intersections_cols.push_back(intersections_col);
 	}
@@ -395,23 +389,48 @@ void fill_sorted_cols_rows()
 		});
 		std::sort(intersections_row.points.begin(), intersections_row.points.end(),
 			[] (const CalibPoint& a, const CalibPoint& b) { return a.col < b.col; });
-		//	расчитываем углы между точками
-		for (size_t i = 0; i < intersections_row.points.size() - 1; i++)
-			intersections_row.points[i].angle_row = getAngle(
-				intersections_row.points[i].point,
-				intersections_row.points[i + 1].point
-			);
 		//
 		intersections_rows.push_back(intersections_row);
 	}
 	write_log("intersections_rows.size() = " + to_string(intersections_rows.size()));
 }
 
+void recount_center_points(cv::Mat img)
+{
+	// ищем нулевую точку
+	auto result{ std::find_if(intersections.begin(), intersections.end(), [](CalibPoint ipt)
+			{ return (ipt.point_cnt.x == 0) && (ipt.point_cnt.y == 0); }) };
+	// если не нашли - добавляем
+	if (result == intersections.end())
+		intersections.push_back({
+			cv::Point(img.cols / 2, img.rows / 2),
+			cv::Point(0, 0),
+			cv::Point(0, 0),
+			0, 0
+		});
+	// сортируем все точки по возрастанию X
+	std::sort(intersections.begin(), intersections.end(),
+		[] (const CalibPoint& a, const CalibPoint& b) { return a.point_cnt.x < b.point_cnt.x; });
+	// находим индекс нулевой точки
+	auto result2{ std::find_if(intersections.begin(), intersections.end(), [](CalibPoint ipt)
+			{ return (ipt.point_cnt.x == 0) && (ipt.point_cnt.y == 0); }) };
+	int zero_idx = (result2 - intersections.begin());
+	//
+	for (int i = zero_idx - 1, j = -1; i >= 0; i--, j--)
+		intersections[i].col = j;
+	for (int i = zero_idx + 1, j = 1; i < intersections.size(); i++, j++)
+		intersections[i].col = j;
+	for (int i = 0; i < intersections.size(); i++)
+	{
+		intersections[i].row = 0;
+		intersections[i].point_mm.x = intersections[i].col * CHESS_SIZE;
+		intersections[i].point_mm.y = 0;
+	}
+}
+
 void fill_intersection_counted_fields(CalibPoint& aPoint)
 {
 	aPoint.point_mm = cv::Point2f(aPoint.col * CHESS_SIZE, aPoint.row * CHESS_SIZE);
-	aPoint.angle_col = 0;
-	aPoint.angle_row = 0;
 }
 
 void fill_opencv_intersections_lines(cv::Mat& img)
@@ -707,6 +726,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
 				cv::Point(0, 0),
 				0, 0
         	});
+        	recount_center_points(img);
         }
     }
     else if (event == cv::EVENT_RBUTTONDOWN)
@@ -720,6 +740,11 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
 			new_line_points.clear();
     	if (current_modes.count(MODE_RULER))
     		rule_points.clear();
+    	if (current_modes.count(MODE_ADD_USER_POINT))
+    	{
+    		intersections.erase(intersections.end() - 1);
+    		recount_center_points(img);
+    	}
     }
     else if (event == cv::EVENT_MOUSEMOVE)
     {
@@ -768,7 +793,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_B);
 		save_intersection_points();
-		save_intersection_lines();
+		//save_intersection_lines();
 	}
 	//	сохранить точки пересечения в формате csv
 	if (is_key_on(VK_KEY_C))
@@ -781,7 +806,7 @@ void handle_keys(cv::Mat& img)
 	{
 		toggle_key(VK_KEY_N);
 		load_intersection_points();
-		load_intersection_lines();
+		//load_intersection_lines();
 	}
 	//	удалить пользовательскую линию/точку
 	if (is_key_on(VK_KEY_DEL))
@@ -794,6 +819,7 @@ void handle_keys(cv::Mat& img)
 			write_log("intersections " + to_string(selected_idx) +  " delete");
 			intersections.erase(intersections.begin() + selected_idx);
 			fill_sorted_cols_rows();
+			recount_center_points(img);
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -816,6 +842,7 @@ void handle_keys(cv::Mat& img)
 			write_log("intersections " + to_string(selected_idx) +  " up");
 			intersections[selected_idx].point.y -= 1;
 			fill_sorted_cols_rows();
+			recount_center_points(img);
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -838,6 +865,7 @@ void handle_keys(cv::Mat& img)
 			write_log("intersections " + to_string(selected_idx) +  " down");
 			intersections[selected_idx].point.y += 1;
 			fill_sorted_cols_rows();
+			recount_center_points(img);
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -860,6 +888,7 @@ void handle_keys(cv::Mat& img)
 			write_log("intersections " + to_string(selected_idx) +  " left");
 			intersections[selected_idx].point.x -= 1;
 			fill_sorted_cols_rows();
+			recount_center_points(img);
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -882,6 +911,7 @@ void handle_keys(cv::Mat& img)
 			write_log("intersections " + to_string(selected_idx) +  " right");
 			intersections[selected_idx].point.x += 1;
 			fill_sorted_cols_rows();
+			recount_center_points(img);
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -974,6 +1004,50 @@ void draw_intersection_points(cv::Mat& img)
 		}
 }
 
+void draw_intersection_points_2(cv::Mat& img)
+{
+	int fontFace = 1;
+	double fontScale = 0.5;
+	Scalar fontColor = CLR_GREEN;	//	CLR_RED;	CLR_GREEN;
+	int circleRadius = CALIB_PT_R;	//	4;
+	//
+	bool show_cols_rows = true;
+	//
+	int lbl_row = 0;
+	int lbl_start = -2;
+	int lbl_offset = 8;
+	//
+	for (size_t i = 0; i < intersections.size(); i++)
+	{
+		CalibPoint cp = intersections[i];
+		//
+		Scalar clr =
+			current_modes.count(MODE_SELECT_POINT) && (i == selected_idx)
+			? CLR_GREEN : CLR_RED;
+		//
+		cv::circle(img, cp.point, circleRadius, clr, 1, cv::LINE_AA);
+		cv::line(img,
+			cp.point - cv::Point2f(0, CALIB_PT_CROSS),
+			cp.point + cv::Point2f(0, CALIB_PT_CROSS),
+			clr, 1, cv::LINE_AA, 0);
+		cv::line(img,
+			cp.point - cv::Point2f(CALIB_PT_CROSS, 0),
+			cp.point + cv::Point2f(CALIB_PT_CROSS, 0),
+			clr, 1, cv::LINE_AA, 0);
+		//
+		putText(img,
+			show_cols_rows ? to_string(cp.col) : to_string((int)cp.point_cnt.x),
+			cp.point + cv::Point2f(5, lbl_start + lbl_offset * lbl_row++),
+			fontFace, fontScale, fontColor);
+		putText(img,
+			show_cols_rows ? to_string(cp.row) : to_string((int)cp.point_cnt.y),
+			cp.point + cv::Point2f(5, lbl_start + lbl_offset * lbl_row++),
+			fontFace, fontScale, fontColor);
+		//
+		lbl_row = 0;
+	}
+}
+
 const int mode_start = 20;
 const int mode_offset = 20;
 
@@ -993,6 +1067,7 @@ void calibration(cv::Mat& img)
 	//
 	draw_intersection_lines(img);
 	draw_intersection_points(img);
+	draw_intersection_points_2(img);
 	draw_ruler_points(img);
 	draw_new_line(img);
 	//
