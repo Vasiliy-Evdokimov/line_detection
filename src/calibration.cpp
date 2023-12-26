@@ -12,24 +12,22 @@
 #include "config_path.hpp"
 #include "calibration.hpp"
 
+#define CENTRAL_CALIBRATION
+
 using namespace std;
 
 std::map<int, bool> keys_toggle =
 {
 	{ VK_KEY_A, false },
-	{ VK_KEY_B, false },
 	{ VK_KEY_C, false },
 	{ VK_KEY_D, false },
 	{ VK_KEY_F, false },
 	{ VK_KEY_I, false },
 	{ VK_KEY_L, false },
-	{ VK_KEY_M, false },
-	{ VK_KEY_N, false },
-	{ VK_KEY_Q, false },
 	{ VK_KEY_S, false },
+	{ VK_KEY_V, false },
 	{ VK_KEY_W, false },
-	{ VK_KEY_X, false },
-
+	//
 	{ VK_KEY_UP, false },
 	{ VK_KEY_DOWN, false },
 	{ VK_KEY_LEFT, false },
@@ -39,12 +37,18 @@ std::map<int, bool> keys_toggle =
 
 std::map<int, string> modes_list =
 {
-	{ MODE_NOT_SELECTED, "NOT_SELECTED" },
-	{ MODE_SELECT_LINE, "SELECT_LINE" },
-	{ MODE_SELECT_POINT, "SELECT_POINT" },
-	{ MODE_ADD_USER_LINE, "ADD_USER_LINE" },
-	{ MODE_ADD_USER_POINT, "ADD_USER_POINT" },
-	{ MODE_RULER, "RULER" }
+	{ MODE_NOT_SELECTED, "NOT_SELECTED" }
+#ifndef CENTRAL_CALIBRATION
+	,{ MODE_SELECT_LINE, "SELECT_LINE" }
+#endif
+	,{ MODE_SELECT_POINT, "SELECT_POINT" }
+#ifndef CENTRAL_CALIBRATION
+	,{ MODE_ADD_USER_LINE, "ADD_USER_LINE" }
+#endif
+	,{ MODE_ADD_USER_POINT, "ADD_USER_POINT" }
+//#ifndef CENTRAL_CALIBRATION
+	,{ MODE_RULER, "RULER" }
+//#endif
 };
 
 cv::Mat cameraMatrix;
@@ -248,7 +252,7 @@ void load_intersection_points()
 		>> cp.col >> cp.row
 	)
 	{
-		fill_intersection_counted_fields(cp);
+		cp.point_mm = cv::Point2f(cp.col * CHESS_SIZE, cp.row * CHESS_SIZE);
 		intersections.push_back(cp);
 	}
 
@@ -428,11 +432,6 @@ void recount_center_points(cv::Mat img)
 	}
 }
 
-void fill_intersection_counted_fields(CalibPoint& aPoint)
-{
-	aPoint.point_mm = cv::Point2f(aPoint.col * CHESS_SIZE, aPoint.row * CHESS_SIZE);
-}
-
 void fill_opencv_intersections_lines(cv::Mat& img)
 {
 	intersections_lines.clear();
@@ -556,7 +555,7 @@ void fill_intersection_points(cv::Mat& img)
 			new_cp.col = (line1.dir == 2) ? line1.index : line2.index;
 			new_cp.row = (line1.dir == 1) ? line1.index : line2.index;
 			//
-			fill_intersection_counted_fields(new_cp);
+			new_cp.point_mm = cv::Point2f(new_cp.col * CHESS_SIZE, new_cp.row * CHESS_SIZE);
 			//
 			intersections.push_back(new_cp);
 		}
@@ -604,13 +603,20 @@ void find_point_mm(CalibPoint &pt)
 	CalibPoint base_ipt = intersections[nearest_intersection_idx];
 	nearest_intersection = base_ipt.point_cnt;
 	//
-	std::vector<CalibPoint> ipt_row = get_calib_point_line_by_index(intersections_rows, base_ipt.row).points;
-	std::vector<CalibPoint> ipt_col = get_calib_point_line_by_index(intersections_cols, base_ipt.col).points;
-	//
 	int dir;
+	int row_idx = -1;
+	int col_idx = -1;
+	std::vector<CalibPoint> ipt_row, ipt_col;
+	CalibPoint row_ipt, col_ipt;
+	//
+#ifndef CENTRAL_CALIBRATION
+	ipt_row = get_calib_point_line_by_index(intersections_rows, base_ipt.row).points;
+	ipt_col = get_calib_point_line_by_index(intersections_cols, base_ipt.col).points;
+#else
+	ipt_row = intersections;
+#endif
 	//
 	//	соседняя точка в строке
-	int row_idx = -1;
 	dir = (pt.point_cnt.x < base_ipt.point_cnt.x) ?	-1 : 1;
 	for (size_t i = 0; i < ipt_row.size(); i++) {
 		if (ipt_row[i].point_cnt != base_ipt.point_cnt) continue;
@@ -620,13 +626,13 @@ void find_point_mm(CalibPoint &pt)
 		//
 		break;
 	}
+#ifndef CENTRAL_CALIBRATION
 	nearest_intersection_idx_row = (row_idx > -1)
 		? get_vector_calib_point_index(intersections, ipt_row[row_idx])
 		: -1;
 	nearest_intersection_row = intersections[nearest_intersection_idx_row].point_cnt;
 	//
 	//	соседняя точка в столбце
-	int col_idx = -1;
 	dir = (pt.point_cnt.y < base_ipt.point_cnt.y) ?	-1 : 1;
 	for (size_t i = 0; i < ipt_col.size(); i++) {
 		if (ipt_col[i].point_cnt != base_ipt.point_cnt) continue;
@@ -644,17 +650,21 @@ void find_point_mm(CalibPoint &pt)
 	if ((nearest_intersection_idx_row > -1) &&
 		(nearest_intersection_idx_col > -1))
 	{
-		CalibPoint row_ipt = intersections[nearest_intersection_idx_row];
+		row_ipt = intersections[nearest_intersection_idx_row];
+#else
+		row_ipt = intersections[row_idx];
+#endif
 		double row_k = getDistance(base_ipt.point_mm, row_ipt.point_mm) / getDistance(base_ipt.point_cnt, row_ipt.point_cnt);
-		CalibPoint col_ipt = intersections[nearest_intersection_idx_col];
-		double col_k = getDistance(base_ipt.point_mm, col_ipt.point_mm) / getDistance(base_ipt.point_cnt, col_ipt.point_cnt);
-		//
 		int dir_x = (base_ipt.point_cnt.x > pt.point_cnt.x) ? -1 : 1;
 		pt.point_mm.x = base_ipt.point_mm.x + dir_x * abs(base_ipt.point_cnt.x - pt.point_cnt.x) * row_k;
 		//
+#ifndef CENTRAL_CALIBRATION
+		col_ipt = intersections[nearest_intersection_idx_col];
+		double col_k = getDistance(base_ipt.point_mm, col_ipt.point_mm) / getDistance(base_ipt.point_cnt, col_ipt.point_cnt);
 		int dir_y = (base_ipt.point_cnt.y > pt.point_cnt.y) ? -1 : 1;
 		pt.point_mm.y = base_ipt.point_mm.y + dir_y * abs(base_ipt.point_cnt.y - pt.point_cnt.y) * col_k;
 	}
+#endif
 }
 
 void onMouse(int event, int x, int y, int flags, void* userdata)
@@ -775,7 +785,14 @@ void handle_keys(cv::Mat& img)
 		//
 		int maxKey = modes_list.rbegin()->first;
 		int mode_id = current_modes.size() ? *current_modes.begin() : 0;
-		mode_id = (mode_id == maxKey) ? 0 : (mode_id + 1);
+		//
+		if (mode_id == maxKey)
+			mode_id = 0;
+		else
+			while (true)
+				if (modes_list.count(++mode_id))
+					break;
+		//
 		current_modes.clear();
 		current_modes.insert(mode_id);
 	}
@@ -784,16 +801,20 @@ void handle_keys(cv::Mat& img)
 	if (is_key_on(VK_KEY_I))
 	{
 		toggle_key(VK_KEY_I);
+#ifndef CENTRAL_CALIBRATION
 		fill_opencv_intersections_lines(img);
 		fill_intersection_points(img);
 		write_log("intersection points filled!");
+#endif
 	}
 	//	сохранить точки пересечения
-	if (is_key_on(VK_KEY_B))
+	if (is_key_on(VK_KEY_V))
 	{
-		toggle_key(VK_KEY_B);
+		toggle_key(VK_KEY_V);
 		save_intersection_points();
-		//save_intersection_lines();
+#ifndef CENTRAL_CALIBRATION
+		save_intersection_lines();
+#endif
 	}
 	//	сохранить точки пересечения в формате csv
 	if (is_key_on(VK_KEY_C))
@@ -802,11 +823,13 @@ void handle_keys(cv::Mat& img)
 		save_intersection_points_csv();
 	}
 	//	загрузить точки пересечения
-	if (is_key_on(VK_KEY_N))
+	if (is_key_on(VK_KEY_L))
 	{
-		toggle_key(VK_KEY_N);
+		toggle_key(VK_KEY_L);
 		load_intersection_points();
-		//load_intersection_lines();
+#ifndef CENTRAL_CALIBRATION
+		load_intersection_lines();
+#endif
 	}
 	//	удалить пользовательскую линию/точку
 	if (is_key_on(VK_KEY_DEL))
@@ -818,8 +841,11 @@ void handle_keys(cv::Mat& img)
 		{
 			write_log("intersections " + to_string(selected_idx) +  " delete");
 			intersections.erase(intersections.begin() + selected_idx);
+#ifndef CENTRAL_CALIBRATION
 			fill_sorted_cols_rows();
+#else
 			recount_center_points(img);
+#endif
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -841,8 +867,11 @@ void handle_keys(cv::Mat& img)
 		{
 			write_log("intersections " + to_string(selected_idx) +  " up");
 			intersections[selected_idx].point.y -= 1;
+#ifndef CENTRAL_CALIBRATION
 			fill_sorted_cols_rows();
+#else
 			recount_center_points(img);
+#endif
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -864,8 +893,11 @@ void handle_keys(cv::Mat& img)
 		{
 			write_log("intersections " + to_string(selected_idx) +  " down");
 			intersections[selected_idx].point.y += 1;
+#ifndef CENTRAL_CALIBRATION
 			fill_sorted_cols_rows();
+#else
 			recount_center_points(img);
+#endif
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -887,8 +919,11 @@ void handle_keys(cv::Mat& img)
 		{
 			write_log("intersections " + to_string(selected_idx) +  " left");
 			intersections[selected_idx].point.x -= 1;
+#ifndef CENTRAL_CALIBRATION
 			fill_sorted_cols_rows();
+#else
 			recount_center_points(img);
+#endif
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))
@@ -910,8 +945,11 @@ void handle_keys(cv::Mat& img)
 		{
 			write_log("intersections " + to_string(selected_idx) +  " right");
 			intersections[selected_idx].point.x += 1;
+#ifndef CENTRAL_CALIBRATION
 			fill_sorted_cols_rows();
+#else
 			recount_center_points(img);
+#endif
 		}
 		//
 		if (current_modes.count(MODE_SELECT_LINE))

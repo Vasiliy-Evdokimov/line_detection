@@ -14,24 +14,18 @@
 
 #include <string.h>
 
-bool CENTER_CALIBRATION = true;
-
 using namespace cv;
 using namespace std;
 
 const int VK_KEY_A = 97;	//	влево
-const int VK_KEY_B = 98;	//	сохранить точки пересечения
 const int VK_KEY_C = 99;	//	сохранить точки пересечения в формате csv
 const int VK_KEY_D = 100;	//	вправо
 const int VK_KEY_F = 102;	//	выбор режима
 const int VK_KEY_I = 105;	//	сформировать точки пересечения
-const int VK_KEY_L = 108;	//	?
-const int VK_KEY_M = 109;	//	?
-const int VK_KEY_N = 110;	//	загрузить точки пересечения
-const int VK_KEY_Q = 113;	//	?
+const int VK_KEY_L = 108;	//	загрузить точки пересечения
 const int VK_KEY_S = 115;	//	вниз
+const int VK_KEY_V = 118;	//	сохранить точки пересечения
 const int VK_KEY_W = 119;	//	вверх
-const int VK_KEY_X = 120;	//	?
 
 const int VK_KEY_UP = VK_KEY_W;
 const int VK_KEY_DOWN = VK_KEY_S;
