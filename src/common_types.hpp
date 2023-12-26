@@ -40,9 +40,6 @@ struct ResultFixed {
 	int16_t zone_flags;
 	int16_t stop_distance;
 	//
-	ResultPoint points_mm[MAX_POINTS_COUNT];
-	int16_t points_hor_mm[MAX_HOR_COUNT];
-	//
 	int16_t center_x;
 	int16_t center_x_mm;
 	//
@@ -54,13 +51,11 @@ struct ParseImageResult {
 	int height;
 	//
 	vector<cv::Point> res_points;
-	vector<cv::Point> res_points_mm;
 	//
 	int16_t center_x;
 	int16_t center_x_mm;
 	//
 	vector<int> hor_ys;
-	vector<int> hor_ys_mm;
 	//
 	bool fl_slow_zone;
 	bool fl_stop_zone;
@@ -76,13 +71,11 @@ struct ParseImageResult {
 		height = 0;
 		//
 		res_points.clear();
-		res_points_mm.clear();
 		//
 		center_x = 0;
 		center_x_mm = 0;
 		//
 		hor_ys.clear();
-		hor_ys_mm.clear();
 		//
 		fl_slow_zone = false;
 		fl_stop_zone = false;
@@ -99,18 +92,14 @@ struct ParseImageResult {
 		height = src.height;
 		//
 		res_points.clear();
-		for (size_t i = 0; i < src.res_points.size(); i++) {
+		for (size_t i = 0; i < src.res_points.size(); i++)
 			res_points.push_back(cv::Point(src.res_points[i]));
-			res_points_mm.push_back(cv::Point(src.res_points_mm[i]));
-		}
 		//
 		center_x = src.center_x;
 		center_x_mm = src.center_x_mm;
 		//
-		for (size_t i = 0; i < src.hor_ys.size(); i++) {
+		for (size_t i = 0; i < src.hor_ys.size(); i++)
 			hor_ys.push_back(src.hor_ys[i]);
-			hor_ys_mm.push_back(src.hor_ys_mm[i]);
-		}
 		//
 		fl_slow_zone = src.fl_slow_zone;
 		fl_stop_zone = src.fl_stop_zone;
@@ -130,12 +119,9 @@ struct ParseImageResult {
 		res.max_points_count = MAX_POINTS_COUNT;
 		res.points_count = res_points.size();
 		memset(res.points, 0, sizeof(res.points));
-		memset(res.points_mm, 0, sizeof(res.points_mm));
 		for (int i = 0; i < res.points_count; i++) {
 			res.points[i].x = res_points[i].x;
 			res.points[i].y = res_points[i].y;
-			res.points_mm[i].x = res_points_mm[i].x;
-			res.points_mm[i].y = res_points_mm[i].y;
 			if (i == (MAX_POINTS_COUNT - 1)) break;
 		}
 		//
@@ -145,10 +131,8 @@ struct ParseImageResult {
 		res.max_hor_count = MAX_HOR_COUNT;
 		res.hor_count = hor_ys.size();
 		memset(res.points_hor, 0, sizeof(res.points_hor));
-		memset(res.points_hor_mm, 0, sizeof(res.points_hor_mm));
 		for (int i = 0; i < res.hor_count; i++) {
 			res.points_hor[i] = hor_ys[i];
-			res.points_hor_mm[i] = hor_ys_mm[i];
 			if (i == (MAX_HOR_COUNT - 1)) break;
 		}
 		//

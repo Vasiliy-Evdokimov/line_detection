@@ -166,7 +166,7 @@ void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
 	write_results_sm(rfx, aIndex);
 }
 
-//#define BARCODES
+//#define BARCODES_LIB
 //#define UNDISTORT
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
@@ -368,12 +368,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	ParseImageResult& parse_result, int aIndex)
 {
 
+#ifdef BARCODES_LIB
 	//	поиск штрихкодов
 	std::vector<std::vector<cv::Point>> bc_contours;
 	//
-#ifdef BARCODES
-	find_barcodes(imgColor, parse_result, bc_contours);	//	+ ~50 мсек на irobo
-#endif
+	find_barcodes(imgColor, parse_result, bc_contours);
 	//
 	int minX = imgColor.cols;
 	int maxX = 0;
@@ -383,6 +382,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			if (point.x < minX) minX = point.x;
 			if (point.x > maxX) maxX = point.x;
 		}
+#endif
 
 	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
 	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
@@ -398,16 +398,18 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Mat gray;
 	cv::threshold(trImage, gray, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 
-//	for (size_t i = 0; i < bc_contours.size(); i++)
-//		cv::rectangle(gray, cv::boundingRect(bc_contours[i]), CLR_BLACK, -1);
-
-	if (bc_contours.size() > 0) {
+#ifdef BARCODES_LIB
+	for (size_t i = 0; i < bc_contours.size(); i++)
+		cv::rectangle(gray, cv::boundingRect(bc_contours[i]), CLR_BLACK, -1);
+	//
+	if (bc_contours.size() > 0)
+	{
 		if (config.BARCODE_LEFT)
 			cv::rectangle(gray, cv::Point(0, 0), cv::Point(maxX, gray.rows), CLR_BLACK, -1);
 		else
 			cv::rectangle(gray, cv::Point(minX, 0), cv::Point(gray.cols, gray.rows), CLR_BLACK, -1);
-
 	}
+#endif
 
 #ifndef NO_GUI
 	if (config.DRAW && config.SHOW_GRAY) {
@@ -448,7 +450,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	cv::Point* lpCenter = &pt;
 
 	parse_result.res_points.clear();
-	parse_result.res_points_mm.clear();
 
 	vector<RectData*> buf_points;
 	vector<RectData*> buf_rd;
@@ -491,11 +492,9 @@ cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 	//	поиск горизонтальных пересечений
 	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
 	//
-	parse_result.hor_ys_mm.clear();
 	for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
 		CalibPoint cb = get_calib_point(imgColor, Point2f(imgColor.cols / 2, parse_result.hor_ys[i]));
 		parse_result.hor_ys[i] = cb.point_cnt.y;
-		parse_result.hor_ys_mm.push_back(cb.point_mm.y);
 	}
 
 	//	добавляем нижнюю центральную точку в список для построения линии
@@ -538,7 +537,6 @@ cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 				//
 				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
 				parse_result.res_points.push_back(cb.point_cnt);
-				parse_result.res_points_mm.push_back(cb.point_mm);
 			}
 			//else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);
@@ -606,17 +604,11 @@ cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 					to_string(parse_result.hor_ys[i]) + " px",
 					pt_draw + cv::Point(5, 20),
 					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
-				//
-				cv::putText(imgColor,
-					to_string(parse_result.hor_ys_mm[i]) + " mm",
-					pt_draw + cv::Point(5, 35),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
 			}
 			//
 			cv::Point line_pt(imgWidth / 2, imgHeight);
 			for (size_t i = 0; i < parse_result.res_points.size(); i++) {
 				cv::Point pt_src = parse_result.res_points[i];
-				cv::Point pt_src_mm = parse_result.res_points_mm[i];
 				cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
 				//
 				cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
@@ -625,11 +617,6 @@ cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 				cv::putText(imgColor,
 					"(" + to_string(pt_src.x) + ";" + to_string(pt_src.y) + ") px",
 					pt_draw + cv::Point(5, 20),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
-				//
-				cv::putText(imgColor,
-					"(" + to_string(pt_src_mm.x) + ";" + to_string(pt_src_mm.y) + ") mm",
-					pt_draw + cv::Point(5, 35),
 					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
 				//
 				line_pt = pt_draw;
