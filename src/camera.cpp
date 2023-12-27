@@ -166,7 +166,8 @@ void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
 	write_results_sm(rfx, aIndex);
 }
 
-//#define BARCODES_LIB
+//#define FIND_BARCODES
+#define FIND_TEMPLATES
 //#define UNDISTORT
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
@@ -364,28 +365,10 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 }
 
-void parse_image(string aThreadName, cv::Mat imgColor,
-	ParseImageResult& parse_result, int aIndex)
+void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
 {
-
-#ifdef BARCODES_LIB
-	//	поиск штрихкодов
-	std::vector<std::vector<cv::Point>> bc_contours;
-	//
-	find_barcodes(imgColor, parse_result, bc_contours);
-	//
-	int minX = imgColor.cols;
-	int maxX = 0;
-	for (size_t i = 0; i < bc_contours.size(); i++)
-		for (size_t j = 0; j < bc_contours[i].size(); j++) {
-			cv::Point point = bc_contours[i][j];
-			if (point.x < minX) minX = point.x;
-			if (point.x > maxX) maxX = point.x;
-		}
-#endif
-
-	cv::Mat trImage(imgColor.rows, imgColor.cols, CV_8U);
-	cv::cvtColor(imgColor, trImage, cv::COLOR_BGR2GRAY);
+	cv::Mat trImage(srcImg.rows, srcImg.cols, CV_8U);
+	cv::cvtColor(srcImg, trImage, cv::COLOR_BGR2GRAY);
 
 	int gbk = config.GAUSSIAN_BLUR_KERNEL;
 	cv::GaussianBlur(trImage, trImage, Size2i(gbk, gbk), 0);
@@ -395,20 +378,97 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 //	int mck = config.MORPH_CLOSE_KERNEL;
 //	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
-	cv::Mat gray;
-	cv::threshold(trImage, gray, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+	cv::threshold(trImage, dstImg, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+}
 
-#ifdef BARCODES_LIB
-	for (size_t i = 0; i < bc_contours.size(); i++)
-		cv::rectangle(gray, cv::boundingRect(bc_contours[i]), CLR_BLACK, -1);
+void parse_image(string aThreadName, cv::Mat imgColor,
+	ParseImageResult& parse_result, int aIndex)
+{
+	parse_result.fl_slow_zone = false;
+	parse_result.fl_stop_zone = false;
+	parse_result.fl_stop_mark = false;
+	parse_result.stop_mark_distance = 0;
+
+#ifdef FIND_BARCODES
+
+	//	поиск штрихкодов
+	std::vector<BarcodeDetectionResult> barcodes_results;
+	barcodes_detect(imgColor, barcodes_results);
 	//
-	if (bc_contours.size() > 0)
+	for (size_t i = 0; i < barcodes_results.size(); i++)
+	{
+		BarcodeDetectionResult bdr = barcodes_results[i];
+
+		cv::Moments M = cv::moments(bdr.contour);
+		cv::Point2f center(M.m10 / M.m00, M.m01 / M.m00);
+
+	#ifndef NO_GUI
+		const auto* pts = bdr.contour.data();
+		int npts = bdr.contour.size();
+
+		cv::circle(imgColor, center, 3, CLR_YELLOW, -1, cv::LINE_AA);
+		//
+		cv::polylines(imgColor, &pts, &npts, 1, true, CLR_GREEN);
+		cv::putText(imgColor, bdr.text, bdr.contour[3] + cv::Point(0, 20),
+			cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+	#endif
+
+		if (bdr.barcode_type == 3) // DataMatrix
+		{
+			parse_result.fl_stop_mark = true;
+			//
+			cv::Point2f p1(center.x, imgColor.rows / 2);
+			double dist1 = get_points_distance(bdr.contour[1], bdr.contour[2]);
+			double dist2 = get_points_distance(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
+
+	#ifndef NO_GUI
+			cv::line(imgColor, p1, center, CLR_YELLOW, 1, cv::LINE_AA, 0);
+			cv::putText(imgColor, std::to_string(dist2), bdr.contour[3] + cv::Point(0, 40),
+				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+	#endif
+
+			parse_result.stop_mark_distance = round(dist2);
+		}
+		//
+		else if (bdr.barcode_type == 1)
+			parse_result.fl_slow_zone = true;
+		else if (bdr.barcode_type == 2)
+			parse_result.fl_stop_zone = true;
+	}
+	//
+	int minX = imgColor.cols;
+	int maxX = 0;
+	for (size_t i = 0; i < barcodes_results.size(); i++)
+		for (size_t j = 0; j < barcodes_results[i].contour.size(); j++) {
+			cv::Point point = barcodes_results[i].contour[j];
+			if (point.x < minX) minX = point.x;
+			if (point.x > maxX) maxX = point.x;
+		}
+
+#endif
+
+#ifdef FIND_TEMPLATES
+
+
+
+#endif
+
+	cv::Mat gray;
+	apply_filters(imgColor, gray);
+
+#ifdef FIND_BARCODES
+
+	for (size_t i = 0; i < barcodes_results.size(); i++)
+		cv::rectangle(gray, cv::boundingRect(barcodes_results[i].contour), CLR_BLACK, -1);
+	//
+	if (barcodes_results.size() > 0)
 	{
 		if (config.BARCODE_LEFT)
 			cv::rectangle(gray, cv::Point(0, 0), cv::Point(maxX, gray.rows), CLR_BLACK, -1);
 		else
 			cv::rectangle(gray, cv::Point(minX, 0), cv::Point(gray.cols, gray.rows), CLR_BLACK, -1);
 	}
+
 #endif
 
 #ifndef NO_GUI
@@ -466,13 +526,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 		lpCenter = &rd->center;
 
-
 cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
 cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
 		CLR_YELLOW, 1, cv::LINE_8, 0);
 cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 	CLR_YELLOW, 1, cv::LINE_8, 0);
-
 
 
 #ifndef NO_GUI

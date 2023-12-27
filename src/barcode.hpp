@@ -9,11 +9,17 @@
 #define BARCODE_HPP_
 
 #include "opencv2/core/types.hpp"
-#include "common_types.hpp"
 
-void find_barcodes(cv::Mat& img, ParseImageResult& parse_result,
-	std::vector<std::vector<cv::Point>>& contours);
+struct BarcodeDetectionResult
+{
+	int barcode_type;
+	std::vector<cv::Point> contour;
+	std::string text;
+};
 
-double GetPointDist(cv::Point pt1, cv::Point pt2);
+double get_points_distance(cv::Point pt1, cv::Point pt2);
+
+void barcodes_detect(cv::Mat& img,
+	std::vector<BarcodeDetectionResult>& detection_results);
 
 #endif /* BARCODE_HPP_ */

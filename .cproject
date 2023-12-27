@@ -50,6 +50,7 @@
 									<listOptionValue builtIn="false" value="opencv_highgui"/>
 									<listOptionValue builtIn="false" value="opencv_videoio"/>
 									<listOptionValue builtIn="false" value="opencv_calib3d"/>
+									<listOptionValue builtIn="false" value="opencv_imgcodecs"/>
 									<listOptionValue builtIn="false" value="config++"/>
 									<listOptionValue builtIn="false" value="ZXing"/>
 									<listOptionValue builtIn="false" value="jsoncpp"/>
