@@ -30,6 +30,7 @@ using namespace std;
 #include "contours.hpp"
 #include "horizontal.hpp"
 #include "barcode.hpp"
+#include "templates.hpp"
 #include "shared_memory.hpp"
 #include "calibration.hpp"
 #include "camera.hpp"
@@ -49,6 +50,8 @@ const string GRAY_WND_NAME = "Camera(s) Gray";
 const string COLOR_WND_NAME = "Camera(s) Color";
 
 const string CALIBRATION_WND_NAME = "Calibration editor";
+
+cv::Scalar templates_clr[] { CLR_YELLOW, CLR_MAGENTA, CLR_CYAN, CLR_BLUE, CLR_GREEN };
 
 cv::Mat calibration_img;
 
@@ -166,10 +169,6 @@ void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
 	write_results_sm(rfx, aIndex);
 }
 
-//#define FIND_BARCODES
-#define FIND_TEMPLATES
-//#define UNDISTORT
-
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -206,7 +205,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-	double targetfps = 25;
+	double targetfps = FPS;
 	//6 	// c undistort, с barcodes
 	//10 	// c undistort, без barcodes
 	//13	// без undistort, с barcodes
@@ -265,7 +264,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		//bool err2 = (!cap.read(frame));
 		bool err3 = (frame.empty());
 
-
 		parse_result.fl_err_camera = err1 || err2 || err3;
 
 		if (parse_result.fl_err_camera) {
@@ -278,7 +276,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		try
 		{
-#ifdef UNDISTORT
+#ifdef USE_UNDISTORT
 			undistort(frame, undistorted, cameraMatrix, distCoeffs);
 #else
 			undistorted = frame.clone();
@@ -389,7 +387,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_stop_mark = false;
 	parse_result.stop_mark_distance = 0;
 
-#ifdef FIND_BARCODES
+#ifdef USE_BARCODES
 
 	//	поиск штрихкодов
 	std::vector<BarcodeDetectionResult> barcodes_results;
@@ -447,16 +445,90 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #endif
 
-#ifdef FIND_TEMPLATES
+#ifdef USE_TEMPLATES
 
+	//	поиск шаблонов
+	std::vector<TemplateDetectionResult> templates_results;
+	templates_detect(imgColor, templates_results);
 
+	#ifndef NO_GUI
+
+		Scalar clr;
+		for (size_t i = 0; i < templates.size(); i++)
+		{
+			clr = templates_clr[ i % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
+			rectangle(imgColor,
+				templates[i].roi.tl(),
+				templates[i].roi.br(),
+				clr, 2, 8, 0);
+		}
+
+	#endif
+
+		for (size_t i = 0; i < templates_results.size(); i++)
+		{
+			TemplateDetectionResult tdr = templates_results[i];
+
+			write_log("template_" + to_string(tdr.template_id) + " found! " + to_string(tdr.match));
+
+			cv::Point2f center(
+				tdr.found_rect.x + tdr.found_rect.width / 2,
+				tdr.found_rect.y + tdr.found_rect.height / 2
+			);
+
+			if (tdr.template_id == 0)
+				parse_result.fl_slow_zone = true;
+			else if (tdr.template_id == 1)
+				parse_result.fl_stop_zone = true;
+			else if (tdr.template_id == 2)
+			{
+				parse_result.fl_stop_mark = true;
+
+				cv::Point2f p1(center.x, imgColor.rows / 2);
+				double dist1 = tdr.found_rect.width;
+				double dist2 = get_points_distance(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
+
+	#ifndef NO_GUI
+				cv::line(imgColor, p1, center, CLR_YELLOW, 1, cv::LINE_AA, 0);
+				cv::putText(imgColor, std::to_string(dist2), center,
+					cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+	#endif
+
+				parse_result.stop_mark_distance = round(dist2);
+			}
+
+	#ifndef NO_GUI
+
+			clr = templates_clr[ tdr.template_id % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
+
+			cv::circle(imgColor, center, 3, clr, -1, cv::LINE_AA);
+			//
+			rectangle(imgColor,
+				tdr.found_rect.tl(),
+				tdr.found_rect.br(),
+				clr, 2, 8, 0
+			);
+			putText(imgColor,
+				"templ_" + to_string(tdr.template_id),
+				tdr.found_rect.tl() + Point(10, 15),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
+			);
+			putText(imgColor,
+				to_string(tdr.match),
+				tdr.found_rect.tl() + Point(10, 30),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
+			);
+
+	#endif
+
+		}
 
 #endif
 
 	cv::Mat gray;
 	apply_filters(imgColor, gray);
 
-#ifdef FIND_BARCODES
+#ifdef USE_BARCODES
 
 	for (size_t i = 0; i < barcodes_results.size(); i++)
 		cv::rectangle(gray, cv::boundingRect(barcodes_results[i].contour), CLR_BLACK, -1);
@@ -526,12 +598,13 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 		lpCenter = &rd->center;
 
-cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
-cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
+#ifndef NO_GUI
+	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
+	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
+			CLR_YELLOW, 1, cv::LINE_8, 0);
+	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
 		CLR_YELLOW, 1, cv::LINE_8, 0);
-cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
-	CLR_YELLOW, 1, cv::LINE_8, 0);
-
+#endif
 
 #ifndef NO_GUI
 		if (config.DRAW && config.DRAW_DETAILED) {

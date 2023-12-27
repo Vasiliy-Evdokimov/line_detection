@@ -17,6 +17,7 @@ using namespace std::chrono_literals;
 #include "camera.hpp"
 #include "calibration.hpp"
 #include "udp.hpp"
+#include "templates.hpp"
 
 void work_func()
 {
@@ -100,6 +101,9 @@ int main(int argc, char** argv)
 	//
 	//	читаем опорные точки калибровки
 	load_intersection_points();
+	//
+	//	читаем конфигурацию шаблонов
+	templates_load_config();
 	//
 	//	инициализируем shared memory
 	init_shared_memory();

@@ -12,7 +12,7 @@ using namespace cv;
 
 std::vector<Template> templates;
 
-const string templates_config_folder = "templates/";
+const string templates_config_folder = "config/templates/";
 const string templates_config_filename = "templates.cfg";
 const string templates_config_filepath = templates_config_folder + templates_config_filename;
 
@@ -61,9 +61,14 @@ void templates_load_config()
 		//
 		file.close();
 		cout << "templates_load_config() successfully! templates.size = " << templates.size() << endl;
-		cout << "templates_matches: " << endl;
-		for (size_t j = 0; j < templates.size(); j++)
-			cout << templates[j].match << endl;
+		cout << "templates parameters: " << endl;
+		for (size_t j = 0; j < templates.size(); j++) {
+			Template tmpl = templates[j];
+			cout << tmpl.match << " "
+				 << tmpl.roi.x << " " << tmpl.roi.y << " "
+				 << tmpl.roi.width << " " << tmpl.roi.height
+				 << endl;
+		}
 	}
 	//
 	for (size_t i = 0; i < templates.size(); i++) {
@@ -113,17 +118,22 @@ void templates_detect(cv::Mat& srcImg, std::vector<TemplateDetectionResult>& det
 //	2 TM_CCORR;
 //	3 TM_CCORR_NORMED; M
 //	4 TM_CCOEFF;
-//	5 TM_CCOEFF_NORMED;
+//	5 TM_CCOEFF_NORMED; V
 	//
 	bool use_mask = false;
 
+	cv::Rect prev_roi;
+
 	for (size_t i = 0; i < templates.size(); i++)
 	{
-		img = srcImg(templates[i].roi);
+		if (templates[i].roi != prev_roi)
+		{
+			prev_roi = templates[i].roi;
+			img = srcImg(prev_roi);
+			//	cvtColor(img, mask, cv::COLOR_BGR2GRAY);
+		}
 		templ = templates[i].image;
 		//
-		Mat img_display;
-		img.copyTo( img_display );
 		int result_cols = img.cols - templ.cols + 1;
 		int result_rows = img.rows - templ.rows + 1;
 		result.create( result_rows, result_cols, CV_32FC1 );
@@ -136,7 +146,7 @@ void templates_detect(cv::Mat& srcImg, std::vector<TemplateDetectionResult>& det
 		{
 			matchTemplate( img, templ, result, match_method);
 		}
-		//normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
+		//	normalize( result, result, 0, 1, NORM_MINMAX, -1, Mat() );
 		double minVal; double maxVal; Point minLoc; Point maxLoc;
 		Point matchLoc; double matchVal;
 		minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
@@ -168,7 +178,7 @@ void templates_detect(cv::Mat& srcImg, std::vector<TemplateDetectionResult>& det
 			new_result.match = matchVal;
 			detection_results.push_back(new_result);
 			//
-			cout << "template_" << to_string(i) << " found! " << matchVal << endl;
+			//	cout << "template_" << to_string(i) << " found! " << matchVal << endl;
 		}
 	}
 
