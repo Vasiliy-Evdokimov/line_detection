@@ -23,6 +23,7 @@ struct RectData
 
 struct ContData
 {
+	cv::Rect roi;
 	std::vector<RectData> vRect;
 };
 
@@ -30,7 +31,5 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 double length(const cv::Point& p1, const cv::Point& p2);
 double angle(const cv::Point& p);
 RectData* sort_cont(const cv::Point& base, ContData& data);
-void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& dataItem, int roi_row, int roi_col);
-
 
 #endif /* CONTOURS_HPP_ */

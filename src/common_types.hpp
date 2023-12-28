@@ -24,7 +24,8 @@ struct ResultPoint {
 
 const int RESULT_TIME_SIZE = sizeof(high_resolution_clock::time_point);
 
-struct ResultFixed {
+struct ResultFixed
+{
 	int16_t img_width;
 	int16_t img_height;
 	int16_t error_flags;
@@ -46,7 +47,8 @@ struct ResultFixed {
 	int8_t result_time_point[RESULT_TIME_SIZE];
 };
 
-struct ParseImageResult {
+struct ParseImageResult
+{
 	int width;
 	int height;
 	//

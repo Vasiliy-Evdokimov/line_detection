@@ -11,9 +11,11 @@
 #include "contours.hpp"
 #include "horizontal.hpp"
 
+#define HORZ_DIST 20
+
 bool check_points_horz(const cv::Point& pt1, const cv::Point& pt2)
 {
-	return abs(pt1.y - pt2.y) < 20;
+	return abs(pt1.y - pt2.y) < HORZ_DIST;
 }
 
 bool check_rects_adj_vert(cv::Rect r1, const cv::Rect r2)

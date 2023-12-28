@@ -29,5 +29,6 @@ int write_config_sm(ConfigData& aConfig);
 int init_config_sm(ConfigData& aConfig);
 int write_results_sm(ResultFixed& aResult, int aIndex);
 int read_results_sm(ResultFixed& aResult, int aIndex);
+void parse_result_to_sm(ParseImageResult& parse_result, int aIndex);
 
 #endif /* SHARED_MEMORY_HPP_ */

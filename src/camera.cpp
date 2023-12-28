@@ -164,11 +164,6 @@ void visualizer_func()
 
 }
 
-void parse_result_to_sm(ParseImageResult& parse_result, int aIndex) {
-	ResultFixed rfx = parse_result.ToFixed();
-	write_results_sm(rfx, aIndex);
-}
-
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -205,18 +200,11 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-	double targetfps = FPS;
-	//6 	// c undistort, с barcodes
-	//10 	// c undistort, без barcodes
-	//13	// без undistort, с barcodes
-	//25+	// без undistort, без barcodes
-
 	double tt_elapsed, tt_prev = clock();
 	int fps_count = 0;
 
 	while (1)
 	{
-
 		if (restart_threads || kill_threads) break;
 
 		if (parse_result.fl_err_camera) {
@@ -243,7 +231,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		cap.read(frame);
 		fps_count++;
 		tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
-		if (tt_elapsed < (1. / targetfps))
+		if (tt_elapsed < (1. / FPS))
 			continue;
 
 //		write_log(aThreadName +
@@ -363,34 +351,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 }
 
-void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
+void find_barcodes(cv::Mat& imgColor, ParseImageResult& parse_result,
+	std::vector<BarcodeDetectionResult>& barcodes_results)
 {
-	cv::Mat trImage(srcImg.rows, srcImg.cols, CV_8U);
-	cv::cvtColor(srcImg, trImage, cv::COLOR_BGR2GRAY);
-
-	int gbk = config.GAUSSIAN_BLUR_KERNEL;
-	cv::GaussianBlur(trImage, trImage, Size2i(gbk, gbk), 0);
-
-	int mok = config.MORPH_OPEN_KERNEL;
-	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size2i(mok, mok)));
-//	int mck = config.MORPH_CLOSE_KERNEL;
-//	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
-
-	cv::threshold(trImage, dstImg, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
-}
-
-void parse_image(string aThreadName, cv::Mat imgColor,
-	ParseImageResult& parse_result, int aIndex)
-{
-	parse_result.fl_slow_zone = false;
-	parse_result.fl_stop_zone = false;
-	parse_result.fl_stop_mark = false;
-	parse_result.stop_mark_distance = 0;
-
-#ifdef USE_BARCODES
-
-	//	поиск штрихкодов
-	std::vector<BarcodeDetectionResult> barcodes_results;
 	barcodes_detect(imgColor, barcodes_results);
 	//
 	for (size_t i = 0; i < barcodes_results.size(); i++)
@@ -433,8 +396,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		else if (bdr.barcode_type == 2)
 			parse_result.fl_stop_zone = true;
 	}
-	//
-	int minX = imgColor.cols;
+}
+
+void hide_barcodes(cv::Mat& gray, std::vector<BarcodeDetectionResult> barcodes_results)
+{
+	int minX = gray.cols;
 	int maxX = 0;
 	for (size_t i = 0; i < barcodes_results.size(); i++)
 		for (size_t j = 0; j < barcodes_results[i].contour.size(); j++) {
@@ -442,94 +408,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			if (point.x < minX) minX = point.x;
 			if (point.x > maxX) maxX = point.x;
 		}
-
-#endif
-
-#ifdef USE_TEMPLATES
-
-	//	поиск шаблонов
-	std::vector<TemplateDetectionResult> templates_results;
-	templates_detect(imgColor, templates_results);
-
-	#ifndef NO_GUI
-
-		Scalar clr;
-		for (size_t i = 0; i < templates.size(); i++)
-		{
-			clr = templates_clr[ i % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
-			rectangle(imgColor,
-				templates[i].roi.tl(),
-				templates[i].roi.br(),
-				clr, 2, 8, 0);
-		}
-
-	#endif
-
-		for (size_t i = 0; i < templates_results.size(); i++)
-		{
-			TemplateDetectionResult tdr = templates_results[i];
-
-			write_log("template_" + to_string(tdr.template_id) + " found! " + to_string(tdr.match));
-
-			cv::Point2f center(
-				tdr.found_rect.x + tdr.found_rect.width / 2,
-				tdr.found_rect.y + tdr.found_rect.height / 2
-			);
-
-			if (tdr.template_id == 0)
-				parse_result.fl_slow_zone = true;
-			else if (tdr.template_id == 1)
-				parse_result.fl_stop_zone = true;
-			else if (tdr.template_id == 2)
-			{
-				parse_result.fl_stop_mark = true;
-
-				cv::Point2f p1(center.x, imgColor.rows / 2);
-				double dist1 = tdr.found_rect.width;
-				double dist2 = get_points_distance(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
-
-	#ifndef NO_GUI
-				cv::line(imgColor, p1, center, CLR_YELLOW, 1, cv::LINE_AA, 0);
-				cv::putText(imgColor, std::to_string(dist2), center,
-					cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
-	#endif
-
-				parse_result.stop_mark_distance = round(dist2);
-			}
-
-	#ifndef NO_GUI
-
-			clr = templates_clr[ tdr.template_id % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
-
-			cv::circle(imgColor, center, 3, clr, -1, cv::LINE_AA);
-			//
-			rectangle(imgColor,
-				tdr.found_rect.tl(),
-				tdr.found_rect.br(),
-				clr, 2, 8, 0
-			);
-			putText(imgColor,
-				"templ_" + to_string(tdr.template_id),
-				tdr.found_rect.tl() + Point(10, 15),
-				cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
-			);
-			putText(imgColor,
-				to_string(tdr.match),
-				tdr.found_rect.tl() + Point(10, 30),
-				cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
-			);
-
-	#endif
-
-		}
-
-#endif
-
-	cv::Mat gray;
-	apply_filters(imgColor, gray);
-
-#ifdef USE_BARCODES
-
+	//
 	for (size_t i = 0; i < barcodes_results.size(); i++)
 		cv::rectangle(gray, cv::boundingRect(barcodes_results[i].contour), CLR_BLACK, -1);
 	//
@@ -540,17 +419,171 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		else
 			cv::rectangle(gray, cv::Point(minX, 0), cv::Point(gray.cols, gray.rows), CLR_BLACK, -1);
 	}
+}
+
+void find_templates(cv::Mat& imgColor, ParseImageResult& parse_result,
+	std::vector<TemplateDetectionResult>& templates_results)
+{
+
+	templates_detect(imgColor, templates_results);
+
+#ifndef NO_GUI
+
+	Scalar clr;
+	for (size_t i = 0; i < templates.size(); i++)
+	{
+		clr = templates_clr[ i % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
+		rectangle(imgColor,
+			templates[i].roi.tl(),
+			templates[i].roi.br(),
+			clr, 2, 8, 0);
+	}
 
 #endif
 
+	for (size_t i = 0; i < templates_results.size(); i++)
+	{
+		TemplateDetectionResult tdr = templates_results[i];
+
+		write_log("template_" + to_string(tdr.template_id) + " found! " + to_string(tdr.match));
+
+		cv::Point2f center(
+			tdr.found_rect.x + tdr.found_rect.width / 2,
+			tdr.found_rect.y + tdr.found_rect.height / 2
+		);
+
+		if (tdr.template_id == 0)
+			parse_result.fl_slow_zone = true;
+		else if (tdr.template_id == 1)
+			parse_result.fl_stop_zone = true;
+		else if (tdr.template_id == 2)
+		{
+			parse_result.fl_stop_mark = true;
+
+			cv::Point2f p1(center.x, imgColor.rows / 2);
+			double dist1 = tdr.found_rect.width;
+			double dist2 = get_points_distance(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
+
 #ifndef NO_GUI
-	if (config.DRAW && config.SHOW_GRAY) {
+			cv::line(imgColor, p1, center, CLR_YELLOW, 1, cv::LINE_AA, 0);
+			cv::putText(imgColor, std::to_string(dist2), center,
+				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
+#endif
+
+			parse_result.stop_mark_distance = round(dist2);
+		}
+
+#ifndef NO_GUI
+
+		clr = templates_clr[ tdr.template_id % (sizeof(templates_clr) / sizeof(templates_clr[0])) ];
+
+		cv::circle(imgColor, center, 3, clr, -1, cv::LINE_AA);
+		//
+		rectangle(imgColor,
+			tdr.found_rect.tl(),
+			tdr.found_rect.br(),
+			clr, 2, 8, 0
+		);
+		putText(imgColor,
+			"templ_" + to_string(tdr.template_id),
+			tdr.found_rect.tl() + Point(10, 15),
+			cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
+		);
+		putText(imgColor,
+			to_string(tdr.match),
+			tdr.found_rect.tl() + Point(10, 30),
+			cv::FONT_HERSHEY_SIMPLEX, 0.4, clr, 1
+		);
+
+#endif
+
+	}
+}
+
+void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
+{
+	cv::Mat trImage(srcImg.rows, srcImg.cols, CV_8U);
+	cv::cvtColor(srcImg, trImage, cv::COLOR_BGR2GRAY);
+
+	int gbk = config.GAUSSIAN_BLUR_KERNEL;
+	cv::GaussianBlur(trImage, trImage, Size2i(gbk, gbk), 0);
+
+	int mok = config.MORPH_OPEN_KERNEL;
+	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size2i(mok, mok)));
+//	int mck = config.MORPH_CLOSE_KERNEL;
+//	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
+
+	cv::threshold(trImage, dstImg, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+}
+
+bool find_central_point(ParseImageResult& parse_result)
+{
+	int y0_x = 10000;
+	for (size_t i = 1; i < parse_result.res_points.size(); i++)
+	{
+		//	берем соседние точки линии;
+		//	если у какой-то из них y = 0, то она и есть центральная;
+		//	если точки находятся по разные стороны от оси X,
+		//	то берем уравнение прямой, проходящей через них и находим значение x при y = 0
+		Point pt1 = parse_result.res_points[i - 1];
+		Point pt2 = parse_result.res_points[i];
+		if (pt1.y == 0) y0_x = pt1.x;
+		else if (pt2.y == 0) y0_x = pt2.x;
+		else if ((pt1.y < 0) && (pt2.y > 0))
+			y0_x = ((pt2.x - pt1.x) * (0 - pt1.y) / (pt2.y - pt1.y)) + pt1.x;
+		//
+		if (y0_x != 10000)
+		{
+			parse_result.center_x = y0_x;
+			CalibPoint res{ Point(0, 0), Point(y0_x, 0) };
+			find_point_mm(res);
+			//
+			parse_result.center_x_mm = res.point_mm.x;
+			return true;
+		}
+	}
+	return false;
+}
+
+void parse_image(string aThreadName, cv::Mat imgColor,
+	ParseImageResult& parse_result, int aIndex)
+{
+	parse_result.fl_slow_zone = false;
+	parse_result.fl_stop_zone = false;
+	parse_result.fl_stop_mark = false;
+	parse_result.stop_mark_distance = 0;
+
+#ifdef USE_BARCODES
+	//	поиск штрихкодов
+	std::vector<BarcodeDetectionResult> barcodes_results;
+	find_barcodes(imgColor, parse_result, barcodes_results);
+#endif
+
+#ifdef USE_TEMPLATES
+	//	поиск шаблонов
+	std::vector<TemplateDetectionResult> templates_results;
+	find_templates(imgColor, parse_result, templates_results);
+#endif
+
+	//	применение фильтров
+	cv::Mat gray;
+	apply_filters(imgColor, gray);
+
+#ifdef USE_BARCODES
+	//	сокрытие штрихкодов
+	hide_barcodes(gray, barcodes_results);
+#endif
+
+#ifndef NO_GUI
+	if (config.DRAW && config.SHOW_GRAY)
+	{
 		//frames_mtx[aIndex].lock();
 		grays_to_show[aIndex] = gray.clone();
 		//frames_mtx[aIndex].unlock();
 	}
 #endif
 
+	//	config.DATA_SIZE - это общее количество ROI на изображении;
 	ContData data[config.DATA_SIZE];
 
 	int imgWidth = imgColor.cols;
@@ -561,22 +594,33 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_err_line = false;
 
 	int k = 0;
-
+	//	разбиваем изображение на ROI,
+	//	находим контуры и параметры контуров в них
 	for (int i = 0; i < config.NUM_ROI; ++i)
 	{
-		if (i < (config.NUM_ROI - config.NUM_ROI_H)) {
+		if (i < (config.NUM_ROI - config.NUM_ROI_H))
+		{
 			cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
-			get_contour(imgColor, gray, roi, data[k], i, 0);
+			get_contur_params(gray, roi, data[k], i, 0);
 			k++;
-		} else {
+		}
+		else
+		{
 			for (int j = 0; j < config.NUM_ROI_V; ++j)
 			{
 				cv::Rect roi(imgOffsetV * j, imgOffset * i, imgOffsetV, imgOffset);
-				get_contour(imgColor, gray, roi, data[k], i, j);
+				get_contur_params(gray, roi, data[k], i, j);
 				k++;
 			}
 		}
 	}
+
+#ifndef NO_GUI
+	//	рисуем сетку из ROI
+	if (config.DRAW && config.DRAW_GRID)
+		for (int i = 0; i < config.DATA_SIZE; ++i)
+			cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
+#endif
 
 	cv::Point pt(imgWidth / 2, imgHeight);
 	cv::Point* lpCenter = &pt;
@@ -586,28 +630,26 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	vector<RectData*> buf_points;
 	vector<RectData*> buf_rd;
 
+	//	ищем в каждом ROI прямоугольник,
+	//	центр которого находится ближе всего к базовой точке
 	for (int i = 0; i < config.DATA_SIZE; ++i)
 	{
 		ContData* dt = &data[config.DATA_SIZE - 1 - i];
+		//	сортируем прямоугольники, обрамляющие контуры, по близости к базовой точке;
+		//	при первой итерации, базовая точка - центр нижнего края изображения
 		RectData* rd = sort_cont(*lpCenter, dt[0]);
 
 		if (rd == nullptr)
 			continue;
 
 		buf_points.push_back(rd);
-
+		//
+		//	центр найденного прямоугольника становится новой базовой точкой
 		lpCenter = &rd->center;
 
 #ifndef NO_GUI
-	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
-	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
-			CLR_YELLOW, 1, cv::LINE_8, 0);
-	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
-		CLR_YELLOW, 1, cv::LINE_8, 0);
-#endif
-
-#ifndef NO_GUI
-		if (config.DRAW && config.DRAW_DETAILED) {
+		if (config.DRAW && config.DRAW_DETAILED)
+		{
 			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
 			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
 			//
@@ -616,6 +658,15 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 #endif
 	}
+
+#ifndef NO_GUI
+	//	центральные линии
+	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
+	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
+		CLR_YELLOW, 1, cv::LINE_8, 0);
+	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
+		CLR_YELLOW, 1, cv::LINE_8, 0);
+#endif
 
 	sort(buf_points.begin(), buf_points.end(),
 		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
@@ -629,11 +680,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	}
 
 	//	добавляем нижнюю центральную точку в список для построения линии
-	RectData crd;
-	crd.center = cv::Point(imgWidth / 2, imgHeight);
-	crd.bound = cv::Rect(crd.center.x - imgOffsetV / 2, crd.center.y - 10, imgOffsetV, 20);
-	crd.roi_row = config.NUM_ROI;
-	buf_points.insert(buf_points.begin(), &crd);
+	RectData center_rd;
+	center_rd.center = cv::Point(imgWidth / 2, imgHeight);
+	center_rd.bound = cv::Rect(center_rd.center.x - imgOffsetV / 2, center_rd.center.y - 10, imgOffsetV, 20);
+	center_rd.roi_row = config.NUM_ROI;
+	buf_points.insert(buf_points.begin(), &center_rd);
 
 	//	строим линию
 	{
@@ -674,57 +725,26 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
-	int y0_x = 10000;
-	for (size_t i = 1; i < parse_result.res_points.size(); i++) {
-		Point pt1 = parse_result.res_points[i - 1];
-		Point pt2 = parse_result.res_points[i];
-		if (pt1.y == 0) y0_x = pt1.x;
-		else if (pt2.y == 0) y0_x = pt2.x;
-		else if ((pt1.y < 0) && (pt2.y > 0))
-			y0_x = ((pt2.x - pt1.x) * (0 - pt1.y) / (pt2.y - pt1.y)) + pt1.x;
-		//
-		if (y0_x != 10000) {
-			parse_result.center_x = y0_x;
-			CalibPoint res{ Point(0, 0), Point(y0_x, 0) };
-			find_point_mm(res);
-			//
-			parse_result.center_x_mm = res.point_mm.x;
-			break;
-		}
-	}
+	//	находим центральную точку и её координаты в мм
+	bool y0x_found = find_central_point(parse_result);
 
-	parse_result.fl_err_line = parse_result.fl_err_line ||
-		(parse_result.res_points.size() < (size_t)(config.NUM_ROI));
+	//	ошибка поиска линии, если количество точек в результате меньше, чем количество строк ROI,
+	//	то есть линия правильно найдена, если в каждой строке найдна её точка
+	parse_result.fl_err_line |= (parse_result.res_points.size() < config.NUM_ROI);
 
 #ifndef NO_GUI
-	if (config.DRAW) {
-
-		for (size_t i = 0; i < buf_rd.size(); i++) {
-			cv::Point c(buf_rd[i]->center);
-			cv::Point c_img(imgColor.cols / 2, buf_rd[i]->center.y);
-			if (config.DRAW_DETAILED)
-				cv::line(imgColor, c, c_img, CLR_YELLOW, 1, cv::LINE_AA, 0);
-		}
-
-		if (buf_rd.size() > 2) {
-			cv::Rect r(buf_rd[1]->bound);
-			cv::Point c(buf_rd[1]->center);
-			cv::Point pt1(r.x, c.y);			//	r.y + r.height
-			cv::Point pt2(r.x + r.width, c.y);	//	r.y + r.height
-			//
-			if (config.DRAW_DETAILED) {
-				cv::rectangle(imgColor, r, CLR_CYAN);
-				cv::line(imgColor, pt1, pt2, CLR_MAGENTA, 1, cv::LINE_AA, 0);
-			}
-		}
-
-		//
-
-		if (parse_result.fl_err_line) {
+	if (config.DRAW)
+	{
+		if (parse_result.fl_err_line)
+		{
+			//	сигнализируем об ошибке
 			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 		}
-		else {
-			for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
+		else
+		{
+			//	рисуем линии горизонтальных пересечений
+			for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
+			{
 				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point2f(0, parse_result.hor_ys[i]));
 				pt_draw.x = 0;
 				//
@@ -737,8 +757,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
 			}
 			//
+			//	рисуем основную линию
 			cv::Point line_pt(imgWidth / 2, imgHeight);
-			for (size_t i = 0; i < parse_result.res_points.size(); i++) {
+			for (size_t i = 0; i < parse_result.res_points.size(); i++)
+			{
 				cv::Point pt_src = parse_result.res_points[i];
 				cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
 				//
@@ -752,8 +774,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				//
 				line_pt = pt_draw;
 			}
-
-			if (y0_x != 10000) {
+			//
+			//	рисуем центральную точку
+			if (y0x_found)
+			{
 				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point(parse_result.center_x, 0));
 				cv::circle(imgColor, pt_draw, 3, CLR_MAGENTA, -1, cv::LINE_AA);
 				cv::putText(imgColor,

@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include "defines.hpp"
 #include "config.hpp"
 #include "contours.hpp"
 
@@ -14,6 +13,8 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 	cv::Mat roiImg;
 	std::vector<std::vector<cv::Point2i>> cont;
 	std::vector<cv::Vec4i> hie;
+
+	data.roi = roi;
 
 	img(roi).copyTo(roiImg);
 
@@ -83,16 +84,3 @@ RectData* sort_cont(const cv::Point& base, ContData& data)
 
 	return center;
 }
-
-void get_contour(cv::Mat& imgColor, cv::Mat& imgGray, cv::Rect& roi, ContData& dataItem, int roi_row, int roi_col)
-{
-
-#ifndef NO_GUI
-	if (config.DRAW && config.DRAW_GRID)
-		cv::rectangle(imgColor, roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
-#endif
-
-	get_contur_params(imgGray, roi, dataItem, roi_row, roi_col);
-
-}
-

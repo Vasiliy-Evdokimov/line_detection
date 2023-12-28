@@ -60,27 +60,24 @@ int init_shared_memory()
 	}
 
 	return 0;
-
 }
 
-int write_config_sm(ConfigData& aConfig) {
-
+int write_config_sm(ConfigData& aConfig)
+{
 	if (config_sm_ptr == (void*) -1) return 1;
 	memcpy(config_sm_ptr, &aConfig, sizeof(aConfig));
 	return 0;
-
 }
 
-int read_config_sm(ConfigData& aConfig) {
-
+int read_config_sm(ConfigData& aConfig)
+{
 	if (config_sm_ptr == (void*) -1) return 1;
 	memcpy(&aConfig, config_sm_ptr, sizeof(aConfig));
 	return 0;
-
 }
 
-int init_config_sm(ConfigData& aConfig) {
-
+int init_config_sm(ConfigData& aConfig)
+{
 	shmid_ds state;
 	shmctl(config_sm_id, IPC_STAT, &state);
 	//
@@ -100,13 +97,12 @@ int init_config_sm(ConfigData& aConfig) {
 			write_config_sm(aConfig);
 		}
 	}
-
+	//
 	return 0;
-
 }
 
-int write_results_sm(ResultFixed& aResult, int aIndex) {
-
+int write_results_sm(ResultFixed& aResult, int aIndex)
+{
 	if (results_sm_ptr[aIndex] == (void*) -1) return 1;
 	//
 	high_resolution_clock::time_point result_time_point = high_resolution_clock::now();
@@ -115,11 +111,10 @@ int write_results_sm(ResultFixed& aResult, int aIndex) {
 	memcpy(results_sm_ptr[aIndex], &aResult, sizeof(aResult));
 	//
 	return 0;
-
 }
 
-int read_results_sm(ResultFixed& aResult, int aIndex) {
-
+int read_results_sm(ResultFixed& aResult, int aIndex)
+{
 	if (results_sm_ptr == (void*) -1) return 1;
 	//
 	memcpy(&aResult, results_sm_ptr[aIndex], sizeof(aResult));
@@ -134,5 +129,10 @@ int read_results_sm(ResultFixed& aResult, int aIndex) {
 //		write_log("CamIndex: " + std::to_string(aIndex) + " timeout detected!");
 	//
 	return 0;
+}
 
+void parse_result_to_sm(ParseImageResult& parse_result, int aIndex)
+{
+	ResultFixed rfx = parse_result.ToFixed();
+	write_results_sm(rfx, aIndex);
 }
