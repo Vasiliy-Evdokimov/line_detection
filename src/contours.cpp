@@ -22,7 +22,7 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 
 	for (auto i = cont.begin(); i != cont.end(); ++i)
 	{
-		RectData rd;
+		RectData rd = {};
 
 		cv::Moments M = cv::moments(*i);
 		cv::Rect R = cv::boundingRect(*i);

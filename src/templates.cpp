@@ -30,7 +30,7 @@ void templates_load_config()
 		double n, x, y, w, h;
 		while (getline(file, s))
 		{
-			Template new_template;
+			Template new_template = {};
 			std::istringstream is(s);
 			i = 0;
 			while (is >> n)

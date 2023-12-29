@@ -275,7 +275,7 @@ void load_intersection_lines()
 	}
 
 	intersections_lines.clear();
-	Line line;
+	Line line = {};
 
 	while (file
 		>> line.pt1.x >> line.pt1.y
@@ -583,7 +583,7 @@ int get_nearest_intersection_index(CalibPoint &pt)
 
 CalibPointLine get_calib_point_line_by_index(std::vector<CalibPointLine> aVector, int aIndex)
 {
-	CalibPointLine res;
+	CalibPointLine res = {};
 	for (size_t i = 0; i < aVector.size(); i++)
 		if (aVector[i].index == aIndex)
 		{
@@ -652,7 +652,8 @@ void find_point_mm(CalibPoint &pt)
 	{
 		row_ipt = intersections[nearest_intersection_idx_row];
 #else
-		row_ipt = intersections[row_idx];
+		if (row_idx >= 0)
+			row_ipt = intersections[row_idx];
 #endif
 		double row_k = getDistance(base_ipt.point_mm, row_ipt.point_mm) / getDistance(base_ipt.point_cnt, row_ipt.point_cnt);
 		int dir_x = (base_ipt.point_cnt.x > pt.point_cnt.x) ? -1 : 1;
@@ -715,7 +716,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
         		double angle = abs(getAngle(new_line_points[0], new_line_points[1]));
         		if ((angle != 0) && (angle < 50)) return;
         		//
-        		Line new_line;
+        		Line new_line = {};
         		new_line.pt1 = new_line_points[0];
         		new_line.pt2 = new_line_points[1];
         		new_line.mid = getMiddle(new_line.pt1, new_line.pt2);

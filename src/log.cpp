@@ -23,7 +23,7 @@ string GetCurrentTime() {
 	time_t currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	//
 	stringstream ss;
-	struct tm timeinfo;
+	struct tm timeinfo = {};
 
 #ifdef _WIN32
 	localtime_s(&timeinfo, &currentTime);
