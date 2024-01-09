@@ -8,14 +8,16 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-//#define	NO_GUI
-//#define	RELEASE
+#define	NO_GUI
+#define	RELEASE
 
 //#define USE_UNDISTORT
-//#define USE_BARCODES
-#define USE_TEMPLATES
 
-#define FPS 10
+//#define USE_BARCODES
+//#define USE_TEMPLATES
+
+#define USE_FPS
+#define FPS 25
 
 #define CAM_COUNT	2
 

@@ -200,8 +200,12 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	ParseImageResult parse_result;
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
+#ifdef USE_FPS
 	double tt_elapsed, tt_prev = clock();
 	int fps_count = 0;
+#endif
+
+	bool err_open, err_grab, err_empty;
 
 	while (1)
 	{
@@ -228,39 +232,49 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		}
 
-		cap.read(frame);
-		fps_count++;
-		tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
-		if (tt_elapsed < (1. / FPS))
-			continue;
+		err_open = !cap.isOpened();
 
-//		write_log(aThreadName +
-//			" fps_count = " + to_string(fps_count) +
-//			" tt_elapsed = " + to_string(tt_elapsed));
+		if (!err_open)
+			err_grab = !cap.grab();
 
-		fps_count = 0;
-		tt_prev = clock();
+#ifdef USE_FPS
+		if (!err_open && !err_grab)
+		{
+			fps_count++;
+			tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
+			if (tt_elapsed < (1. / FPS))
+				continue;
 
-//		cv::imshow("FPS_Test", frame);
-//		cv::waitKey(1);
-//		continue;
+//			write_log(aThreadName +
+//				" fps_count = " + to_string(fps_count) +
+//				" tt_elapsed = " + to_string(tt_elapsed));
 
-		tStart = clock();
+			fps_count = 0;
+			tt_prev = clock();
 
-		bool err1 = (!cap.isOpened());
-		bool err2 = false;
-		//bool err2 = (!cap.read(frame));
-		bool err3 = (frame.empty());
+//			cv::imshow("FPS_Test", frame);
+//			cv::waitKey(1);
+//			continue;
+		}
+#endif
 
-		parse_result.fl_err_camera = err1 || err2 || err3;
+		if (!err_open && !err_grab)
+			cap.retrieve(frame);
+		err_empty = frame.empty();
+
+		parse_result.fl_err_camera = err_open || err_grab || err_empty;
 
 		if (parse_result.fl_err_camera) {
 			write_log(aThreadName + " read error! " +
-				to_string(err1) + " " + to_string(err2) + " " + to_string(err3)
+				to_string(err_open) + " " +
+				to_string(err_grab) + " " +
+				to_string(err_empty)
 			);
 			parse_result_to_sm(parse_result, aIndex);
 			continue;
 		}
+
+		tStart = clock();
 
 		try
 		{
