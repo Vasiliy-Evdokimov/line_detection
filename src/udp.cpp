@@ -117,12 +117,13 @@ void udp_func()
 		udp_pack.crc = crc16(buf, sizeof(buf));
 
 		size_t sz = sizeof(udp_pack);
-		if (UDP_LOG) {
-			char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
-			for (size_t i = 0; i < sz; i++)
-				printf("%02x ", my_s_bytes[i]);
-			printf("\n");
-		}
+
+#ifdef UDP_LOG
+		char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
+		for (size_t i = 0; i < sz; i++)
+			printf("%02x ", my_s_bytes[i]);
+		printf("\n");
+#endif
 
 		if ( sendto(sockfd, &udp_pack, sizeof(udp_pack), 0, (struct sockaddr *) &clientAddr, addrLen) == -1 )
 		{

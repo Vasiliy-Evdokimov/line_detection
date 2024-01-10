@@ -8,16 +8,16 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-#define	NO_GUI
-#define	RELEASE
+//#define	NO_GUI
+//#define	RELEASE
 
 //#define USE_UNDISTORT
 
-//#define USE_BARCODES
+#define USE_BARCODES
 //#define USE_TEMPLATES
 
 #define USE_FPS
-#define FPS 25
+#define FPS 13
 
 #define CAM_COUNT	2
 
@@ -38,9 +38,12 @@
 
 #define CLEAR_CAM_BUFFER	20
 
+#define STATS_LOG
 #define AVG_CNT		100
-#define STATS_LOG	1
-#define UDP_LOG		1
+
+//#define UDP_LOG
+
+#define BARCODE_LOG
 
 #define MAX_POINTS_COUNT	10
 #define MAX_HOR_COUNT		10

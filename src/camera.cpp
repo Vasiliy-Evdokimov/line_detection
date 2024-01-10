@@ -328,34 +328,32 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			continue;
 		}
 
-		if (STATS_LOG) {
-
-			if (parse_result.fl_err_line)
-				incorrect_lines++;
-			//
-			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-			if (!tt_cnt) { tt_sum = 0; tt_max = tt; tt_min = tt; }
-			//
-			if (tt > tt_max) tt_max = tt;
-			if (tt < tt_min) tt_min = tt;
-			tt_sum += tt;
-			tt_cnt++;
-			//
-			if (tt_cnt >= AVG_CNT)
-			{
-				if (read_err)
-					write_log(aThreadName + " reading errors = " + to_string(read_err));
+#ifdef STATS_LOG
+		if (parse_result.fl_err_line)
+			incorrect_lines++;
+		//
+		tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+		if (!tt_cnt) { tt_sum = 0; tt_max = tt; tt_min = tt; }
+		//
+		if (tt > tt_max) tt_max = tt;
+		if (tt < tt_min) tt_min = tt;
+		tt_sum += tt;
+		tt_cnt++;
+		//
+		if (tt_cnt >= AVG_CNT)
+		{
+			if (read_err)
+				write_log(aThreadName + " reading errors = " + to_string(read_err));
 //				write_log(aThreadName + " incorrect lines: " + to_string(incorrect_lines));
-				write_log(aThreadName + " time taken:" +
-					" min=" + to_string(tt_min) +
-					" max=" + to_string(tt_max) +
-					" avg=" + to_string(tt_sum / tt_cnt));
-				//
-				incorrect_lines = 0;
-				tt_cnt = 0;
-			}
-
+			write_log(aThreadName + " time taken:" +
+				" min=" + to_string(tt_min) +
+				" max=" + to_string(tt_max) +
+				" avg=" + to_string(tt_sum / tt_cnt));
+			//
+			incorrect_lines = 0;
+			tt_cnt = 0;
 		}
+#endif
 
 	}
 
@@ -374,6 +372,9 @@ void find_barcodes(cv::Mat& imgColor, ParseImageResult& parse_result,
 	{
 		BarcodeDetectionResult bdr = barcodes_results[i];
 
+#ifdef BARCODE_LOG
+		write_log("barcode found! " + bdr.text);
+#endif
 		cv::Moments M = cv::moments(bdr.contour);
 		cv::Point2f center(M.m10 / M.m00, M.m01 / M.m00);
 
@@ -459,7 +460,9 @@ void find_templates(cv::Mat& imgColor, ParseImageResult& parse_result,
 	{
 		TemplateDetectionResult tdr = templates_results[i];
 
+#ifdef BARCODE_LOG
 		write_log("template_" + to_string(tdr.template_id) + " found! " + to_string(tdr.match));
+#endif
 
 		cv::Point2f center(
 			tdr.found_rect.x + tdr.found_rect.width / 2,
