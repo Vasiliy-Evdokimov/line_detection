@@ -14,3 +14,5 @@ html/jquery-3.7.0.min.js
 html/vue.js
 
 html/vue.min.js
+
+config/templates/

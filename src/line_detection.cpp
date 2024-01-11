@@ -19,9 +19,10 @@ using namespace std::chrono_literals;
 #include "udp.hpp"
 #include "templates.hpp"
 
+#include "service_2.hpp"
+
 void work_func()
 {
-
 	pthread_setname_np(pthread_self(), "work thread");
 
 	kill_threads = false;
@@ -60,12 +61,10 @@ void work_func()
 	};
 
 	write_log("work_func() is out of infinity loop.");
-
 }
 
 void signalHandler( int signum )
 {
-
 	if (signum == SIGINT) {
 		write_log("SIGINT received.");
 		//
@@ -79,10 +78,9 @@ void signalHandler( int signum )
 		kill_udp_thread();
 		restart_threads = true;
 	}
-
 }
 
-int main(int argc, char** argv)
+int main_function()
 {
 	pthread_setname_np(pthread_self(), "main thread");
 
@@ -97,13 +95,17 @@ int main(int argc, char** argv)
 	read_config();
 	//
 	//	читаем параметры калибровки камеры
+#ifdef USE_UNDISTORT
 	read_calibration();
+#endif
 	//
 	//	читаем опорные точки калибровки
 	load_intersection_points();
 	//
 	//	читаем конфигурацию шаблонов
+#ifdef USE_TEMPLATES
 	templates_load_config();
+#endif
 	//
 	//	инициализируем shared memory
 	init_shared_memory();
@@ -112,26 +114,59 @@ int main(int argc, char** argv)
 	thread work_thread(work_func);
 	std::this_thread::sleep_for(1s);
 	//
-#ifndef NO_GUI
 	//	создаем поток визуализации
+#ifndef NO_GUI
 	thread visualizer_thread(visualizer_func);
 #endif
-    //
-    if (work_thread.joinable()) work_thread.join();
-    //
+	//
+	if (work_thread.joinable()) work_thread.join();
+	//
 #ifndef NO_GUI
-    if (visualizer_thread.joinable()) visualizer_thread.join();
+	if (visualizer_thread.joinable()) visualizer_thread.join();
 #endif
-    //
-    //	бесконечный цикл для ожидания сигналов
-    while (!kill_threads) {
-    	//
-    	this_thread::sleep_for(100ms);
-    	//
-    }
-    //
-    write_log("Application terminated!");
+	//
+//	//	бесконечный цикл для ожидания сигналов
+//	while (!kill_threads) {
+//		//
+//		this_thread::sleep_for(100ms);
+//		//
+//	}
+//	//
+//	write_log("Application terminated!");
+	//
+	return 0;
+}
+
+int onLoadConfig() { return 0; }
+
+int onStart() {	return main_function(); }
+
+int onRestart()
+{
+	kill_udp_thread();
+	restart_threads = true;
+	return 0;
+}
+
+void onDestroy()
+{
+	kill_udp_thread();
+	kill_threads = true;
+}
+
+int main(int argc, char** argv)
+{
+	//main_function();
+	//
+	ServiceHandlers srvh {
+		onLoadConfig,
+		onStart,
+		onRestart,
+		onDestroy
+	};
+	//
+	LDService srv("service_name_1", srvh);
+	service_main(argc, argv, &srv);
     //
     return 0;
-
 }
