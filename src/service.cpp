@@ -103,8 +103,6 @@ static void sigProc(int sig, siginfo_t *si, void *ptr)
 
 static void serviceFunc()
 {
-	std::cout << "serviceFunc()" << std::endl;
-
 	static struct sigaction sigact;
 	sigset_t         sigset;
 	int              signo;
@@ -200,12 +198,12 @@ int service_main(int argc, char** args, LDService* iService)
 
 	if(!iService)
 	{
-		printf("Interface is empty\n");
+		printf("Service handler is empty\n");
 		return -1;
 	}
 
 	impl = iService;
-	// если в аргументах не указано действие, то выводим подсказку
+
 	if (argc < 2)
 	{
 		printf("%s [OPTION]\n", impl->serviceName().c_str());
@@ -215,9 +213,8 @@ int service_main(int argc, char** args, LDService* iService)
 		impl = nullptr;
 		return -1;
 	}
-	// формируем имя файла, содержащего PID процесса
+
 	sprintf(pidFileName, "/tmp/%s.pid", impl->serviceName().c_str());
-	// читаем из файла PID
 	pid = restorePid(pidFileName);
 
 	if(!strncmp(args[1], RESTART.c_str(), strlen(RESTART.c_str())))
@@ -251,32 +248,34 @@ int service_main(int argc, char** args, LDService* iService)
 			printf("Service is already started %i\n", pid);
 			return 0;
 		}
-		// создаем копию процесса
+
 		pid_t _pid = fork();
 		if(_pid == -1)
 		{
 			printf("Start error\n");
 			return -1;
 		}
-		// pid != 0 - значит это код родительского процесса;
-		// сообщаем пользователю, что стартуем сервис
 		else if(_pid != 0)
 		{
 			printf("Starting service %i\n", _pid);
 		}
-		// pid == 0 - значит это код дочернего процесса, который и будет "рабочим"
 		else
 		{
+			char dir[255];
+			getcwd(dir, 255);
+			printf("Current directory is %s\n", dir);
+			//
 			umask(0);
 			chdir("/");
 //			close(STDIN_FILENO);
 //			close(STDOUT_FILENO);
 //			close(STDERR_FILENO);
 			setsid();
-			//	???
+			//
 			pid_t fpid = fork();
 			if(!fpid)
 			{
+				chdir(dir);
 				serviceFunc();
 			}
 		}

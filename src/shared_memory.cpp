@@ -81,7 +81,6 @@ int init_config_sm(ConfigData& aConfig)
 	shmid_ds state;
 	shmctl(config_sm_id, IPC_STAT, &state);
 	//
-	write_log("state.shm_nattch = " + to_string(state.shm_nattch));
 	//	если количество подключенных к SM = 1, т.е. только это приложение
 	if (state.shm_nattch == 1) {
 		//	то записываем в SM данные из конфига прочитанного при инициализации
