@@ -66,10 +66,7 @@
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.2024150732" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 						</toolChain>
-					</folderInfo>
-					<sourceEntries>
-						<entry excluding="service.hpp|service.cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name="src"/>
-					</sourceEntries>
+					</folderInfo>					
 				</configuration>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.externalSettings"/>
