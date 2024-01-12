@@ -21,6 +21,9 @@ using namespace std::chrono_literals;
 
 #include "service.hpp"
 
+pthread_t p_work_thread;
+pthread_t p_visualizer_thread;
+
 void work_func()
 {
 	pthread_setname_np(pthread_self(), "work thread");
@@ -63,20 +66,20 @@ void work_func()
 	write_log("work_func() is out of infinity loop.");
 }
 
+void* p_work_func(void *args) { work_func(); return 0; }
+
 void signalHandler( int signum )
 {
-	if (signum == SIGINT) {
-		write_log("SIGINT received.");
-		//
-		kill_udp_thread();
-		kill_threads = true;
-	} else
-	//
 	if (signum == SIGUSR1) {
 		write_log("SIGUSR1 received.");
 		//
 		kill_udp_thread();
 		restart_threads = true;
+	} else {
+		write_log("Signal " + to_string(signum) + " received.");
+		//
+		kill_udp_thread();
+		kill_threads = true;
 	}
 }
 
@@ -88,8 +91,10 @@ int main_function()
 	//
 	write_log("Current work directory is " + get_work_directory());
 	//
-	signal(SIGINT, signalHandler);
-	signal(SIGUSR1, signalHandler);
+//	signal(SIGINT, signalHandler);
+//	signal(SIGTERM, signalHandler);
+//	signal(SIGQUIT, signalHandler);
+//	signal(SIGUSR1, signalHandler);
 	//
 	//	читаем параметры из конфигурационного файла
 	read_config();
@@ -111,38 +116,59 @@ int main_function()
 	init_shared_memory();
 	//
 	//	создаем рабочий поток
-	thread work_thread(work_func);
+//	thread work_thread(work_func);
+	pthread_create(&p_work_thread, NULL, p_work_func, NULL);
 	std::this_thread::sleep_for(1s);
 	//
 	//	создаем поток визуализации
 #ifndef NO_GUI
-	thread visualizer_thread(visualizer_func);
+//	thread visualizer_thread(visualizer_func);
+	pthread_create(&p_visualizer_thread, NULL, p_visualizer_func, NULL);
 #endif
 	//
-	if (work_thread.joinable()) work_thread.join();
+#ifndef SERVICE
+	//
+//	if (work_thread.joinable()) work_thread.join();
+//	pthread_join(p_work_thread, NULL);
 	//
 #ifndef NO_GUI
-	if (visualizer_thread.joinable()) visualizer_thread.join();
+//	if (visualizer_thread.joinable()) visualizer_thread.join();
+//	pthread_join(p_visualizer_thread, NULL);
 #endif
 	//
-//	//	бесконечный цикл для ожидания сигналов
-//	while (!kill_threads) {
-//		//
-//		this_thread::sleep_for(100ms);
-//		//
-//	}
-//	//
-//	write_log("Application terminated!");
+	//	бесконечный цикл для ожидания сигналов
+	while (!kill_threads) {
+		//
+		this_thread::sleep_for(100ms);
+		//
+	}
+	//
+	write_log("Application terminated!");
+	//
+#endif
+	//
+	write_log("blabla1!");
 	//
 	return 0;
 }
 
-int onLoadConfig() { return 0; }
+int onLoadConfig()
+{
+	write_log("onLoadConfig()");
+	return 0;
+}
 
-int onStart() {	return main_function(); }
+int onStart()
+{
+	write_log("onStart()");
+	main_function();
+	write_log("blabla2!");
+	return 0;
+}
 
 int onRestart()
 {
+	write_log("onRestart()");
 	kill_udp_thread();
 	restart_threads = true;
 	return 0;
@@ -150,14 +176,16 @@ int onRestart()
 
 void onDestroy()
 {
+	write_log("onDestroy()");
 	kill_udp_thread();
 	kill_threads = true;
 }
 
 int main(int argc, char** argv)
 {
-	//main_function();
-	//
+#ifndef SERVICE
+	main_function();
+#else
 	ServiceHandlers srvh {
 		onLoadConfig,
 		onStart,
@@ -165,8 +193,11 @@ int main(int argc, char** argv)
 		onDestroy
 	};
 	//
-	LDService srv("service_name_1", srvh);
+	LDService srv("line_detection", srvh);
 	service_main(argc, argv, &srv);
+#endif
     //
+	write_log("Application terminated!");
+	//
     return 0;
 }

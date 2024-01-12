@@ -23,6 +23,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 void visualizer_func();
 
+void* p_visualizer_func(void *args);
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex);
 
 #endif /* CAMERA_HPP_ */

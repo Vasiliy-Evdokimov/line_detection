@@ -164,6 +164,8 @@ void visualizer_func()
 
 }
 
+void* p_visualizer_func(void *args) { visualizer_func(); return 0; }
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 

@@ -135,6 +135,7 @@ static void serviceFunc()
 
 		if (!impl->onStart())
 		{
+			service_log_msg(TAG, "Service entered infinity loop.");
 			for (;;)
 			{
 				sigwait(&sigset, &signo);
@@ -156,6 +157,7 @@ static void serviceFunc()
 					break;
 				}
 			}
+			service_log_msg(TAG, "Service is out of infinity loop.");
 			impl->onDestroy();
 		}
 		else

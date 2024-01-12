@@ -11,6 +11,9 @@
 #include <iomanip>
 #include <sstream>
 
+#include <sys/types.h>
+#include <unistd.h>
+
 #include <mutex>
 
 #include "log.hpp"
@@ -40,7 +43,9 @@ string GetCurrentTime() {
 void write_log(string aMessage)
 {
 	log_mtx.lock();
-	cout << GetCurrentTime() << ": " << aMessage << endl;
+	cout << "PID " << to_string(getpid())
+		 << ": " << GetCurrentTime()
+		 <<	": " << aMessage << endl;
 	log_mtx.unlock();
 }
 
