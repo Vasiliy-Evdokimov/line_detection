@@ -16,3 +16,5 @@ html/vue.js
 html/vue.min.js
 
 config/templates/
+
+install_service/
