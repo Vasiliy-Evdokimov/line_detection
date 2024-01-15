@@ -677,7 +677,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
 
 	if (event == cv::EVENT_LBUTTONDOWN)
     {
-        std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+//        std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
         //
         if (current_modes.count(MODE_SELECT_LINE))
 		{
@@ -742,11 +742,11 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
     }
     else if (event == cv::EVENT_RBUTTONDOWN)
     {
-        //	std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+//        std::cout << "Right button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
     }
     else if (event == cv::EVENT_MBUTTONDOWN)
     {
-    	//	std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+//    	std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
     	if (current_modes.count(MODE_ADD_USER_LINE))
 			new_line_points.clear();
     	if (current_modes.count(MODE_RULER))
@@ -759,7 +759,7 @@ void onMouse(int event, int x, int y, int flags, void* userdata)
     }
     else if (event == cv::EVENT_MOUSEMOVE)
     {
-    	//	std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
+//    	std::cout << "Mouse move over the window - position (" << x << ", " << y << ")" << std::endl;
     	if (current_modes.count(MODE_ADD_USER_LINE))
     	{
     		if (new_line_points.size() == 2)

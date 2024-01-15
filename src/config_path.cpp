@@ -40,16 +40,20 @@ string get_work_directory()
 		perror("_getcwd() error");
 	}
 #elif __linux__
-	char cwd[1024];
-	if (getcwd(cwd, sizeof(cwd)) != nullptr)
-	{
-		result.append(cwd);
-		result.append("/");
-	}
-	else
-	{
-		perror("getcwd() error");
-	}
+	#ifdef SERVICE
+		result = "/home/user/line_detection/";
+	#else
+		char cwd[1024];
+		if (getcwd(cwd, sizeof(cwd)) != nullptr)
+		{
+			result.append(cwd);
+			result.append("/");
+		}
+		else
+		{
+			perror("getcwd() error");
+		}
+	#endif
 #endif
 
 	return result;

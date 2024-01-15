@@ -5,6 +5,7 @@
  *      Author: vevdokimov
  */
 
+#include "log.hpp"
 #include "templates.hpp"
 
 using namespace std;
@@ -18,12 +19,13 @@ const string templates_config_filepath = templates_config_folder + templates_con
 
 void templates_load_config()
 {
-	cout << "templates_config_filepath = " << templates_config_filepath << endl;
+	write_log("templates_config_filepath = " + templates_config_filepath);
+	//
 	templates.clear();
 	//
 	std::ifstream file(templates_config_filepath);
 	if (!file) {
-		cout << "templates_load_config() file open error!" << endl;
+		write_log("templates_load_config() file open error!");
 	} else {
 		string s;
 		int i;
@@ -60,14 +62,16 @@ void templates_load_config()
 		}
 		//
 		file.close();
-		cout << "templates_load_config() successfully! templates.size = " << templates.size() << endl;
-		cout << "templates parameters: " << endl;
-		for (size_t j = 0; j < templates.size(); j++) {
+		write_log("templates_load_config() successfully! templates.size = " + to_string(templates.size()));
+		write_log("templates parameters: ");
+		for (size_t j = 0; j < templates.size(); j++)
+		{
 			Template tmpl = templates[j];
-			cout << tmpl.match << " "
-				 << tmpl.roi.x << " " << tmpl.roi.y << " "
-				 << tmpl.roi.width << " " << tmpl.roi.height
-				 << endl;
+			write_log(
+				to_string(tmpl.match) + " " +
+				to_string(tmpl.roi.x) + " " + to_string(tmpl.roi.y) + " " +
+				to_string(tmpl.roi.width) + " " + to_string(tmpl.roi.height)
+			);
 		}
 	}
 	//
@@ -79,25 +83,26 @@ void templates_load_config()
 
 void templates_save_config()
 {
-	cout << "templates_config_filepath = " << templates_config_filepath << endl;
+	write_log("templates_config_filepath = " + templates_config_filepath);
 	//
 	std::ofstream out;
 	out.open(templates_config_filepath);
 	if (!out.is_open()) {
-		cout << "templates_save_config() file open error!" << endl;
+		write_log("templates_save_config() file open error!");
 	} else {
 		//
 		for (size_t i = 0; i < templates.size(); i++)
 		{
 			Template tmpl = templates[i];
-			out << tmpl.match << " "
-				<< tmpl.roi.x << " " << tmpl.roi.y << " "
-				<< tmpl.roi.width << " " << tmpl.roi.height
-				<< endl;
+			write_log(
+				to_string(tmpl.match) + " " +
+				to_string(tmpl.roi.x) + " " + to_string(tmpl.roi.y) + " " +
+				to_string(tmpl.roi.width) + " " + to_string(tmpl.roi.height)
+			);
 		}
 		//
 		out.close();
-		cout << "templates_save_config() successfully!" << endl;
+		write_log("templates_save_config() successfully!");
 	}
 	//
 	for (size_t i = 0; i < templates.size(); i++) {
@@ -178,7 +183,7 @@ void templates_detect(cv::Mat& srcImg, std::vector<TemplateDetectionResult>& det
 			new_result.match = matchVal;
 			detection_results.push_back(new_result);
 			//
-			//	cout << "template_" << to_string(i) << " found! " << matchVal << endl;
+//			cout << "template_" << to_string(i) << " found! " << matchVal << endl;
 		}
 	}
 

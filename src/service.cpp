@@ -1,3 +1,4 @@
+#include "log.hpp"
 #include "service.hpp"
 
 #include <stdio.h>
@@ -19,8 +20,10 @@
 
 void LDService::logMsg(string tag, string time, string msg)
 {
-	cout << getpid() << " " << service_name << " "
-		 << time << " " << tag << " " << msg << endl;
+	write_log(
+		to_string(getpid()) + " " + service_name + " " +
+		time + " " + tag + " " + msg
+	);
 }
 
 //
