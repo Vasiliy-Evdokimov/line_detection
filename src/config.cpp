@@ -120,7 +120,7 @@ void ConfigData::recount_data_size()
 void read_config()
 {
 	string config_file_path =
-		get_actual_config_directory() +	config_filename;
+		get_config_directory() + config_filename;
 	write_log("config_file_path = " + config_file_path);
 
 	Config cfg;
@@ -174,7 +174,7 @@ void read_config()
 void save_config(ConfigData aConfig)
 {
 	string config_file_path =
-		get_actual_config_directory() +	config_filename;
+		get_config_directory() + config_filename;
 
 	Config cfg;
 

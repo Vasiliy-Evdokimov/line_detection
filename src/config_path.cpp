@@ -21,8 +21,8 @@
 
 using namespace std;
 
-const string debug_config_directory =
-	"/home/vevdokimov/eclipse-workspace/line_detection/config/";
+const string debug_work_directory = "/home/vevdokimov/eclipse-workspace/line_detection/";
+const string release_work_directory = "/home/user/line_detection/";
 
 string get_work_directory()
 {
@@ -41,7 +41,11 @@ string get_work_directory()
 	}
 #elif __linux__
 	#ifdef SERVICE
-		result = "/home/user/line_detection/";
+		#ifdef RELEASE
+			result = release_work_directory;
+		#else
+			result = debug_work_directory;
+		#endif
 	#else
 		char cwd[1024];
 		if (getcwd(cwd, sizeof(cwd)) != nullptr)
@@ -61,21 +65,17 @@ string get_work_directory()
 
 string get_config_directory()
 {
-	string result = get_work_directory();
-	result.append("config/");
-	return result;
-}
-
-string get_actual_config_directory()
-{
 	return
 		#ifdef STANDALONE
 			get_work_directory();
 		#else
-			#ifdef RELEASE
-				get_config_directory();
-			#else
-				debug_config_directory;
-			#endif
+			get_work_directory() + "config/";
 		#endif
+}
+
+string get_logs_directory()
+{
+	string result = get_work_directory();
+	result.append("logs/");
+	return result;
 }

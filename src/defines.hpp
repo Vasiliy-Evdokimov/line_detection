@@ -9,8 +9,8 @@
 #define DEFINES_HPP_
 
 #define SERVICE
-#define	NO_GUI
-#define	RELEASE
+//#define	NO_GUI
+//#define	RELEASE
 
 //#define USE_UNDISTORT
 

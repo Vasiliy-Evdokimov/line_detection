@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
@@ -16,13 +17,20 @@
 
 #include <mutex>
 
+#include <string.h>
+
+#include "defines.hpp"
 #include "log.hpp"
 
 mutex log_mtx;
 
 using namespace std;
 
-string GetCurrentTime() {
+string log_filename = "";
+streambuf *cout_old = nullptr;
+
+string GetCurrentTime()
+{
 	time_t currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	//
 	stringstream ss;
@@ -43,9 +51,20 @@ string GetCurrentTime() {
 void write_log(string aMessage)
 {
 	log_mtx.lock();
+	//
+#ifdef SERVICE
+	ofstream fout(log_filename, ios_base::app);
+	cout_old = cout.rdbuf();
+	cout.rdbuf(fout.rdbuf());
+#endif
 	cout << "PID " << to_string(getpid())
 		 << ": " << GetCurrentTime()
 		 <<	": " << aMessage << endl;
+#ifdef SERVICE
+	cout.rdbuf(cout_old);
+	fout.close();
+#endif
+	//
 	log_mtx.unlock();
 }
 

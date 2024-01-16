@@ -16,6 +16,6 @@ extern const string debug_config_directory;
 
 string get_work_directory();
 string get_config_directory();
-string get_actual_config_directory();
+string get_logs_directory();
 
 #endif /* CONFIG_PATH_HPP_ */

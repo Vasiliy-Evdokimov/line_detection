@@ -154,7 +154,7 @@ int get_vector_calib_point_index(std::vector<CalibPoint> aVector, CalibPoint aPo
 void read_calibration()
 {
 	string calibration_file_path =
-		get_actual_config_directory() +	calibration_filename;
+		get_config_directory() + calibration_filename;
 	write_log("calibration_file_path = " + calibration_file_path);
 
 	cv::FileStorage fs(calibration_file_path, cv::FileStorage::READ);
@@ -174,7 +174,7 @@ void save_intersection_points()
 	}
 
 	string intersection_points_file_path =
-		get_actual_config_directory() + intersection_points_filename;
+		get_config_directory() + intersection_points_filename;
 	write_log("intersection_points_file_path = " + intersection_points_file_path);
 
 	std::ofstream file(intersection_points_file_path);
@@ -206,7 +206,7 @@ void save_intersection_lines()
 	}
 
 	string intersection_lines_file_path =
-		get_actual_config_directory() +	intersection_lines_filename;
+		get_config_directory() + intersection_lines_filename;
 	write_log("intersection_lines_file_path = " + intersection_lines_file_path);
 
 	std::ofstream file(intersection_lines_file_path);
@@ -234,7 +234,7 @@ void save_intersection_lines()
 void load_intersection_points()
 {
 	string intersection_points_file_path =
-		get_actual_config_directory() +	intersection_points_filename;
+		get_config_directory() + intersection_points_filename;
 	write_log("intersection_points_file_path = " + intersection_points_file_path);
 
 	std::ifstream file(intersection_points_file_path);
@@ -265,7 +265,7 @@ void load_intersection_points()
 void load_intersection_lines()
 {
 	string intersection_lines_file_path =
-		get_actual_config_directory() +	intersection_lines_filename;
+		get_config_directory() + intersection_lines_filename;
 	write_log("intersection_lines_file_path = " + intersection_lines_file_path);
 
 	std::ifstream file(intersection_lines_file_path);
@@ -302,7 +302,7 @@ void save_intersection_points_csv()
 	}
 
 	string intersection_points_csv_file_path =
-		get_actual_config_directory() + intersection_points_csv_filename;
+		get_config_directory() + intersection_points_csv_filename;
 	write_log("intersection_points_csv_file_path = " + intersection_points_csv_file_path);
 
 	std::ofstream file(intersection_points_csv_file_path);

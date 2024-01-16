@@ -1,10 +1,6 @@
 #include <chrono>
 #include <thread>
 #include <pthread.h>
-#include <csignal>
-
-#include <unistd.h>
-#include <stdio.h>
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -145,6 +141,9 @@ void onDestroy()
 int main(int argc, char** argv)
 {
 	pthread_setname_np(pthread_self(), "main thread");
+	//
+	log_filename = get_logs_directory() + "line_detection.log";
+	cout << "log_filename = " << log_filename << endl;
 	//
 	write_log("Application started!");
 	//

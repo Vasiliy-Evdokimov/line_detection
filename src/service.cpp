@@ -1,3 +1,4 @@
+#include "defines.hpp"
 #include "log.hpp"
 #include "service.hpp"
 
@@ -21,8 +22,8 @@
 void LDService::logMsg(string tag, string time, string msg)
 {
 	write_log(
-		to_string(getpid()) + " " + service_name + " " +
-		time + " " + tag + " " + msg
+		//to_string(getpid()) + " " + service_name + " " + time + " " +
+		tag + " " + msg
 	);
 }
 
@@ -188,10 +189,14 @@ void service_log_msg(string tag, string fmt, ...)
 	t = time(NULL);
 	strftime(timestr, 30, "%Y-%m-%d %H:%M:%S", localtime(&t));
 
+#ifndef RELEASE
+	printf("%s [%s] - %s\n", tag.c_str(), timestr, buff);
+#endif
+
 	if(impl)
 		impl->logMsg(tag, timestr, buff);
 	else
-		printf("\"%-20s\"[%s] - %s", tag.c_str(), timestr, buff);
+		printf("%s [%s] - %s\n", tag.c_str(), timestr, buff);
 }
 
 int service_main(int argc, char** args, LDService* iService)
@@ -224,57 +229,65 @@ int service_main(int argc, char** args, LDService* iService)
 	{
 		if(pid == -1)
 		{
-			printf("Service is not started\n");
+			service_log_msg(TAG, "Service is not started");
 			return -1;
 		}
 		kill(pid, SIGUSR1);
 		waitpid(pid, &status, 0);
 		status = (((status) & 0xff00) >> 8);
-		printf("Try restart service: %i ST:%i\n", pid, status);
+		//
+		service_log_msg(TAG, "Try restart service: %i ST:%i", pid, status);
 	}
 	else if(!strncmp(args[1], STOP.c_str(), strlen(STOP.c_str())))
 	{
 		if(pid == -1)
 		{
-			printf("Service is already stopped\n");
+			service_log_msg(TAG, "Service is already stopped");
 			return 0;
 		}
 		kill(pid, SIGINT);
 		waitpid(pid, &status, 0);
 		status = (((status) & 0xff00) >> 8);
-		printf("Try stop service: %i ST:%i\n", pid, status);
+		service_log_msg(TAG, "Try stop service: %i ST:%i", pid, status);
 	}
 	else if(!strncmp(args[1], START.c_str(), strlen(START.c_str())))
 	{
 		if(pid != -1)
 		{
-			printf("Service is already started %i\n", pid);
+			service_log_msg(TAG, "Service is already started %i", pid);
 			return 0;
 		}
 
 		pid_t _pid = fork();
 		if(_pid == -1)
 		{
-			printf("Start error\n");
+			service_log_msg(TAG, "Start error\n");
 			return -1;
 		}
 		else if(_pid != 0)
 		{
-			printf("Starting service %i\n", _pid);
+			service_log_msg(TAG, "Starting service %i", _pid);
 		}
 		else
 		{
 			char dir[255];
 			getcwd(dir, 255);
-			printf("Current directory is %s\n", dir);
+			//
+			service_log_msg(TAG, "Current directory is %s", dir);
 			//
 			umask(0);
 			chdir("/");
-//			close(STDIN_FILENO);
-//			close(STDOUT_FILENO);
-//			close(STDERR_FILENO);
-			setsid();
 			//
+#ifdef SERVICE
+	#ifdef RELEASE
+			close(STDIN_FILENO);
+			close(STDOUT_FILENO);
+			close(STDERR_FILENO);
+
+	#endif
+#endif
+			//
+			setsid();
 			pid_t fpid = fork();
 			if(!fpid)
 			{

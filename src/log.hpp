@@ -12,6 +12,8 @@
 
 using namespace std;
 
+extern string log_filename;
+
 void write_log(string aMessage);
 void write_err(string aMessage);
 
