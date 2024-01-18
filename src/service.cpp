@@ -31,12 +31,38 @@ void LDService::logMsg(string tag, string time, string msg)
 
 static LDService *impl = nullptr;
 static string TAG = "MAIN";
-static char pidFileName[1024];
+//static char pidFileName[1024];
 static string START = "-start";
 static string STOP = "-stop";
 static string RESTART = "-restart";
 
-static void storePid(string pidFileName, int val)
+static int getPid()
+{
+  int ret = -1;
+  if(!impl)
+    return ret;
+
+  char buf[128];
+  FILE *f=nullptr;
+
+  snprintf(buf, 128, "pidof %s", impl->serviceName());
+  f = popen(buf, "r");
+  if(f != NULL)
+  {
+    fgets(buf, 128, f);
+    pclose(f);
+
+    pid_t thisPid = getpid(), pid1=-1,pid2=-1;
+    sscanf(buf, "%i %i", &pid1, &pid2);
+    if(pid1 == thisPid)
+      ret = pid2;
+    else if(pid2 == thisPid)
+      ret = pid1;
+  }
+  return ret;
+}
+
+static void _storePid(string pidFileName, int val)
 {
 	FILE *f = fopen(pidFileName.c_str(), "w+");
 	if(f != nullptr)
@@ -47,7 +73,7 @@ static void storePid(string pidFileName, int val)
 	}
 }
 
-static int restorePid(string pidFileName)
+static int _restorePid(string pidFileName)
 {
 	int ret = -1;
 	FILE *f = fopen(pidFileName.c_str(), "r");
@@ -59,7 +85,7 @@ static int restorePid(string pidFileName)
 	return ret;
 }
 
-static void removePid(string pidFileName)
+static void _removePid(string pidFileName)
 {
 	unlink(pidFileName.c_str());
 }
@@ -101,7 +127,7 @@ static void sigProc(int sig, siginfo_t *si, void *ptr)
 	service_log_msg(TAG, "Stopped with OS signal");
 
 	impl->onDestroy();
-	removePid(pidFileName);
+//	removePid(pidFileName);
 	exit(-1);
 }
 
@@ -111,7 +137,7 @@ static void serviceFunc()
 	sigset_t         sigset;
 	int              signo;
 
-	storePid(pidFileName, getpid());
+//	storePid(pidFileName, getpid());
 
 	sigact.sa_flags = SA_SIGINFO;
 	sigact.sa_sigaction = &sigProc;
@@ -172,7 +198,7 @@ static void serviceFunc()
 		service_log_msg(TAG, "Load config failed");
 	}
 	service_log_msg(TAG, "Stopped");
-	removePid(pidFileName);
+//	removePid(pidFileName);
 	exit(0);
 }
 
@@ -222,8 +248,8 @@ int service_main(int argc, char** args, LDService* iService)
 		return -1;
 	}
 
-	sprintf(pidFileName, "/tmp/%s.pid", impl->serviceName().c_str());
-	pid = restorePid(pidFileName);
+//	sprintf(pidFileName, "/tmp/%s.pid", impl->serviceName().c_str());
+	pid = getPid();  // restorePid(pidFileName);
 
 	if(!strncmp(args[1], RESTART.c_str(), strlen(RESTART.c_str())))
 	{
@@ -270,10 +296,10 @@ int service_main(int argc, char** args, LDService* iService)
 		}
 		else
 		{
-			char dir[255];
-			getcwd(dir, 255);
-			//
-			service_log_msg(TAG, "Current directory is %s", dir);
+//			char dir[255];
+//			getcwd(dir, 255);
+//			//
+//			service_log_msg(TAG, "Current directory is %s", dir);
 			//
 			umask(0);
 			chdir("/");
@@ -291,7 +317,7 @@ int service_main(int argc, char** args, LDService* iService)
 			pid_t fpid = fork();
 			if(!fpid)
 			{
-				chdir(dir);
+//				chdir(dir);
 				serviceFunc();
 			}
 		}

@@ -4,6 +4,7 @@
  *  Created on: Aug 17, 2023
  *      Author: vevdokimov
  */
+#include <unistd.h>
 
 #include "defines.hpp"
 #include "common_types.hpp"
@@ -356,7 +357,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			tt_cnt = 0;
 		}
 #endif
-
+		usleep(1);
 	}
 
 	cap.release();

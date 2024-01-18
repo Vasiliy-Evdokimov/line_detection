@@ -57,8 +57,8 @@ std::map<std::string, void*> config_pointers = {
 
 std::map<std::string, ConfigItem> config_map;
 
-bool restart_threads;
-bool kill_threads;
+bool restart_threads = false;
+bool kill_threads = false;
 
 ConfigItem::ConfigItem()
 {

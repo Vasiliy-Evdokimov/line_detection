@@ -22,7 +22,7 @@
 using namespace std;
 
 const string debug_work_directory = "/home/vevdokimov/eclipse-workspace/line_detection/";
-const string release_work_directory = "/home/user/line_detection/";
+const string release_work_directory = "/usr/bin/line_detection/";
 
 string get_work_directory()
 {

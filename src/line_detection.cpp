@@ -116,7 +116,7 @@ int onLoadConfig()
 int onStart()
 {
 	write_log("onStart()");
-	return main_function();
+	return 0; // main_function();
 }
 
 int onRestart()
@@ -140,7 +140,7 @@ void onDestroy()
 
 int main(int argc, char** argv)
 {
-	pthread_setname_np(pthread_self(), "main thread");
+//	pthread_setname_np(pthread_self(), "main thread");
 	//
 	log_filename = get_logs_directory() + "line_detection.log";
 	cout << "log_filename = " << log_filename << endl;
