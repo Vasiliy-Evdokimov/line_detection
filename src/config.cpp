@@ -5,7 +5,6 @@
  *      Author: vevdokimov
  */
 
-#include <opencv2/core.hpp>
 #include <sys/types.h>
 #include <unistd.h>
 #include <string>

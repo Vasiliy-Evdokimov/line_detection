@@ -545,8 +545,8 @@ bool find_central_point(ParseImageResult& parse_result)
 		//	если у какой-то из них y = 0, то она и есть центральная;
 		//	если точки находятся по разные стороны от оси X,
 		//	то берем уравнение прямой, проходящей через них и находим значение x при y = 0
-		Point pt1 = parse_result.res_points[i - 1];
-		Point pt2 = parse_result.res_points[i];
+		MyPoint pt1 = parse_result.res_points[i - 1];
+		MyPoint pt2 = parse_result.res_points[i];
 		if (pt1.y == 0) y0_x = pt1.x;
 		else if (pt2.y == 0) y0_x = pt2.x;
 		else if ((pt1.y < 0) && (pt2.y > 0))
@@ -738,7 +738,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				buf_rd.push_back(buf_points[k]);
 				//
 				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
-				parse_result.res_points.push_back(cb.point_cnt);
+				parse_result.res_points.push_back(MyPoint{cb.point_cnt.x, cb.point_cnt.y});
 			}
 			//else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
 			i = (k > 0) ? k : (i + 1);

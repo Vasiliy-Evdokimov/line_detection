@@ -116,7 +116,7 @@ int onLoadConfig()
 int onStart()
 {
 	write_log("onStart()");
-	return 0; // main_function();
+	return main_function();
 }
 
 int onRestart()
