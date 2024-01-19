@@ -109,19 +109,19 @@ int main_function()
 
 int onLoadConfig()
 {
-	write_log("onLoadConfig()");
+	write_log(__PRETTY_FUNCTION__);
 	return 0;
 }
 
 int onStart()
 {
-	write_log("onStart()");
+	write_log(__PRETTY_FUNCTION__);
 	return main_function();
 }
 
 int onRestart()
 {
-	write_log("onRestart()");
+	write_log(__PRETTY_FUNCTION__);
 	kill_udp_thread();
 	restart_threads = true;
 	return 0;
@@ -129,7 +129,7 @@ int onRestart()
 
 void onDestroy()
 {
-	write_log("onDestroy()");
+	write_log(__PRETTY_FUNCTION__);
 	kill_udp_thread();
 	kill_threads = true;
 	pthread_join(p_work_thread, NULL);
@@ -140,7 +140,7 @@ void onDestroy()
 
 int main(int argc, char** argv)
 {
-//	pthread_setname_np(pthread_self(), "main thread");
+	pthread_setname_np(pthread_self(), "main thread");
 	//
 	log_filename = get_logs_directory() + "line_detection.log";
 	cout << "log_filename = " << log_filename << endl;
