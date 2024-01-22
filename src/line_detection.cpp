@@ -142,7 +142,9 @@ int main(int argc, char** argv)
 {
 	pthread_setname_np(pthread_self(), "main thread");
 	//
-	log_filename = get_logs_directory() + "line_detection.log";
+	log_filename =
+		get_logs_directory() + "line_detection_" +
+		GetCurrentTime("%Y-%m-%d-%H-%M-%S") + ".log";
 	cout << "log_filename = " << log_filename << endl;
 	//
 	write_log("Application started!");

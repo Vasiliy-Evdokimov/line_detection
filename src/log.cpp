@@ -29,7 +29,7 @@ using namespace std;
 string log_filename = "";
 streambuf *cout_old = nullptr;
 
-string GetCurrentTime()
+string GetCurrentTime(char* fmt)
 {
 	time_t currentTime = chrono::system_clock::to_time_t(chrono::system_clock::now());
 	//
@@ -42,7 +42,7 @@ string GetCurrentTime()
 	timeinfo = *localtime(&currentTime);
 #endif
 
-	ss << put_time(&timeinfo, "%Y-%m-%d %H:%M:%S");
+	ss << put_time(&timeinfo, fmt);
 	string currentTimeString = ss.str();
 	//
 	return currentTimeString;
@@ -58,7 +58,7 @@ void write_log(string aMessage)
 	cout.rdbuf(fout.rdbuf());
 #endif
 	cout << "PID " << to_string(getpid())
-		 << ": " << GetCurrentTime()
+		 << ": " << GetCurrentTime("%Y-%m-%d %H:%M:%S")
 		 <<	": " << aMessage << endl;
 #ifdef SERVICE
 	cout.rdbuf(cout_old);
@@ -70,5 +70,5 @@ void write_log(string aMessage)
 
 void write_err(string aMessage)
 {
-	cerr << GetCurrentTime() << ": " << aMessage << endl;
+	cerr << GetCurrentTime("%Y-%m-%d %H:%M:%S") << ": " << aMessage << endl;
 }

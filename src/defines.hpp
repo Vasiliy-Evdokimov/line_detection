@@ -40,7 +40,7 @@
 #define CLEAR_CAM_BUFFER	20
 
 #define STATS_LOG
-#define AVG_CNT		100
+#define AVG_CNT		1000
 
 //#define UDP_LOG
 

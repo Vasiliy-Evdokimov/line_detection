@@ -14,6 +14,8 @@ using namespace std;
 
 extern string log_filename;
 
+string GetCurrentTime(char* fmt);
+
 void write_log(string aMessage);
 void write_err(string aMessage);
 
