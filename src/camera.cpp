@@ -357,7 +357,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			tt_cnt = 0;
 		}
 #endif
-		usleep(1);
+		usleep(1000);
 	}
 
 	cap.release();
@@ -781,7 +781,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			cv::Point line_pt(imgWidth / 2, imgHeight);
 			for (size_t i = 0; i < parse_result.res_points.size(); i++)
 			{
-				cv::Point pt_src = parse_result.res_points[i];
+				MyPoint mpt = parse_result.res_points[i];
+				cv::Point pt_src(mpt.x, mpt.y);
 				cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
 				//
 				cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
