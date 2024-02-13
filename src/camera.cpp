@@ -167,6 +167,9 @@ void visualizer_func()
 
 void* p_visualizer_func(void *args) { visualizer_func(); return 0; }
 
+#define USE_CAM
+#define IMG_ADDR "screenshot_1.png"
+
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
 
@@ -197,10 +200,13 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	uint64_t read_err = 0;
 
 	cv::VideoCapture cap;
-	cv::Mat frame;
+	cv::Mat frame, frame_img;
 	cv::Mat undistorted;
 
 	ParseImageResult parse_result;
+
+#ifdef USE_CAM
+
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
 #ifdef USE_FPS
@@ -210,8 +216,15 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	bool err_open, err_grab, err_empty;
 
+#else
+
+	frame_img = imread(IMG_ADDR, IMREAD_COLOR);
+
+#endif	//	USE_CAM
+
 	while (1)
 	{
+#ifdef USE_CAM
 		if (restart_threads || kill_threads) break;
 
 		if (parse_result.fl_err_camera) {
@@ -276,6 +289,12 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			parse_result_to_sm(parse_result, aIndex);
 			continue;
 		}
+
+#else	//	USE_CAM
+
+		frame = frame_img.clone();
+
+#endif	//	USE_CAM
 
 		tStart = clock();
 
@@ -655,6 +674,23 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	for (int i = 0; i < config.DATA_SIZE; ++i)
 	{
 		ContData* dt = &data[config.DATA_SIZE - 1 - i];
+
+#ifndef NO_GUI
+		if (config.DRAW && config.DRAW_DETAILED)
+			for (int j = 0; j < dt->vRect.size(); j++)
+			{
+				RectData rd = dt->vRect[j];
+				//
+				cv::rectangle(imgColor, rd.bound, CLR_RECT_BOUND);
+				cv::circle(imgColor, rd.center, 3, CLR_GREEN, 1, cv::LINE_AA);
+				//
+				cv::putText(imgColor, "L=" + std::to_string((int)rd.len), rd.bound.tl() + cv::Point(2, 12),
+					cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+				cv::putText(imgColor, "W=" + std::to_string((int)rd.bound.width), rd.bound.tl() + cv::Point(2, 27),
+					cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+			}
+	#endif
+
 		//	сортируем прямоугольники, обрамляющие контуры, по близости к базовой точке;
 		//	при первой итерации, базовая точка - центр нижнего края изображения
 		RectData* rd = sort_cont(*lpCenter, dt[0]);
@@ -667,16 +703,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		//	центр найденного прямоугольника становится новой базовой точкой
 		lpCenter = &rd->center;
 
-#ifndef NO_GUI
-		if (config.DRAW && config.DRAW_DETAILED)
-		{
-			cv::rectangle(imgColor, rd->bound, CLR_RECT_BOUND);
-			cv::circle(imgColor, rd->center, 3, CLR_GREEN, 1, cv::LINE_AA);
-			//
-//			cv::putText(imgColor, std::to_string(rd->bound.width), rd->center + cv::Point(0, 20),
-//				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_GREEN);
-		}
-#endif
 	}
 
 #ifndef NO_GUI

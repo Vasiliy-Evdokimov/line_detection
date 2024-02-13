@@ -27,10 +27,10 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 		cv::Moments M = cv::moments(*i);
 		cv::Rect R = cv::boundingRect(*i);
 
-		if (M.m00 < config.MIN_CONT_LEN)
+		if ((M.m00 < config.MIN_CONT_LEN) || (M.m00 > config.MAX_CONT_LEN))
 			continue;
 
-		if (R.width < config.MIN_RECT_WIDTH)
+		if ((R.width < config.MIN_RECT_WIDTH) || (R.width > config.MAX_RECT_WIDTH))
 			continue;
 
 		rd.len = M.m00;

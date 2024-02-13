@@ -52,7 +52,10 @@ struct ConfigData
 	int DRAW;
 	//
 	int MIN_CONT_LEN;
+	int MAX_CONT_LEN;
 	int MIN_RECT_WIDTH;
+	int MAX_RECT_WIDTH;
+	//
 	int HOR_COLLAPSE;
 	//
 	int GAUSSIAN_BLUR_KERNEL;

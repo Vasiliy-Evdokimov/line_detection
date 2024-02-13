@@ -8,9 +8,9 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-#define	SERVICE
-#define	NO_GUI
-#define	RELEASE
+//#define	SERVICE
+//#define	NO_GUI
+//#define	RELEASE
 
 //#define USE_UNDISTORT
 
@@ -44,7 +44,7 @@
 
 //#define UDP_LOG
 
-#define BARCODE_LOG
+//#define BARCODE_LOG
 
 #define MAX_POINTS_COUNT	10
 #define MAX_HOR_COUNT		10
