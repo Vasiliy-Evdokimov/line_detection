@@ -419,6 +419,8 @@ void find_barcodes(cv::Mat& imgColor, ParseImageResult& parse_result,
 			double dist1 = get_points_distance(bdr.contour[1], bdr.contour[2]);
 			double dist2 = get_points_distance(center, p1) * (config.DATAMATRIX_WIDTH / dist1);
 
+			if (center.y > imgColor.rows / 2) dist2 *= -1;
+
 	#ifndef NO_GUI
 			cv::line(imgColor, p1, center, CLR_YELLOW, 1, cv::LINE_AA, 0);
 			cv::putText(imgColor, std::to_string(dist2), bdr.contour[3] + cv::Point(0, 40),
@@ -549,9 +551,14 @@ void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
 
 	int mok = config.MORPH_OPEN_KERNEL;
 	cv::morphologyEx(trImage, trImage, MORPH_OPEN, getStructuringElement(MORPH_RECT, Size2i(mok, mok)));
-//	int mck = config.MORPH_CLOSE_KERNEL;
-//	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
+	int mck = config.MORPH_CLOSE_KERNEL;
+	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
+
+//	cv::Mat equalized;
+//	cv::equalizeHist(trImage, equalized);
+
+	//dstImg = trImage.clone();
 	cv::threshold(trImage, dstImg, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 }
 
@@ -610,7 +617,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifdef USE_BARCODES
 	//	сокрытие штрихкодов
-	hide_barcodes(gray, barcodes_results);
+	// hide_barcodes(gray, barcodes_results);
 #endif
 
 #ifndef NO_GUI
@@ -632,6 +639,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	parse_result.fl_err_line = false;
 
+	std::vector<cv::Mat> thresh_imgs;
+
 	int k = 0;
 	//	разбиваем изображение на ROI,
 	//	находим контуры и параметры контуров в них
@@ -639,20 +648,28 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	{
 		if (i < (config.NUM_ROI - config.NUM_ROI_H))
 		{
+			Mat roiImg;
 			cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
-			get_contur_params(gray, roi, data[k], i, 0);
+			get_contur_params(gray, roi, data[k], i, 0, roiImg);
+//			thresh_imgs.push_back(roiImg);
 			k++;
 		}
 		else
 		{
 			for (int j = 0; j < config.NUM_ROI_V; ++j)
 			{
+				Mat roiImg;
 				cv::Rect roi(imgOffsetV * j, imgOffset * i, imgOffsetV, imgOffset);
-				get_contur_params(gray, roi, data[k], i, j);
+				get_contur_params(gray, roi, data[k], i, j, roiImg);
+				thresh_imgs.push_back(roiImg);
 				k++;
 			}
 		}
 	}
+
+//	cv::Mat thresh_megred;
+//	cv::vconcat(thresh_imgs, thresh_megred);
+//	grays_to_show[aIndex] = thresh_megred.clone();
 
 #ifndef NO_GUI
 	//	рисуем сетку из ROI
@@ -675,7 +692,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	{
 		ContData* dt = &data[config.DATA_SIZE - 1 - i];
 
-#ifndef NO_GUI
+	#ifndef NO_GUI
+		//	рисуем ВСЕ найденные области в ROI
 		if (config.DRAW && config.DRAW_DETAILED)
 			for (int j = 0; j < dt->vRect.size(); j++)
 			{
@@ -698,6 +716,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		if (rd == nullptr)
 			continue;
 
+	#ifndef NO_GUI
+		//	выедяем выбранную в ROI область
+		cv::rectangle(imgColor, rd->bound, CLR_YELLOW);
+	#endif
+
 		buf_points.push_back(rd);
 		//
 		//	центр найденного прямоугольника становится новой базовой точкой
@@ -717,12 +740,48 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	sort(buf_points.begin(), buf_points.end(),
 		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
 
-	//	поиск горизонтальных пересечений
-	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
-	//
-	for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
-		CalibPoint cb = get_calib_point(imgColor, Point2f(imgColor.cols / 2, parse_result.hor_ys[i]));
-		parse_result.hor_ys[i] = cb.point_cnt.y;
+//	//	поиск горизонтальных пересечений
+//	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
+//	//
+//	for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
+//		CalibPoint cb = get_calib_point(imgColor, Point2f(imgColor.cols / 2, parse_result.hor_ys[i]));
+//		parse_result.hor_ys[i] = cb.point_cnt.y;
+//	}
+
+	//	фильтруем список областей, оставляя только те,
+	//	у которых есть смежные по вертикали в соседних ROI
+	{
+		size_t i = 0;
+		RectData* rd1;
+		RectData* rd2;
+		bool fl = false;
+		while (i < buf_points.size())
+		{
+			rd1 = buf_points[i];
+			fl = false;
+			for (size_t j = 0; j < buf_points.size(); j++)
+			{
+				if (i == j) continue;
+				//
+				rd2 = buf_points[j];
+				if ((abs(rd1->roi_row - rd2->roi_row) == 1) &&
+					check_rects_adj_horz(rd1->bound, rd2->bound))
+				{
+					fl = true;
+					break;
+				}
+			}
+			//
+			if (fl) {
+				i++;
+			} else {
+				buf_points.erase(buf_points.begin() + i);
+			#ifndef NO_GUI
+				//	выделяем удаленную область, не подошедшую по условиям
+				cv::rectangle(imgColor, rd1->bound, CLR_RED);
+			#endif
+			}
+		}
 	}
 
 	//	добавляем нижнюю центральную точку в список для построения линии
@@ -730,6 +789,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	center_rd.center = cv::Point(imgWidth / 2, imgHeight);
 	center_rd.bound = cv::Rect(center_rd.center.x - imgOffsetV / 2, center_rd.center.y - 10, imgOffsetV, 20);
 	center_rd.roi_row = config.NUM_ROI;
+	center_rd._reserved = 100;
 	buf_points.insert(buf_points.begin(), &center_rd);
 
 	//	строим линию
@@ -743,15 +803,15 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			rd1 = buf_points[i];
 			for (size_t j = i + 1; j < buf_points.size(); j++) {
 				rd2 = buf_points[j];
-				if (abs(rd1->roi_row - rd2->roi_row) != 1)
-					continue;
 				//
-				if (
-					true
-					//&& ((rd1->roi_row - rd2->roi_row) == 1)				//	если точки в соседних строках
-					//&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
-					//&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
+				if ((i == 0) || //	центральная точка соединяется с любой ближайшей
+					(
+						true
+						&& (abs(rd1->roi_row - rd2->roi_row) == 1)			//	если точки в соседних строках
+//						&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
+						&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
 					)
+				)
 				{
 					double len = length(rd1->center, rd2->center);
 					if (len <= min_len) {
@@ -776,7 +836,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	//	ошибка поиска линии, если количество точек в результате меньше, чем количество строк ROI,
 	//	то есть линия правильно найдена, если в каждой строке найдна её точка
-	parse_result.fl_err_line |= (parse_result.res_points.size() < config.NUM_ROI);
+	//	arse_result.fl_err_line |= (parse_result.res_points.size() < config.NUM_ROI);
+
+	//	UPD: ошибка поиска линии, если не удалось найти центральную точку
+	parse_result.fl_err_line = !y0x_found;
 
 #ifndef NO_GUI
 	if (config.DRAW)
