@@ -235,6 +235,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 #endif	//	USE_CAM
 
+	bool camera_open_error_logged = false;
+	bool camera_read_error_logged = false;
+
 	while (1)
 	{
 #ifdef USE_CAM
@@ -248,10 +251,17 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			parse_result.fl_err_camera = !cap.open(aCamAddress);
 			parse_result_to_sm(parse_result, aIndex);
 
-			if (parse_result.fl_err_camera)	{
-				write_log(aThreadName + " - error opening camera!");
+			if (parse_result.fl_err_camera)
+			{
+				if (!camera_open_error_logged)
+				{
+					write_log(aThreadName + " - error opening camera!");
+					camera_open_error_logged = true;
+				}
 				continue;
 			}
+
+			camera_open_error_logged = false;
 
 			//	очищаем буфер
 			for (int i = 0; i < CLEAR_CAM_BUFFER; i++)
@@ -285,15 +295,22 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		parse_result.fl_err_camera = err_open || err_grab || err_empty;
 
-		if (parse_result.fl_err_camera) {
-			write_log(aThreadName + " read error! " +
-				to_string(err_open) + " " +
-				to_string(err_grab) + " " +
-				to_string(err_empty)
-			);
+		if (parse_result.fl_err_camera)
+		{
+			if (!camera_read_error_logged)
+			{
+				write_log(aThreadName + " read error! " +
+					to_string(err_open) + " " +
+					to_string(err_grab) + " " +
+					to_string(err_empty)
+				);
+				camera_read_error_logged = true;
+			}
 			parse_result_to_sm(parse_result, aIndex);
 			continue;
 		}
+
+		camera_read_error_logged = false;
 
 #else	//	USE_CAM
 
@@ -801,7 +818,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				if ((i == 0) || //	центральная точка соединяется с любой ближайшей
 					(
 						true
-						&& (abs(rd1->roi_row - rd2->roi_row) == 1)			//	если точки в соседних строках
+						&& (abs(rd1->roi_row - rd2->roi_row) == 1)			//	если области в соседних строках
 //						&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
 						&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
 					)
