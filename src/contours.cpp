@@ -8,19 +8,15 @@
 #include "config.hpp"
 #include "contours.hpp"
 
-int thresholds[4] = { 100, 80, 60, 60 };
-
-void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row, int roi_col, cv::Mat& roiImg)
+void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row, int roi_col)
 {
-	//cv::Mat roiImg;
+	cv::Mat roiImg;
 	std::vector<std::vector<cv::Point2i>> cont;
 	std::vector<cv::Vec4i> hie;
 
 	data.roi = roi;
 
 	img(roi).copyTo(roiImg);
-
-	//cv::threshold(roiImg, roiImg, thresholds[roi_row], config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 
 	cv::findContours(roiImg, cont, hie, cv::RETR_CCOMP, cv::CHAIN_APPROX_NONE);
 

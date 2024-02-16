@@ -56,6 +56,11 @@ cv::Scalar templates_clr[] { CLR_YELLOW, CLR_MAGENTA, CLR_CYAN, CLR_BLUE, CLR_GR
 
 cv::Mat calibration_img;
 
+int shuttle_height = 0;
+
+const int SHUTTLE_HEIGHT_TEST_OFFSET = 50;
+const float SHUTTLE_HEIGHT_THRESH_K = 0.1;
+
 void visualizer_func()
 {
 
@@ -154,6 +159,14 @@ void visualizer_func()
 		if (key != -1)
 		{
 			write_log(to_string(key));
+			//
+			//	тест зависимости threshold от высоты подъема цилиндров
+			if (!config.CALIBRATE_CAM)
+			{
+				if (key == VK_KEY_A) shuttle_height += SHUTTLE_HEIGHT_TEST_OFFSET;
+				if (key == VK_KEY_S) shuttle_height -= SHUTTLE_HEIGHT_TEST_OFFSET;
+			}
+			//
 			toggle_key(key);
 		}
 
@@ -261,16 +274,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			if (tt_elapsed < (1. / FPS))
 				continue;
 
-//			write_log(aThreadName +
-//				" fps_count = " + to_string(fps_count) +
-//				" tt_elapsed = " + to_string(tt_elapsed));
-
 			fps_count = 0;
 			tt_prev = clock();
-
-//			cv::imshow("FPS_Test", frame);
-//			cv::waitKey(1);
-//			continue;
 		}
 #endif
 
@@ -555,11 +560,9 @@ void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
 	int mck = config.MORPH_CLOSE_KERNEL;
 	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
-//	cv::Mat equalized;
-//	cv::equalizeHist(trImage, equalized);
-
-	//dstImg = trImage.clone();
-	cv::threshold(trImage, dstImg, config.THRESHOLD_THRESH, config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
+	cv::threshold(trImage, dstImg,
+			config.THRESHOLD_THRESH + shuttle_height * SHUTTLE_HEIGHT_THRESH_K,
+			config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 }
 
 bool find_central_point(ParseImageResult& parse_result)
@@ -617,7 +620,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifdef USE_BARCODES
 	//	сокрытие штрихкодов
-	// hide_barcodes(gray, barcodes_results);
+	//	hide_barcodes(gray, barcodes_results);
 #endif
 
 #ifndef NO_GUI
@@ -639,8 +642,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	parse_result.fl_err_line = false;
 
-	std::vector<cv::Mat> thresh_imgs;
-
 	int k = 0;
 	//	разбиваем изображение на ROI,
 	//	находим контуры и параметры контуров в них
@@ -648,10 +649,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	{
 		if (i < (config.NUM_ROI - config.NUM_ROI_H))
 		{
-			Mat roiImg;
 			cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
-			get_contur_params(gray, roi, data[k], i, 0, roiImg);
-//			thresh_imgs.push_back(roiImg);
+			get_contur_params(gray, roi, data[k], i, 0);
 			k++;
 		}
 		else
@@ -660,16 +659,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			{
 				Mat roiImg;
 				cv::Rect roi(imgOffsetV * j, imgOffset * i, imgOffsetV, imgOffset);
-				get_contur_params(gray, roi, data[k], i, j, roiImg);
-				thresh_imgs.push_back(roiImg);
+				get_contur_params(gray, roi, data[k], i, j);
 				k++;
 			}
 		}
 	}
-
-//	cv::Mat thresh_megred;
-//	cv::vconcat(thresh_imgs, thresh_megred);
-//	grays_to_show[aIndex] = thresh_megred.clone();
 
 #ifndef NO_GUI
 	//	рисуем сетку из ROI
@@ -717,7 +711,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 			continue;
 
 	#ifndef NO_GUI
-		//	выедяем выбранную в ROI область
+		//	выделяем выбранную в ROI область
 		cv::rectangle(imgColor, rd->bound, CLR_YELLOW);
 	#endif
 
@@ -820,13 +814,14 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 					}
 				}
 			}
+			//
 			if (k > 0) {
 				buf_rd.push_back(buf_points[k]);
 				//
 				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
 				parse_result.res_points.push_back(MyPoint{cb.point_cnt.x, cb.point_cnt.y});
 			}
-			//else break;	//	если не можем построить следующий отрезок, то прекращаем обработку (сигнализировать об ошибке?)
+			//
 			i = (k > 0) ? k : (i + 1);
 		}
 	}
@@ -834,11 +829,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	находим центральную точку и её координаты в мм
 	bool y0x_found = find_central_point(parse_result);
 
-	//	ошибка поиска линии, если количество точек в результате меньше, чем количество строк ROI,
-	//	то есть линия правильно найдена, если в каждой строке найдна её точка
-	//	arse_result.fl_err_line |= (parse_result.res_points.size() < config.NUM_ROI);
-
-	//	UPD: ошибка поиска линии, если не удалось найти центральную точку
+	//	ошибка поиска линии если не удалось найти центральную точку
 	parse_result.fl_err_line = !y0x_found;
 
 #ifndef NO_GUI
@@ -901,6 +892,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
 			}
 		}
+		//
+		cv::putText(imgColor,
+				"height = " + to_string(shuttle_height) + " mm",
+				cv::Point(130, 20),
+				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_MAGENTA);
 		//
 		//frames_mtx[aIndex].lock();
 		frames_to_show[aIndex] = imgColor.clone();
