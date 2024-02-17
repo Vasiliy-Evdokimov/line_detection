@@ -35,8 +35,11 @@ inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
 inline ZXing::Results ReadBarcodes(const cv::Mat& image, const ZXing::DecodeHints& hints = {})
 {
 	ZXing::DecodeHints hints2;
+	//
 	hints2.setTryHarder(true);
-	hints2.setFormats(ZXing::BarcodeFormat::Any);
+	hints2.setTryInvert(true);
+	hints2.setTryRotate(true);
+	hints2.setFormats(ZXing::BarcodeFormat::Codabar | ZXing::BarcodeFormat::DataMatrix);
 	//
 	return ZXing::ReadBarcodes(ImageViewFromMat(image), hints2);
 }

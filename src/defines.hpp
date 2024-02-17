@@ -18,7 +18,7 @@
 //#define USE_TEMPLATES
 
 #define USE_FPS
-#define FPS 13
+#define FPS 20
 
 #define CAM_COUNT	2
 
