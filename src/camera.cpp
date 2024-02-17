@@ -36,13 +36,11 @@ using namespace std;
 #include "calibration.hpp"
 #include "camera.hpp"
 
-//mutex frames_mtx[CAM_COUNT];
 cv::Mat sources_to_show[CAM_COUNT];
 cv::Mat undistorteds_to_show[CAM_COUNT];
 cv::Mat frames_to_show[CAM_COUNT];
 cv::Mat grays_to_show[CAM_COUNT];
 
-//mutex parse_results_mtx[CAM_COUNT];
 ResultFixed parse_results[CAM_COUNT];
 
 const string SOURCE_WND_NAME = "Camera(s) Source";
@@ -94,7 +92,6 @@ void visualizer_func()
 			cv::Mat gray;
 			cv::Mat frame;
 			//
-			//frames_mtx[i].lock();
 			if (!(sources_to_show[i].empty()))
 				source = sources_to_show[i].clone();
 			if (!(undistorteds_to_show[i].empty()))
@@ -103,7 +100,6 @@ void visualizer_func()
 				gray = grays_to_show[i].clone();
 			if (!(frames_to_show[i].empty()))
 				frame = frames_to_show[i].clone();
-			//frames_mtx[i].unlock();
 			//
 			if (config.CALIBRATE_CAM == (i + 1))
 			{
@@ -336,10 +332,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			continue;
 		}
 
-		//frames_mtx[aIndex].lock();
 		sources_to_show[aIndex] = frame.clone();
 		undistorteds_to_show[aIndex] = undistorted.clone();
-		//frames_mtx[aIndex].unlock();
 
 		parse_result.width = frame.cols;
 		parse_result.height = frame.rows;
@@ -354,12 +348,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 				aIndex
 			);
 			parse_result.fl_err_parse = false;
-			//
-			//parse_results_mtx[aIndex].lock();
-			//parse_results[aIndex] = parse_result.ToFixed();
-			//write_results_sm(parse_results[aIndex], aIndex);
-			//parse_result_to_sm(parse_result, aIndex);
-			//parse_results_mtx[aIndex].unlock();
 
 		} catch (...) {
 			parse_result.fl_err_parse = true;
@@ -643,9 +631,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 #ifndef NO_GUI
 	if (config.DRAW && config.SHOW_GRAY)
 	{
-		//frames_mtx[aIndex].lock();
 		grays_to_show[aIndex] = gray.clone();
-		//frames_mtx[aIndex].unlock();
 	}
 #endif
 
@@ -915,9 +901,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				cv::Point(130, 20),
 				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_MAGENTA);
 		//
-		//frames_mtx[aIndex].lock();
 		frames_to_show[aIndex] = imgColor.clone();
-		//frames_mtx[aIndex].unlock();
 	}
 #endif
 

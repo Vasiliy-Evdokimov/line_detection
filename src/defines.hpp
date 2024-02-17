@@ -8,9 +8,9 @@
 #ifndef DEFINES_HPP_
 #define DEFINES_HPP_
 
-//#define	SERVICE
-//#define	NO_GUI
-//#define	RELEASE
+#define	SERVICE
+#define	NO_GUI
+#define	RELEASE
 
 //#define USE_UNDISTORT
 
