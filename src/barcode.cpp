@@ -13,6 +13,7 @@
 #include "ZXing/ReadBarcode.h"
 #include "ZXing/BarcodeFormat.h"
 
+#include "config.hpp"
 #include "barcode.hpp"
 
 inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
@@ -36,9 +37,10 @@ inline ZXing::Results ReadBarcodes(const cv::Mat& image, const ZXing::DecodeHint
 {
 	ZXing::DecodeHints hints2;
 	//
-	hints2.setTryHarder(true);
-	hints2.setTryInvert(true);
-	hints2.setTryRotate(true);
+	hints2.setTryHarder(config.BARCODE_TRY_HARDER);
+	hints2.setTryInvert(config.BARCODE_TRY_INVERT);
+	hints2.setTryRotate(config.BARCODE_TRY_ROTATE);
+	//
 	hints2.setFormats(ZXing::BarcodeFormat::Codabar | ZXing::BarcodeFormat::DataMatrix);
 	//
 	return ZXing::ReadBarcodes(ImageViewFromMat(image), hints2);

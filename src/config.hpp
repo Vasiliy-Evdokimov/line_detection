@@ -36,27 +36,20 @@ struct ConfigData
 	//
 	char CAM_ADDR_1[255];
 	char CAM_ADDR_2[255];
+	//
 	int USE_CAM;
+	int USE_FPS;
+	int FPS;
 	//
 	int UDP_PORT;
 	char UDP_REQUEST[50];
 	//
 	int NUM_ROI;
-	int NUM_ROI_H;
-	int NUM_ROI_V;
-	int DATA_SIZE;
-	//
-	int SHOW_GRAY;
-	int DRAW_DETAILED;
-	int DRAW_GRID;
-	int DRAW;
 	//
 	int MIN_CONT_LEN;
 	int MAX_CONT_LEN;
 	int MIN_RECT_WIDTH;
 	int MAX_RECT_WIDTH;
-	//
-	int HOR_COLLAPSE;
 	//
 	int GAUSSIAN_BLUR_KERNEL;
 	int MORPH_OPEN_KERNEL;
@@ -68,17 +61,17 @@ struct ConfigData
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
 	//
-	int BARCODE_LEFT;
-	int BARCODE_WIDTH;
-	int DATAMATRIX_WIDTH;
+	int BARCODE_TRY_HARDER;
+	int BARCODE_TRY_INVERT;
+	int BARCODE_TRY_ROTATE;
 	//
-	int LINE_WIDTH;
+	int BARCODE_LEFT;
+	int DATAMATRIX_WIDTH;
 	//
 	int CAM_TIMEOUT;
 	//
-	int CALIBRATE_CAM;
-
-	void recount_data_size();
+	int STATS_LOG;
+	int STATS_COUNT;
 };
 
 extern ConfigData config;

@@ -29,7 +29,6 @@ using namespace std;
 
 #include "config.hpp"
 #include "contours.hpp"
-#include "horizontal.hpp"
 #include "barcode.hpp"
 #include "templates.hpp"
 #include "shared_memory.hpp"
@@ -52,12 +51,23 @@ const string CALIBRATION_WND_NAME = "Calibration editor";
 
 cv::Scalar templates_clr[] { CLR_YELLOW, CLR_MAGENTA, CLR_CYAN, CLR_BLUE, CLR_GREEN };
 
-cv::Mat calibration_img;
+const int SHOW_GRAY = 1;
 
 int shuttle_height = 0;
 
 const int SHUTTLE_HEIGHT_TEST_OFFSET = 50;
 const float SHUTTLE_HEIGHT_THRESH_K = 0.1;
+
+bool check_rects_adj_horz(const cv::Rect r1, const cv::Rect r2)
+{
+	// Если один прямоугольник находится справа от другого
+	if ((r1.x > (r2.x + r2.width)) ||
+		(r2.x > (r1.x + r1.width))) {
+		return false;
+	}
+	// В противном случае, прямоугольники пересекаются
+	return true;
+}
 
 void visualizer_func()
 {
@@ -66,11 +76,6 @@ void visualizer_func()
 
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
-
-	if (config.CALIBRATE_CAM) {
-		namedWindow(CALIBRATION_WND_NAME);
-		setMouseCallback(CALIBRATION_WND_NAME, onMouse, &calibration_img);
-	}
 
 	while (!kill_threads) {
 
@@ -96,17 +101,10 @@ void visualizer_func()
 				source = sources_to_show[i].clone();
 			if (!(undistorteds_to_show[i].empty()))
 				undistorted = undistorteds_to_show[i].clone();
-			if (config.SHOW_GRAY && !(grays_to_show[i].empty()))
+			if (SHOW_GRAY && !(grays_to_show[i].empty()))
 				gray = grays_to_show[i].clone();
 			if (!(frames_to_show[i].empty()))
 				frame = frames_to_show[i].clone();
-			//
-			if (config.CALIBRATE_CAM == (i + 1))
-			{
-				calibration_img = undistorted.clone();
-				if (!(calibration_img.empty()))
-					calibration(calibration_img);
-			}
 			//
 			if (!(source.empty()))
 				sources.push_back(source);
@@ -131,25 +129,19 @@ void visualizer_func()
 			cv::hconcat(sources, mergedSource);
 		if (undistorteds.size() > 0)
 			cv::hconcat(undistorteds, mergedUndistorted);
-		if (config.SHOW_GRAY && (grays.size() > 0))
+		if (SHOW_GRAY && (grays.size() > 0))
 			cv::hconcat(grays, mergedGray);
 		if (frames.size() > 0)
 			cv::hconcat(frames, mergedFrames);
 		//
-		if (config.CALIBRATE_CAM && !calibration_img.empty())
-			cv::imshow(CALIBRATION_WND_NAME, calibration_img);
-		//
-		if (!config.CALIBRATE_CAM)
-		{
-//			if (!mergedSource.empty())
-//				cv::imshow(SOURCE_WND_NAME, mergedSource);
-//			if (!mergedUndistorted.empty())
-//				cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
-			if (config.SHOW_GRAY && !mergedGray.empty())
-				cv::imshow(GRAY_WND_NAME, mergedGray);
-			if (!mergedFrames.empty())
-				cv::imshow(COLOR_WND_NAME, mergedFrames);
-		}
+//		if (!mergedSource.empty())
+//			cv::imshow(SOURCE_WND_NAME, mergedSource);
+//		if (!mergedUndistorted.empty())
+//			cv::imshow(UNDISTORTED_WND_NAME, mergedUndistorted);
+		if (SHOW_GRAY && !mergedGray.empty())
+			cv::imshow(GRAY_WND_NAME, mergedGray);
+		if (!mergedFrames.empty())
+			cv::imshow(COLOR_WND_NAME, mergedFrames);
 		//
 		int key = cv::waitKey(1);
 		if (key != -1)
@@ -157,11 +149,8 @@ void visualizer_func()
 			write_log(to_string(key));
 			//
 			//	тест зависимости threshold от высоты подъема цилиндров
-			if (!config.CALIBRATE_CAM)
-			{
-				if (key == VK_KEY_A) shuttle_height += SHUTTLE_HEIGHT_TEST_OFFSET;
-				if (key == VK_KEY_S) shuttle_height -= SHUTTLE_HEIGHT_TEST_OFFSET;
-			}
+			if (key == VK_KEY_A) shuttle_height += SHUTTLE_HEIGHT_TEST_OFFSET;
+			if (key == VK_KEY_S) shuttle_height -= SHUTTLE_HEIGHT_TEST_OFFSET;
 			//
 			toggle_key(key);
 		}
@@ -175,9 +164,6 @@ void visualizer_func()
 }
 
 void* p_visualizer_func(void *args) { visualizer_func(); return 0; }
-
-#define USE_CAM
-#define IMG_ADDR "screenshot_1.png"
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex)
 {
@@ -209,34 +195,23 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	uint64_t read_err = 0;
 
 	cv::VideoCapture cap;
-	cv::Mat frame, frame_img;
+	cv::Mat frame;
 	cv::Mat undistorted;
 
 	ParseImageResult parse_result;
 
-#ifdef USE_CAM
-
 	parse_result.fl_err_camera = true;	//	инициализация камеры
 
-#ifdef USE_FPS
 	double tt_elapsed, tt_prev = clock();
 	int fps_count = 0;
-#endif
 
 	bool err_open, err_grab, err_empty;
-
-#else
-
-	frame_img = imread(IMG_ADDR, IMREAD_COLOR);
-
-#endif	//	USE_CAM
 
 	bool camera_open_error_logged = false;
 	bool camera_read_error_logged = false;
 
 	while (1)
 	{
-#ifdef USE_CAM
 		if (restart_threads || kill_threads) break;
 
 		if (parse_result.fl_err_camera) {
@@ -272,18 +247,19 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		if (!err_open)
 			err_grab = !cap.grab();
 
-#ifdef USE_FPS
-		if (!err_open && !err_grab)
+		if (config.USE_FPS && (config.FPS > 0))
 		{
-			fps_count++;
-			tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
-			if (tt_elapsed < (1. / FPS))
-				continue;
+			if (!err_open && !err_grab)
+			{
+				fps_count++;
+				tt_elapsed = (double)(clock() - tt_prev) / CLOCKS_PER_SEC;
+				if (tt_elapsed < (1. / config.FPS))
+					continue;
 
-			fps_count = 0;
-			tt_prev = clock();
+				fps_count = 0;
+				tt_prev = clock();
+			}
 		}
-#endif
 
 		if (!err_open && !err_grab)
 			cap.retrieve(frame);
@@ -307,12 +283,6 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 		camera_read_error_logged = false;
-
-#else	//	USE_CAM
-
-		frame = frame_img.clone();
-
-#endif	//	USE_CAM
 
 		tStart = clock();
 
@@ -360,32 +330,34 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			continue;
 		}
 
-#ifdef STATS_LOG
-		if (parse_result.fl_err_line)
-			incorrect_lines++;
-		//
-		tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
-		if (!tt_cnt) { tt_sum = 0; tt_max = tt; tt_min = tt; }
-		//
-		if (tt > tt_max) tt_max = tt;
-		if (tt < tt_min) tt_min = tt;
-		tt_sum += tt;
-		tt_cnt++;
-		//
-		if (tt_cnt >= AVG_CNT)
+		if (config.STATS_LOG && (config.STATS_COUNT > 0))
 		{
-			if (read_err)
-				write_log(aThreadName + " reading errors = " + to_string(read_err));
-//				write_log(aThreadName + " incorrect lines: " + to_string(incorrect_lines));
-			write_log(aThreadName + " time taken:" +
-				" min=" + to_string(tt_min) +
-				" max=" + to_string(tt_max) +
-				" avg=" + to_string(tt_sum / tt_cnt));
+			if (parse_result.fl_err_line)
+				incorrect_lines++;
 			//
-			incorrect_lines = 0;
-			tt_cnt = 0;
+			tt = (double)(clock() - tStart) / CLOCKS_PER_SEC;
+			if (!tt_cnt) { tt_sum = 0; tt_max = tt; tt_min = tt; }
+			//
+			if (tt > tt_max) tt_max = tt;
+			if (tt < tt_min) tt_min = tt;
+			tt_sum += tt;
+			tt_cnt++;
+			//
+			if (tt_cnt >= config.STATS_COUNT)
+			{
+//				if (read_err)
+//					write_log(aThreadName + " reading errors = " + to_string(read_err));
+//				write_log(aThreadName + " incorrect lines: " + to_string(incorrect_lines));
+				write_log(aThreadName + " time taken:" +
+					" min=" + to_string(tt_min) +
+					" max=" + to_string(tt_max) +
+					" avg=" + to_string(tt_sum / tt_cnt));
+				//
+				incorrect_lines = 0;
+				tt_cnt = 0;
+			}
 		}
-#endif
+
 		usleep(1000);
 	}
 
@@ -629,50 +601,31 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 #endif
 
 #ifndef NO_GUI
-	if (config.DRAW && config.SHOW_GRAY)
-	{
+	if (SHOW_GRAY)
 		grays_to_show[aIndex] = gray.clone();
-	}
 #endif
 
 	//	config.DATA_SIZE - это общее количество ROI на изображении;
-	ContData data[config.DATA_SIZE];
+	ContData data[config.NUM_ROI];
 
 	int imgWidth = imgColor.cols;
 	int imgHeight = imgColor.rows;
 	int imgOffset = imgHeight / config.NUM_ROI;
-	int imgOffsetV = imgWidth / config.NUM_ROI_V;
 
 	parse_result.fl_err_line = false;
 
-	int k = 0;
 	//	разбиваем изображение на ROI,
 	//	находим контуры и параметры контуров в них
 	for (int i = 0; i < config.NUM_ROI; ++i)
 	{
-		if (i < (config.NUM_ROI - config.NUM_ROI_H))
-		{
-			cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
-			get_contur_params(gray, roi, data[k], i, 0);
-			k++;
-		}
-		else
-		{
-			for (int j = 0; j < config.NUM_ROI_V; ++j)
-			{
-				Mat roiImg;
-				cv::Rect roi(imgOffsetV * j, imgOffset * i, imgOffsetV, imgOffset);
-				get_contur_params(gray, roi, data[k], i, j);
-				k++;
-			}
-		}
+		cv::Rect roi(0, imgOffset * i, imgWidth, imgOffset);
+		get_contur_params(gray, roi, data[i], i, 0);
 	}
 
 #ifndef NO_GUI
 	//	рисуем сетку из ROI
-	if (config.DRAW && config.DRAW_GRID)
-		for (int i = 0; i < config.DATA_SIZE; ++i)
-			cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
+	for (int i = 0; i < config.NUM_ROI; ++i)
+		cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
 #endif
 
 	cv::Point pt(imgWidth / 2, imgHeight);
@@ -685,25 +638,24 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	//	ищем в каждом ROI прямоугольник,
 	//	центр которого находится ближе всего к базовой точке
-	for (int i = 0; i < config.DATA_SIZE; ++i)
+	for (int i = 0; i < config.NUM_ROI; ++i)
 	{
-		ContData* dt = &data[config.DATA_SIZE - 1 - i];
+		ContData* dt = &data[config.NUM_ROI - 1 - i];
 
 	#ifndef NO_GUI
 		//	рисуем ВСЕ найденные области в ROI
-		if (config.DRAW && config.DRAW_DETAILED)
-			for (int j = 0; j < dt->vRect.size(); j++)
-			{
-				RectData rd = dt->vRect[j];
-				//
-				cv::rectangle(imgColor, rd.bound, CLR_RECT_BOUND);
-				cv::circle(imgColor, rd.center, 3, CLR_GREEN, 1, cv::LINE_AA);
-				//
-				cv::putText(imgColor, "L=" + std::to_string((int)rd.len), rd.bound.tl() + cv::Point(2, 12),
-					cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
-				cv::putText(imgColor, "W=" + std::to_string((int)rd.bound.width), rd.bound.tl() + cv::Point(2, 27),
-					cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
-			}
+		for (int j = 0; j < dt->vRect.size(); j++)
+		{
+			RectData rd = dt->vRect[j];
+			//
+			cv::rectangle(imgColor, rd.bound, CLR_RECT_BOUND);
+			cv::circle(imgColor, rd.center, 3, CLR_GREEN, 1, cv::LINE_AA);
+			//
+			cv::putText(imgColor, "L=" + std::to_string((int)rd.len), rd.bound.tl() + cv::Point(2, 12),
+				cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+			cv::putText(imgColor, "W=" + std::to_string((int)rd.bound.width), rd.bound.tl() + cv::Point(2, 27),
+				cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+		}
 	#endif
 
 		//	сортируем прямоугольники, обрамляющие контуры, по близости к базовой точке;
@@ -784,7 +736,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	добавляем нижнюю центральную точку в список для построения линии
 	RectData center_rd;
 	center_rd.center = cv::Point(imgWidth / 2, imgHeight);
-	center_rd.bound = cv::Rect(center_rd.center.x - imgOffsetV / 2, center_rd.center.y - 10, imgOffsetV, 20);
+	center_rd.bound = cv::Rect(center_rd.center.x - imgWidth / 2, center_rd.center.y - 10, imgWidth, 20);
 	center_rd.roi_row = config.NUM_ROI;
 	center_rd._reserved = 100;
 	buf_points.insert(buf_points.begin(), &center_rd);
@@ -836,73 +788,72 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_err_line = !y0x_found;
 
 #ifndef NO_GUI
-	if (config.DRAW)
+
+	if (parse_result.fl_err_line)
 	{
-		if (parse_result.fl_err_line)
-		{
-			//	сигнализируем об ошибке
-			cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
-		}
-		else
-		{
-			//	рисуем линии горизонтальных пересечений
-			for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
-			{
-				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point2f(0, parse_result.hor_ys[i]));
-				pt_draw.x = 0;
-				//
-				cv::line(imgColor, cv::Point(0, pt_draw.y), cv::Point(imgWidth, pt_draw.y),
-					CLR_RED, 2, cv::LINE_AA, 0);
-				//
-				cv::putText(imgColor,
-					to_string(parse_result.hor_ys[i]) + " px",
-					pt_draw + cv::Point(5, 20),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
-			}
-			//
-			//	рисуем основную линию
-			cv::Point line_pt(imgWidth / 2, imgHeight);
-			for (size_t i = 0; i < parse_result.res_points.size(); i++)
-			{
-				MyPoint mpt = parse_result.res_points[i];
-				cv::Point pt_src(mpt.x, mpt.y);
-				cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
-				//
-				cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
-				cv::circle(imgColor, pt_draw, 3, CLR_YELLOW, -1, cv::LINE_AA);
-				//
-				cv::putText(imgColor,
-					"(" + to_string(pt_src.x) + ";" + to_string(pt_src.y) + ") px",
-					pt_draw + cv::Point(5, 20),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
-				//
-				line_pt = pt_draw;
-			}
-			//
-			//	рисуем центральную точку
-			if (y0x_found)
-			{
-				cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point(parse_result.center_x, 0));
-				cv::circle(imgColor, pt_draw, 3, CLR_MAGENTA, -1, cv::LINE_AA);
-				cv::putText(imgColor,
-					to_string(parse_result.center_x) + " px",
-					pt_draw + cv::Point(5, 20),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
-				//
-				cv::putText(imgColor,
-					to_string(parse_result.center_x_mm) + " mm",
-					pt_draw + cv::Point(5, 35),
-					cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
-			}
-		}
-		//
-		cv::putText(imgColor,
-				"height = " + to_string(shuttle_height) + " mm",
-				cv::Point(130, 20),
-				cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_MAGENTA);
-		//
-		frames_to_show[aIndex] = imgColor.clone();
+		//	сигнализируем об ошибке
+		cv::circle(imgColor, cv::Point(50, 50), 20, CLR_RED, -1, cv::LINE_AA);
 	}
+	else
+	{
+		//	рисуем линии горизонтальных пересечений
+		for (size_t i = 0; i < parse_result.hor_ys.size(); i++)
+		{
+			cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point2f(0, parse_result.hor_ys[i]));
+			pt_draw.x = 0;
+			//
+			cv::line(imgColor, cv::Point(0, pt_draw.y), cv::Point(imgWidth, pt_draw.y),
+				CLR_RED, 2, cv::LINE_AA, 0);
+			//
+			cv::putText(imgColor,
+				to_string(parse_result.hor_ys[i]) + " px",
+				pt_draw + cv::Point(5, 20),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_RED);
+		}
+		//
+		//	рисуем основную линию
+		cv::Point line_pt(imgWidth / 2, imgHeight);
+		for (size_t i = 0; i < parse_result.res_points.size(); i++)
+		{
+			MyPoint mpt = parse_result.res_points[i];
+			cv::Point pt_src(mpt.x, mpt.y);
+			cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
+			//
+			cv::line(imgColor, line_pt, pt_draw, CLR_GREEN, 2, cv::LINE_AA, 0);
+			cv::circle(imgColor, pt_draw, 3, CLR_YELLOW, -1, cv::LINE_AA);
+			//
+			cv::putText(imgColor,
+				"(" + to_string(pt_src.x) + ";" + to_string(pt_src.y) + ") px",
+				pt_draw + cv::Point(5, 20),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_YELLOW);
+			//
+			line_pt = pt_draw;
+		}
+		//
+		//	рисуем центральную точку
+		if (y0x_found)
+		{
+			cv::Point pt_draw = point_cnt_to_topleft(imgColor, Point(parse_result.center_x, 0));
+			cv::circle(imgColor, pt_draw, 3, CLR_MAGENTA, -1, cv::LINE_AA);
+			cv::putText(imgColor,
+				to_string(parse_result.center_x) + " px",
+				pt_draw + cv::Point(5, 20),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
+			//
+			cv::putText(imgColor,
+				to_string(parse_result.center_x_mm) + " mm",
+				pt_draw + cv::Point(5, 35),
+				cv::FONT_HERSHEY_SIMPLEX, 0.4, CLR_MAGENTA);
+		}
+	}
+	//
+	cv::putText(imgColor,
+			"height = " + to_string(shuttle_height) + " mm",
+			cv::Point(130, 20),
+			cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_MAGENTA);
+	//
+	frames_to_show[aIndex] = imgColor.clone();
+
 #endif
 
 }

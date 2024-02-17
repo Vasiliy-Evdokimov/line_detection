@@ -27,20 +27,15 @@ std::map<std::string, void*> config_pointers = {
 	{ "CAM_ADDR_1",		&config_buf.CAM_ADDR_1 },
 	{ "CAM_ADDR_2",		&config_buf.CAM_ADDR_2 },
 	{ "USE_CAM",		&config_buf.USE_CAM },
+	{ "USE_FPS",		&config_buf.USE_FPS },
+	{ "FPS",			&config_buf.FPS },
 	{ "UDP_PORT",		&config_buf.UDP_PORT },
 	{ "UDP_REQUEST",	&config_buf.UDP_REQUEST },
 	{ "NUM_ROI",		&config_buf.NUM_ROI },
-	{ "NUM_ROI_H",		&config_buf.NUM_ROI_H },
-	{ "NUM_ROI_V",		&config_buf.NUM_ROI_V },
-	{ "SHOW_GRAY",		&config_buf.SHOW_GRAY },
-	{ "DRAW_DETAILED",	&config_buf.DRAW_DETAILED },
-	{ "DRAW_GRID",		&config_buf.DRAW_GRID },
-	{ "DRAW",			&config_buf.DRAW },
 	{ "MIN_CONT_LEN",	&config_buf.MIN_CONT_LEN },
 	{ "MAX_CONT_LEN",	&config_buf.MAX_CONT_LEN },
 	{ "MIN_RECT_WIDTH",	&config_buf.MIN_RECT_WIDTH },
 	{ "MAX_RECT_WIDTH",	&config_buf.MAX_RECT_WIDTH },
-	{ "HOR_COLLAPSE",	&config_buf.HOR_COLLAPSE },
 	{ "GAUSSIAN_BLUR_KERNEL",	&config_buf.GAUSSIAN_BLUR_KERNEL },
 	{ "MORPH_OPEN_KERNEL",		&config_buf.MORPH_OPEN_KERNEL },
 	{ "MORPH_CLOSE_KERNEL",		&config_buf.MORPH_CLOSE_KERNEL },
@@ -48,12 +43,14 @@ std::map<std::string, void*> config_pointers = {
 	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
 	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
+	{ "BARCODE_TRY_HARDER",		&config_buf.BARCODE_TRY_HARDER },
+	{ "BARCODE_TRY_INVERT",		&config_buf.BARCODE_TRY_INVERT },
+	{ "BARCODE_TRY_ROTATE",		&config_buf.BARCODE_TRY_ROTATE },
 	{ "BARCODE_LEFT",			&config_buf.BARCODE_LEFT },
-	{ "BARCODE_WIDTH",			&config_buf.BARCODE_WIDTH },
 	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH },
-	{ "LINE_WIDTH",		&config_buf.LINE_WIDTH },
 	{ "CAM_TIMEOUT",	&config_buf.CAM_TIMEOUT },
-	{ "CALIBRATE_CAM",	&config_buf.CALIBRATE_CAM }
+	{ "STATS_LOG",		&config_buf.STATS_LOG },
+	{ "STATS_COUNT",	&config_buf.STATS_COUNT }
 };
 
 std::map<std::string, ConfigItem> config_map;
@@ -113,11 +110,6 @@ ConfigItem::ConfigItem(const ConfigItem& src)
 	description = src.description;
 }
 
-void ConfigData::recount_data_size()
-{
-	DATA_SIZE =	(NUM_ROI_H * NUM_ROI_V + (NUM_ROI - NUM_ROI_H));
-}
-
 void read_config()
 {
 	string config_file_path =
@@ -156,7 +148,6 @@ void read_config()
 		}
 		//
 		config = config_buf;
-		config.recount_data_size();
 
 		config.PID = getpid();
 		write_log("Application PID = " + to_string(config.PID));

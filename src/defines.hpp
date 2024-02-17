@@ -12,19 +12,18 @@
 #define	NO_GUI
 #define	RELEASE
 
-//#define USE_UNDISTORT
+#define CAM_COUNT			2
+#define CLEAR_CAM_BUFFER	20
 
+#define MAX_POINTS_COUNT	10
+#define MAX_HOR_COUNT		10
+
+//#define USE_UNDISTORT
 #define USE_BARCODES
 //#define USE_TEMPLATES
 
-#define USE_FPS
-#define FPS 20
-
-#define CAM_COUNT	2
-
-#define DIR_LEFT	-1
-#define DIR_RIGHT	1
-#define DIR_FORWARD	0
+//#define UDP_LOG
+//#define BARCODE_LOG
 
 #define CLR_BLACK	(cv::Scalar(0x00, 0x00, 0x00))
 #define CLR_RED		(cv::Scalar(0x00, 0x00, 0xFF))
@@ -36,17 +35,5 @@
 #define CLR_WHITE	(cv::Scalar(0xFF, 0xFF, 0xFF))
 
 #define CLR_RECT_BOUND	(cv::Scalar(0xFF, 0x33, 0x33))
-
-#define CLEAR_CAM_BUFFER	20
-
-#define STATS_LOG
-#define AVG_CNT		1000
-
-//#define UDP_LOG
-
-//#define BARCODE_LOG
-
-#define MAX_POINTS_COUNT	10
-#define MAX_HOR_COUNT		10
 
 #endif /* DEFINES_HPP_ */

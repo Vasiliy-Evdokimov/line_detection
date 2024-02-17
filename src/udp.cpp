@@ -112,11 +112,9 @@ void udp_func()
 		std::memcpy(&buf, &udp_pack, sizeof(buf));
 		udp_pack.crc = crc16(buf, sizeof(buf));
 
-		size_t sz = sizeof(udp_pack);
-
 #ifdef UDP_LOG
 		char* my_s_bytes = reinterpret_cast<char*>(&udp_pack);
-		for (size_t i = 0; i < sz; i++)
+		for (size_t i = 0; i < sizeof(udp_pack); i++)
 			printf("%02x ", my_s_bytes[i]);
 		printf("\n");
 #endif
