@@ -18,12 +18,13 @@ using namespace std;
 
 extern ResultFixed parse_results[CAM_COUNT];
 
-void parse_image(string aThreadName, cv::Mat imgColor,
-	ParseImageResult& parse_result, int aIndex);
-
 void visualizer_func();
 
 void* p_visualizer_func(void *args);
+
+void parse_image(string aThreadName, cv::Mat imgColor,
+	ParseImageResult& parse_result, int aIndex,
+	const bool slow_stop_found);
 
 void camera_func(string aThreadName, string aCamAddress, int aIndex);
 

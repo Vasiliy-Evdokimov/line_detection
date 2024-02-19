@@ -41,6 +41,7 @@ std::map<std::string, void*> config_pointers = {
 	{ "MORPH_CLOSE_KERNEL",		&config_buf.MORPH_CLOSE_KERNEL },
 	{ "THRESHOLD_THRESH",		&config_buf.THRESHOLD_THRESH },
 	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
+	{ "THRESHOLD_HEIGHT_K",		&config_buf.THRESHOLD_HEIGHT_K },
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
 	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
 	{ "BARCODE_TRY_HARDER",		&config_buf.BARCODE_TRY_HARDER },
@@ -48,6 +49,7 @@ std::map<std::string, void*> config_pointers = {
 	{ "BARCODE_TRY_ROTATE",		&config_buf.BARCODE_TRY_ROTATE },
 	{ "BARCODE_LEFT",			&config_buf.BARCODE_LEFT },
 	{ "DATAMATRIX_WIDTH",		&config_buf.DATAMATRIX_WIDTH },
+	{ "DATAMATRIX_SEARCH",		&config_buf.DATAMATRIX_SEARCH },
 	{ "CAM_TIMEOUT",	&config_buf.CAM_TIMEOUT },
 	{ "STATS_LOG",		&config_buf.STATS_LOG },
 	{ "STATS_COUNT",	&config_buf.STATS_COUNT }

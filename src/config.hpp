@@ -57,6 +57,7 @@ struct ConfigData
 	//
 	int THRESHOLD_THRESH;
 	int THRESHOLD_MAXVAL;
+	int THRESHOLD_HEIGHT_K;
 	//
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
@@ -67,6 +68,7 @@ struct ConfigData
 	//
 	int BARCODE_LEFT;
 	int DATAMATRIX_WIDTH;
+	int DATAMATRIX_SEARCH;
 	//
 	int CAM_TIMEOUT;
 	//

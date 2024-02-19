@@ -33,7 +33,7 @@ inline ZXing::ImageView ImageViewFromMat(const cv::Mat& image)
 	return {image.data, image.cols, image.rows, fmt};
 }
 
-inline ZXing::Results ReadBarcodes(const cv::Mat& image, const ZXing::DecodeHints& hints = {})
+inline ZXing::Results ReadBarcodes(const cv::Mat& image, const bool slow_stop_found)
 {
 	ZXing::DecodeHints hints2;
 	//
@@ -41,7 +41,10 @@ inline ZXing::Results ReadBarcodes(const cv::Mat& image, const ZXing::DecodeHint
 	hints2.setTryInvert(config.BARCODE_TRY_INVERT);
 	hints2.setTryRotate(config.BARCODE_TRY_ROTATE);
 	//
-	hints2.setFormats(ZXing::BarcodeFormat::Codabar | ZXing::BarcodeFormat::DataMatrix);
+	if (config.DATAMATRIX_SEARCH || (!config.DATAMATRIX_SEARCH && slow_stop_found))
+		hints2.setFormats(ZXing::BarcodeFormat::Codabar | ZXing::BarcodeFormat::DataMatrix);
+	else
+		hints2.setFormats(ZXing::BarcodeFormat::Codabar);
 	//
 	return ZXing::ReadBarcodes(ImageViewFromMat(image), hints2);
 }
@@ -52,9 +55,10 @@ double get_points_distance(cv::Point pt1, cv::Point pt2)
 }
 
 void barcodes_detect(cv::Mat& img,
-	std::vector<BarcodeDetectionResult>& detection_results)
+	std::vector<BarcodeDetectionResult>& detection_results,
+	const bool slow_stop_found)
 {
-	auto results = ReadBarcodes(img);
+	auto results = ReadBarcodes(img, slow_stop_found);
 
 	for (auto& res : results)
 	{

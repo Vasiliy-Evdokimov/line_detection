@@ -56,7 +56,6 @@ const int SHOW_GRAY = 1;
 int shuttle_height = 0;
 
 const int SHUTTLE_HEIGHT_TEST_OFFSET = 50;
-const float SHUTTLE_HEIGHT_THRESH_K = 0.1;
 
 bool check_rects_adj_horz(const cv::Rect r1, const cv::Rect r2)
 {
@@ -210,6 +209,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 	bool camera_open_error_logged = false;
 	bool camera_read_error_logged = false;
 
+	bool slow_stop_found = false;
+
 	while (1)
 	{
 		if (restart_threads || kill_threads) break;
@@ -313,11 +314,17 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			//	ищем центры областей и горизонтальные пересечения
 			parse_image(
 				aThreadName,
-				undistorted,	//	frame,
+				undistorted,
 				parse_result,
-				aIndex
+				aIndex,
+				slow_stop_found
 			);
 			parse_result.fl_err_parse = false;
+
+			slow_stop_found =
+				parse_result.fl_slow_zone ||
+				parse_result.fl_stop_zone ||
+				parse_result.fl_stop_mark;
 
 		} catch (...) {
 			parse_result.fl_err_parse = true;
@@ -368,9 +375,10 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 }
 
 void find_barcodes(cv::Mat& imgColor, ParseImageResult& parse_result,
-	std::vector<BarcodeDetectionResult>& barcodes_results)
+	std::vector<BarcodeDetectionResult>& barcodes_results,
+	const bool slow_zone_found)
 {
-	barcodes_detect(imgColor, barcodes_results);
+	barcodes_detect(imgColor, barcodes_results, slow_zone_found);
 	//
 	for (size_t i = 0; i < barcodes_results.size(); i++)
 	{
@@ -538,7 +546,7 @@ void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
 	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
 	cv::threshold(trImage, dstImg,
-			config.THRESHOLD_THRESH + shuttle_height * SHUTTLE_HEIGHT_THRESH_K,
+			config.THRESHOLD_THRESH + shuttle_height * ( config.THRESHOLD_HEIGHT_K / 100. ),
 			config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 }
 
@@ -572,7 +580,8 @@ bool find_central_point(ParseImageResult& parse_result)
 }
 
 void parse_image(string aThreadName, cv::Mat imgColor,
-	ParseImageResult& parse_result, int aIndex)
+	ParseImageResult& parse_result, int aIndex,
+	const bool slow_stop_found)
 {
 	parse_result.fl_slow_zone = false;
 	parse_result.fl_stop_zone = false;
@@ -582,7 +591,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 #ifdef USE_BARCODES
 	//	поиск штрихкодов
 	std::vector<BarcodeDetectionResult> barcodes_results;
-	find_barcodes(imgColor, parse_result, barcodes_results);
+	find_barcodes(imgColor, parse_result, barcodes_results, slow_stop_found);
 #endif
 
 #ifdef USE_TEMPLATES

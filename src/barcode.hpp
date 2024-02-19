@@ -20,6 +20,7 @@ struct BarcodeDetectionResult
 double get_points_distance(cv::Point pt1, cv::Point pt2);
 
 void barcodes_detect(cv::Mat& img,
-	std::vector<BarcodeDetectionResult>& detection_results);
+	std::vector<BarcodeDetectionResult>& detection_results,
+	const bool slow_stop_found);
 
 #endif /* BARCODE_HPP_ */
