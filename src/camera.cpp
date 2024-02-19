@@ -376,9 +376,9 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 void find_barcodes(cv::Mat& imgColor, ParseImageResult& parse_result,
 	std::vector<BarcodeDetectionResult>& barcodes_results,
-	const bool slow_zone_found)
+	const bool slow_stop_found)
 {
-	barcodes_detect(imgColor, barcodes_results, slow_zone_found);
+	barcodes_detect(imgColor, barcodes_results, slow_stop_found);
 	//
 	for (size_t i = 0; i < barcodes_results.size(); i++)
 	{
@@ -697,14 +697,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	sort(buf_points.begin(), buf_points.end(),
 		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
-
-//	//	поиск горизонтальных пересечений
-//	find_horizontal(imgColor, buf_points, parse_result.hor_ys);
-//	//
-//	for (size_t i = 0; i < parse_result.hor_ys.size(); i++) {
-//		CalibPoint cb = get_calib_point(imgColor, Point2f(imgColor.cols / 2, parse_result.hor_ys[i]));
-//		parse_result.hor_ys[i] = cb.point_cnt.y;
-//	}
 
 	//	фильтруем список областей, оставляя только те,
 	//	у которых есть смежные по вертикали в соседних ROI

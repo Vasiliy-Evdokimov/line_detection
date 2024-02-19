@@ -73,7 +73,9 @@ void barcodes_detect(cv::Mat& img,
 		new_result.contour = contour;
 
 		if (res.format() == ZXing::BarcodeFormat::DataMatrix)
-			new_result.barcode_type = 3;
+		{
+			if (txt == "STOP") new_result.barcode_type = 3;
+		}
 		//
 		else if (res.format() == ZXing::BarcodeFormat::Codabar)
 		{
