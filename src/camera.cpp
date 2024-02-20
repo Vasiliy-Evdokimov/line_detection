@@ -55,7 +55,7 @@ const int SHOW_GRAY = 1;
 
 int shuttle_height = 0;
 
-const int SHUTTLE_HEIGHT_TEST_OFFSET = 50;
+const int SHUTTLE_HEIGHT_TEST_OFFSET = 10;
 
 bool check_rects_adj_horz(const cv::Rect r1, const cv::Rect r2)
 {
@@ -611,7 +611,79 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 #ifndef NO_GUI
 	if (SHOW_GRAY)
-		grays_to_show[aIndex] = gray.clone();
+	{
+//		grays_to_show[aIndex] = gray.clone();
+		//
+		//	SHRINK
+		int arr_sz = (gray.rows * gray.cols) / 8;
+		uchar arr[arr_sz] = {0};
+		uchar arr2[arr_sz] = {0};
+		uchar pix, max_val = config.THRESHOLD_MAXVAL, buf = 0;
+		int i = 0, j = 0, n = 0;
+		int k = 0, m = 0, k2 = 0, m2 = 0;
+		for (int i = 0; i < gray.rows; i++)
+			for (int j = 0; j < gray.cols; j++)
+			{
+				pix = (gray.at<uchar>(i, j) == max_val) ? 1 : 0;
+				buf |= pix << (m++);
+				//
+				if (m == 8)
+				{
+					if (k && ((buf != arr[k - 1]) || (m2 == 255)))
+					{
+						arr2[k2++] = m2;
+						arr2[k2++] = arr[k - 1];
+						m2 = 1;
+					} else m2++;
+					//
+					arr[k++] = buf;
+					buf = 0;
+					m = 0;
+				}
+			}
+		//
+		arr2[k2++] = m2;
+		arr2[k2++] = buf;
+		//
+		write_log("k=" + to_string(k));
+		write_log("k2=" + to_string(k2));
+		//
+		//	DECODE FROM SHRINKED
+		Mat M(gray.rows, gray.cols, gray.type());
+		i = 0; j = 0; k = 0;
+		for (int m = 0; m < arr_sz; m++)
+			for (int n = 0; n < 8; n++)
+			{
+				M.at<uchar>(i, j++) = (arr[m] & (1 << n)) ? max_val : 0;
+				if (j == gray.cols)
+				{
+					i++;
+					j = 0;
+				}
+			}
+		grays_to_show[aIndex] = M.clone();
+		//
+		//	COMPRESS
+//		k2 = 0; m2 = 1;
+//		//uchar arr2[arr_sz];
+//		for (int i = 1; i < arr_sz; i++)
+//			if ((arr[i] != arr[i - 1]) || (m2 == 255))
+//			{
+//				arr2[k2++] = m2;
+//				arr2[k2++] = arr[i - 1];
+//				m2 = 1;
+//			} else m2++;
+//		//
+//		arr2[k2++] = m2;
+//		arr2[k2++] = arr[arr_sz - 1];
+//		//
+//		write_log("k2=" + to_string(k2));
+		//
+		//	DECODE FROM COMPRESSED
+//		Mat M(gray.rows, gray.cols, gray.type());
+
+
+	}
 #endif
 
 	//	config.DATA_SIZE - это общее количество ROI на изображении;
