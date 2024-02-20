@@ -618,39 +618,62 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		int arr_sz = (gray.rows * gray.cols) / 8;
 		uchar arr[arr_sz] = {0};
 		uchar arr2[arr_sz] = {0};
-		uchar pix, max_val = config.THRESHOLD_MAXVAL, buf = 0;
+		uchar arr3[arr_sz] = {0};
+		uchar max_val = config.THRESHOLD_MAXVAL;
+		uchar pix, pix_p, buf = 0, buf3 = 0;;
 		int i = 0, j = 0, n = 0;
-		int k = 0, m = 0, k2 = 0, m2 = 0;
+		int k1 = 0, m1 = 0, k2 = 0, m2 = 0, k3 = 0, m3 = 0;
 		for (int i = 0; i < gray.rows; i++)
 			for (int j = 0; j < gray.cols; j++)
 			{
 				pix = (gray.at<uchar>(i, j) == max_val) ? 1 : 0;
-				buf |= pix << (m++);
+				buf |= pix << (m1++);
 				//
-				if (m == 8)
+				if (!i & !j) { pix_p = pix; }
+				if ((pix != pix_p) || (m3 == 127))
 				{
-					if (k && ((buf != arr[k - 1]) || (m2 == 255)))
+					buf3 = ((m3 & 127) << 1) | (pix_p & 1);
+					//
+					if (k3 && ((buf3 != arr3[k3 - 1]) || (m2 == 255)))
 					{
 						arr2[k2++] = m2;
-						arr2[k2++] = arr[k - 1];
+						arr2[k2++] = arr3[k3 - 1];
 						m2 = 1;
 					} else m2++;
 					//
-					arr[k++] = buf;
+					arr3[k3++] = buf3;
+					pix_p = pix;
+					m3 = 1;
+				} else m3++;
+				//
+				if (m1 == 8)
+				{
+//					if (k1 && ((buf != arr[k1 - 1]) || (m2 == 255)))
+//					{
+//						arr2[k2++] = m2;
+//						arr2[k2++] = arr[k1 - 1];
+//						m2 = 1;
+//					} else m2++;
+					//
+					arr[k1++] = buf;
 					buf = 0;
-					m = 0;
+					m1 = 0;
 				}
 			}
 		//
 		arr2[k2++] = m2;
-		arr2[k2++] = buf;
+		//arr2[k2++] = buf;
+		arr2[k2++] = ((m3 & 127) << 1) | (pix_p & 1);
 		//
-		write_log("k=" + to_string(k));
+		arr3[k3++] = ((m3 & 127) << 1) | (pix_p & 1);
+		//
+		write_log("k1=" + to_string(k1));
 		write_log("k2=" + to_string(k2));
+		write_log("k3=" + to_string(k3));
 		//
 		//	DECODE FROM SHRINKED
 		Mat M(gray.rows, gray.cols, gray.type());
-		i = 0; j = 0; k = 0;
+		i = 0; j = 0;
 		for (int m = 0; m < arr_sz; m++)
 			for (int n = 0; n < 8; n++)
 			{
