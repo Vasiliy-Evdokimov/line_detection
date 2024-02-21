@@ -12,9 +12,6 @@
 //#define	NO_GUI
 //#define	RELEASE
 
-#define IMG_WIDTH 	640
-#define IMG_HEIGHT 	360
-
 #define CAM_COUNT			2
 #define CLEAR_CAM_BUFFER	20
 

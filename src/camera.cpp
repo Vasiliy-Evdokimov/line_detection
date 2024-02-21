@@ -579,6 +579,90 @@ bool find_central_point(ParseImageResult& parse_result)
 	return false;
 }
 
+void compress(const Mat src, Mat& dst)
+{
+	//
+	//	SHRINK
+	int arr_sz = (src.rows * src.cols) / 8;
+	uchar arr[arr_sz] = {0};
+	uchar arr2[arr_sz] = {0};
+	uchar arr3[arr_sz] = {0};
+	uchar max_val = config.THRESHOLD_MAXVAL;
+	uchar pix, pix_p, buf = 0, buf2 = 0;
+	int i = 0, j = 0, n = 0;
+	int k1 = 0, m1 = 0, k2 = 0, m2 = 0, m3 = 0;
+	for (int i = 0; i < src.rows; i++)
+		for (int j = 0; j < src.cols; j++)
+		{
+			pix = (src.at<uchar>(i, j) == max_val) ? 1 : 0;
+			buf |= pix << (m1++);
+			//
+			//	на первой итерации
+			if (!i & !j) { pix_p = pix; }
+			//	если пиксел отличается от предыдущего
+			//	или счётчик считаемых битов = 127
+			//	или сквозной счетчик битов = 127
+			if ((pix != pix_p) || (m2 == 127) || (m3 == 127))
+			{
+				buf2 = ((m2 & 127) << 1) | (pix_p & 1);
+				arr2[k2++] = buf2;
+				//
+				pix_p = pix;
+				m2 = 1;
+			} else m2++;
+			//
+			if (m1 == 8)
+			{
+				arr[k1++] = buf;
+				buf = 0;
+				m1 = 0;
+			}
+			//
+			(m3 == 127) ? m3 = 1 : m3++;
+		}
+	//
+	arr2[k2++] = ((m2 & 127) << 1) | (pix_p & 1);
+	//
+//		write_log("k1=" + to_string(k1));
+//		write_log("k2=" + to_string(k2));
+	//
+	//	DECODE FROM SHRINKED
+//	{
+//		Mat M(src.rows, src.cols, src.type());
+//		i = 0; j = 0;
+//		for (int m = 0; m < k1; m++)
+//			for (int n = 0; n < 8; n++)
+//			{
+//				M.at<uchar>(i, j++) = (arr[m] & (1 << n)) ? max_val : 0;
+//				if (j == src.cols)
+//				{
+//					i++;
+//					j = 0;
+//				}
+//			}
+//		dst = M.clone();
+//	}
+	//
+	//	DECODE FROM COMPRESSED
+	{
+		Mat M(src.rows, src.cols, src.type());
+		i = 0; j = 0;
+		for (int m = 0; m < k2; m++)
+			for (n = 0; n < (arr2[m] >> 1); n++)
+			{
+				M.at<uchar>(i, j++) = (arr2[m] & 1) ? max_val : 0;
+				//
+				if (j == src.cols)
+				{
+					i++;
+					j = 0;
+				}
+			}
+		dst = M.clone();
+	}
+
+}
+
 void parse_image(string aThreadName, cv::Mat imgColor,
 	ParseImageResult& parse_result, int aIndex,
 	const bool slow_stop_found)
@@ -609,103 +693,13 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	hide_barcodes(gray, barcodes_results);
 #endif
 
+	Mat decompressed;
+	compress(gray, decompressed);
+
 #ifndef NO_GUI
 	if (SHOW_GRAY)
 	{
-//		grays_to_show[aIndex] = gray.clone();
-		//
-		//	SHRINK
-		int arr_sz = (gray.rows * gray.cols) / 8;
-		uchar arr[arr_sz] = {0};
-		uchar arr2[arr_sz] = {0};
-		uchar arr3[arr_sz] = {0};
-		uchar max_val = config.THRESHOLD_MAXVAL;
-		uchar pix, pix_p, buf = 0, buf3 = 0;;
-		int i = 0, j = 0, n = 0;
-		int k1 = 0, m1 = 0, k2 = 0, m2 = 0, k3 = 0, m3 = 0;
-		for (int i = 0; i < gray.rows; i++)
-			for (int j = 0; j < gray.cols; j++)
-			{
-				pix = (gray.at<uchar>(i, j) == max_val) ? 1 : 0;
-				buf |= pix << (m1++);
-				//
-				if (!i & !j) { pix_p = pix; }
-				if ((pix != pix_p) || (m3 == 127))
-				{
-					buf3 = ((m3 & 127) << 1) | (pix_p & 1);
-					//
-					if (k3 && ((buf3 != arr3[k3 - 1]) || (m2 == 255)))
-					{
-						arr2[k2++] = m2;
-						arr2[k2++] = arr3[k3 - 1];
-						m2 = 1;
-					} else m2++;
-					//
-					arr3[k3++] = buf3;
-					pix_p = pix;
-					m3 = 1;
-				} else m3++;
-				//
-				if (m1 == 8)
-				{
-//					if (k1 && ((buf != arr[k1 - 1]) || (m2 == 255)))
-//					{
-//						arr2[k2++] = m2;
-//						arr2[k2++] = arr[k1 - 1];
-//						m2 = 1;
-//					} else m2++;
-					//
-					arr[k1++] = buf;
-					buf = 0;
-					m1 = 0;
-				}
-			}
-		//
-		arr2[k2++] = m2;
-		//arr2[k2++] = buf;
-		arr2[k2++] = ((m3 & 127) << 1) | (pix_p & 1);
-		//
-		arr3[k3++] = ((m3 & 127) << 1) | (pix_p & 1);
-		//
-		write_log("k1=" + to_string(k1));
-		write_log("k2=" + to_string(k2));
-		write_log("k3=" + to_string(k3));
-		//
-		//	DECODE FROM SHRINKED
-		Mat M(gray.rows, gray.cols, gray.type());
-		i = 0; j = 0;
-		for (int m = 0; m < arr_sz; m++)
-			for (int n = 0; n < 8; n++)
-			{
-				M.at<uchar>(i, j++) = (arr[m] & (1 << n)) ? max_val : 0;
-				if (j == gray.cols)
-				{
-					i++;
-					j = 0;
-				}
-			}
-		grays_to_show[aIndex] = M.clone();
-		//
-		//	COMPRESS
-//		k2 = 0; m2 = 1;
-//		//uchar arr2[arr_sz];
-//		for (int i = 1; i < arr_sz; i++)
-//			if ((arr[i] != arr[i - 1]) || (m2 == 255))
-//			{
-//				arr2[k2++] = m2;
-//				arr2[k2++] = arr[i - 1];
-//				m2 = 1;
-//			} else m2++;
-//		//
-//		arr2[k2++] = m2;
-//		arr2[k2++] = arr[arr_sz - 1];
-//		//
-//		write_log("k2=" + to_string(k2));
-		//
-		//	DECODE FROM COMPRESSED
-//		Mat M(gray.rows, gray.cols, gray.type());
-
-
+		grays_to_show[aIndex] = decompressed.clone();
 	}
 #endif
 
