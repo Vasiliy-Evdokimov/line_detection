@@ -10,6 +10,8 @@
 
 #include <string>
 
+#include "defines.hpp"
+
 using namespace std;
 
 extern const string debug_config_directory;

@@ -18,6 +18,9 @@
 #define MAX_POINTS_COUNT	10
 #define MAX_HOR_COUNT		10
 
+#define DEBUG_MAX_IMG_SIZE	50 * 1024
+#define DEBUG_MAX_CONTOURS	50
+
 //#define USE_UNDISTORT
 #define USE_BARCODES
 //#define USE_TEMPLATES

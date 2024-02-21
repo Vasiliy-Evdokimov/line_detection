@@ -16,12 +16,32 @@
 using namespace std;
 using namespace chrono;
 
+typedef unsigned char uchar;
+
 struct ResultPoint {
 	int16_t x;
 	int16_t y;
 };
 
 const int RESULT_TIME_SIZE = sizeof(high_resolution_clock::time_point);
+
+struct DebugContourInfo
+{
+	int16_t type;
+	ResultPoint center;
+	ResultPoint left_top;
+	int16_t width;
+	int16_t height;
+	int16_t length;
+};
+
+struct DebugFixed
+{
+	int16_t contours_size;
+	DebugContourInfo contours[DEBUG_MAX_CONTOURS];
+	int16_t image_size;
+	uchar image[DEBUG_MAX_IMG_SIZE];
+};
 
 struct ResultFixed
 {
@@ -46,18 +66,12 @@ struct ResultFixed
 	int8_t result_time_point[RESULT_TIME_SIZE];
 };
 
-struct MyPoint
-{
-	int x;
-	int y;
-};
-
 struct ParseImageResult
 {
 	int width;
 	int height;
 	//
-	vector<MyPoint> res_points;
+	vector<ResultPoint> res_points;
 	//
 	int16_t center_x;
 	int16_t center_x_mm;

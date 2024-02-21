@@ -42,6 +42,8 @@ cv::Mat grays_to_show[CAM_COUNT];
 
 ResultFixed parse_results[CAM_COUNT];
 
+DebugFixed parse_debug[CAM_COUNT];
+
 const string SOURCE_WND_NAME = "Camera(s) Source";
 const string UNDISTORTED_WND_NAME = "Camera(s) Undistorted";
 const string GRAY_WND_NAME = "Camera(s) Gray";
@@ -331,6 +333,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 		parse_result_to_sm(parse_result, aIndex);
+		parse_debug_to_sm(parse_debug[aIndex], aIndex);
 
 		if (parse_result.fl_err_parse) {
 			write_log(aThreadName + " parse error!");
@@ -559,8 +562,8 @@ bool find_central_point(ParseImageResult& parse_result)
 		//	если у какой-то из них y = 0, то она и есть центральная;
 		//	если точки находятся по разные стороны от оси X,
 		//	то берем уравнение прямой, проходящей через них и находим значение x при y = 0
-		MyPoint pt1 = parse_result.res_points[i - 1];
-		MyPoint pt2 = parse_result.res_points[i];
+		ResultPoint pt1 = parse_result.res_points[i - 1];
+		ResultPoint pt2 = parse_result.res_points[i];
 		if (pt1.y == 0) y0_x = pt1.x;
 		else if (pt2.y == 0) y0_x = pt2.x;
 		else if ((pt1.y < 0) && (pt2.y > 0))
@@ -579,14 +582,11 @@ bool find_central_point(ParseImageResult& parse_result)
 	return false;
 }
 
-void compress(const Mat src, Mat& dst)
+void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
 {
-	//
-	//	SHRINK
+	//	COMPRESS
 	int arr_sz = (src.rows * src.cols) / 8;
 	uchar arr[arr_sz] = {0};
-	uchar arr2[arr_sz] = {0};
-	uchar arr3[arr_sz] = {0};
 	uchar max_val = config.THRESHOLD_MAXVAL;
 	uchar pix, pix_p, buf = 0, buf2 = 0;
 	int i = 0, j = 0, n = 0;
@@ -605,7 +605,7 @@ void compress(const Mat src, Mat& dst)
 			if ((pix != pix_p) || (m2 == 127) || (m3 == 127))
 			{
 				buf2 = ((m2 & 127) << 1) | (pix_p & 1);
-				arr2[k2++] = buf2;
+				dst_arr[k2++] = buf2;
 				//
 				pix_p = pix;
 				m2 = 1;
@@ -621,46 +621,34 @@ void compress(const Mat src, Mat& dst)
 			(m3 == 127) ? m3 = 1 : m3++;
 		}
 	//
-	arr2[k2++] = ((m2 & 127) << 1) | (pix_p & 1);
+	dst_arr[k2++] = ((m2 & 127) << 1) | (pix_p & 1);
+	*dst_arr_sz = k2;
 	//
-//		write_log("k1=" + to_string(k1));
-//		write_log("k2=" + to_string(k2));
-	//
-	//	DECODE FROM SHRINKED
+	//	DECODE FROM COMPRESSED
 //	{
 //		Mat M(src.rows, src.cols, src.type());
 //		i = 0; j = 0;
-//		for (int m = 0; m < k1; m++)
-//			for (int n = 0; n < 8; n++)
+//		for (int m = 0; m < k2; m++)
+//			for (n = 0; n < (arr2[m] >> 1); n++)
 //			{
-//				M.at<uchar>(i, j++) = (arr[m] & (1 << n)) ? max_val : 0;
+//				M.at<uchar>(i, j++) = (arr2[m] & 1) ? max_val : 0;
+//				//
 //				if (j == src.cols)
 //				{
 //					i++;
 //					j = 0;
 //				}
 //			}
-//		dst = M.clone();
 //	}
-	//
-	//	DECODE FROM COMPRESSED
-	{
-		Mat M(src.rows, src.cols, src.type());
-		i = 0; j = 0;
-		for (int m = 0; m < k2; m++)
-			for (n = 0; n < (arr2[m] >> 1); n++)
-			{
-				M.at<uchar>(i, j++) = (arr2[m] & 1) ? max_val : 0;
-				//
-				if (j == src.cols)
-				{
-					i++;
-					j = 0;
-				}
-			}
-		dst = M.clone();
-	}
+}
 
+void set_contour_type_by_bound(DebugContourInfo* arr, int arr_size, Rect rect, int type)
+{
+	for (int i = 0; i < arr_size; ++i)
+	{
+		Rect r(arr[i].left_top.x, arr[i].left_top.y, arr[i].width, arr[i].height);
+		if (r == rect) arr[i].type = type;
+	}
 }
 
 void parse_image(string aThreadName, cv::Mat imgColor,
@@ -693,17 +681,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	hide_barcodes(gray, barcodes_results);
 #endif
 
-	Mat decompressed;
-	compress(gray, decompressed);
+	//	сжатие изображения в массив
+	compress_image(gray, parse_debug[aIndex].image, &(parse_debug[aIndex].image_size));
 
-#ifndef NO_GUI
-	if (SHOW_GRAY)
-	{
-		grays_to_show[aIndex] = decompressed.clone();
-	}
-#endif
-
-	//	config.DATA_SIZE - это общее количество ROI на изображении;
+	//	config.NUM_ROI - это общее количество ROI на изображении;
 	ContData data[config.NUM_ROI];
 
 	int imgWidth = imgColor.cols;
@@ -720,12 +701,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		get_contur_params(gray, roi, data[i], i, 0);
 	}
 
-#ifndef NO_GUI
-	//	рисуем сетку из ROI
-	for (int i = 0; i < config.NUM_ROI; ++i)
-		cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
-#endif
-
 	cv::Point pt(imgWidth / 2, imgHeight);
 	cv::Point* lpCenter = &pt;
 
@@ -734,27 +709,28 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	vector<RectData*> buf_points;
 	vector<RectData*> buf_rd;
 
+	int csz = 0;
+
 	//	ищем в каждом ROI прямоугольник,
 	//	центр которого находится ближе всего к базовой точке
 	for (int i = 0; i < config.NUM_ROI; ++i)
 	{
 		ContData* dt = &data[config.NUM_ROI - 1 - i];
 
-	#ifndef NO_GUI
-		//	рисуем ВСЕ найденные области в ROI
-		for (int j = 0; j < dt->vRect.size(); j++)
+		for (int j = 0; j < (int)dt->vRect.size(); j++)
 		{
 			RectData rd = dt->vRect[j];
+			DebugContourInfo dci;
 			//
-			cv::rectangle(imgColor, rd.bound, CLR_RECT_BOUND);
-			cv::circle(imgColor, rd.center, 3, CLR_GREEN, 1, cv::LINE_AA);
+			dci.type = 1;	// все контуры
+			dci.center = { rd.center.x, rd.center.y };
+			dci.left_top = { rd.bound.tl().x, rd.bound.tl().y };
+			dci.width = rd.bound.width;
+			dci.height = rd.bound.height;
+			dci.length = rd.len;
 			//
-			cv::putText(imgColor, "L=" + std::to_string((int)rd.len), rd.bound.tl() + cv::Point(2, 12),
-				cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
-			cv::putText(imgColor, "W=" + std::to_string((int)rd.bound.width), rd.bound.tl() + cv::Point(2, 27),
-				cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+			parse_debug[aIndex].contours[csz++] = dci;
 		}
-	#endif
 
 		//	сортируем прямоугольники, обрамляющие контуры, по близости к базовой точке;
 		//	при первой итерации, базовая точка - центр нижнего края изображения
@@ -763,10 +739,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		if (rd == nullptr)
 			continue;
 
-	#ifndef NO_GUI
 		//	выделяем выбранную в ROI область
-		cv::rectangle(imgColor, rd->bound, CLR_YELLOW);
-	#endif
+		set_contour_type_by_bound(parse_debug[aIndex].contours,
+			parse_debug[aIndex].contours_size, rd->bound, 2);
 
 		buf_points.push_back(rd);
 		//
@@ -775,17 +750,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	}
 
-#ifndef NO_GUI
-	//	центральные линии
-	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
-	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
-		CLR_YELLOW, 1, cv::LINE_8, 0);
-	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
-		CLR_YELLOW, 1, cv::LINE_8, 0);
-#endif
-
-	sort(buf_points.begin(), buf_points.end(),
-		[](RectData* a, RectData* b) { return (a->bound.y > b->bound.y); });
+	parse_debug[aIndex].contours_size = csz;
 
 	//	фильтруем список областей, оставляя только те,
 	//	у которых есть смежные по вертикали в соседних ROI
@@ -815,10 +780,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				i++;
 			} else {
 				buf_points.erase(buf_points.begin() + i);
-			#ifndef NO_GUI
 				//	выделяем удаленную область, не подошедшую по условиям
-				cv::rectangle(imgColor, rd1->bound, CLR_RED);
-			#endif
+				set_contour_type_by_bound(parse_debug[aIndex].contours,
+					parse_debug[aIndex].contours_size, rd1->bound, 3);
 			}
 		}
 	}
@@ -864,7 +828,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				buf_rd.push_back(buf_points[k]);
 				//
 				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
-				parse_result.res_points.push_back(MyPoint{cb.point_cnt.x, cb.point_cnt.y});
+				parse_result.res_points.push_back(ResultPoint{cb.point_cnt.x, cb.point_cnt.y});
 			}
 			//
 			i = (k > 0) ? k : (i + 1);
@@ -878,6 +842,49 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_err_line = !y0x_found;
 
 #ifndef NO_GUI
+
+	if (SHOW_GRAY)
+	{
+		grays_to_show[aIndex] = gray.clone();
+	}
+
+	//	рисуем сетку из ROI
+	for (int i = 0; i < config.NUM_ROI; ++i)
+		cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
+
+	//	рисуем ВСЕ найденные области в ROI
+	for (int i = 0; i < parse_debug[aIndex].contours_size; i++)
+	{
+		DebugContourInfo dci = parse_debug[aIndex].contours[i];
+		//
+		Scalar clr;
+		switch (dci.type)
+		{
+			case 2:
+				clr = CLR_YELLOW;
+				break;
+			case 3:
+				clr = CLR_BLACK;
+				break;
+			default:
+				clr = CLR_RECT_BOUND;
+		}
+		//
+		cv::rectangle(imgColor, cv::Rect(dci.left_top.x, dci.left_top.y, dci.width, dci.height), clr);
+		cv::circle(imgColor, Point(dci.center.x, dci.center.y), 3, CLR_GREEN, 1, cv::LINE_AA);
+		//
+		cv::putText(imgColor, "L=" + std::to_string(dci.length), Point(dci.left_top.x, dci.left_top.y) + cv::Point(2, 12),
+			cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+		cv::putText(imgColor, "W=" + std::to_string(dci.width), Point(dci.left_top.x, dci.left_top.y) + cv::Point(2, 27),
+			cv::FONT_HERSHEY_DUPLEX, 0.4, CLR_GREEN);
+	}
+
+	//	рисуем центральные линии
+	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
+	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
+		CLR_YELLOW, 1, cv::LINE_8, 0);
+	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
+		CLR_YELLOW, 1, cv::LINE_8, 0);
 
 	if (parse_result.fl_err_line)
 	{
@@ -905,7 +912,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		cv::Point line_pt(imgWidth / 2, imgHeight);
 		for (size_t i = 0; i < parse_result.res_points.size(); i++)
 		{
-			MyPoint mpt = parse_result.res_points[i];
+			ResultPoint mpt = parse_result.res_points[i];
 			cv::Point pt_src(mpt.x, mpt.y);
 			cv::Point pt_draw = point_cnt_to_topleft(imgColor, pt_src);
 			//

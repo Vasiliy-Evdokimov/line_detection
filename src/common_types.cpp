@@ -38,7 +38,7 @@ ParseImageResult::ParseImageResult(const ParseImageResult& src)
 	//
 	res_points.clear();
 	for (size_t i = 0; i < src.res_points.size(); i++)
-		res_points.push_back(MyPoint(src.res_points[i]));
+		res_points.push_back(ResultPoint(src.res_points[i]));
 	//
 	center_x = src.center_x;
 	center_x_mm = src.center_x_mm;

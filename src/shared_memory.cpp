@@ -22,11 +22,16 @@ using namespace std;
 
 mutex config_sm_mtx;	//	мьютекс чтения/записи конфига
 mutex results_sm_mtx;	//	мьютекс чтения/записи результатов
+mutex debug_sm_mtx;		//	мьютекс чтения/записи отладочной информации
 
 int config_sm_id;
 ConfigData* config_sm_ptr;
+
 int results_sm_id[CAM_COUNT];
 ResultFixed* results_sm_ptr[CAM_COUNT];
+
+int debug_sm_id[CAM_COUNT];
+DebugFixed* debug_sm_ptr[CAM_COUNT];
 
 int init_shared_memory()
 {
@@ -89,6 +94,39 @@ int init_shared_memory()
 			write_log(err_prefix + "shmat");
 			perror("shmat");
 			shmctl(results_sm_id[i], IPC_RMID, nullptr);
+			return 1;
+		}
+	}
+
+	//
+
+	key_t debug_key[CAM_COUNT];
+	for (int i = 0; i < CAM_COUNT; i++)
+	{
+		err_prefix = "debug_sm[" + to_string(i) + "] error = ";
+
+		debug_key[i] = ftok(SM_NAME, DEBUG_SM_ID + i);
+		if (debug_key[i] == -1)
+		{
+			write_log(err_prefix + "ftok");
+			perror("ftok");
+			return 1;
+		}
+
+		debug_sm_id[i] = shmget(debug_key[i], sizeof(DebugFixed), IPC_CREAT | 0666);
+		if (results_sm_id[i] == -1)
+		{
+			write_log(err_prefix + "shmget");
+			perror("shmget");
+			return 1;
+		}
+
+		debug_sm_ptr[i] = (DebugFixed*) shmat(debug_sm_id[i], nullptr, SHM_R | SHM_W);
+		if (debug_sm_ptr[i] == (void*) -1)
+		{
+			write_log(err_prefix + "shmat");
+			perror("shmat");
+			shmctl(debug_sm_id[i], IPC_RMID, nullptr);
 			return 1;
 		}
 	}
@@ -175,8 +213,35 @@ int read_results_sm(ResultFixed& aResult, int aIndex)
 	return 0;
 }
 
+int write_debug_sm(DebugFixed& aResult, int aIndex)
+{
+	if (debug_sm_ptr[aIndex] == (void*) -1) return 1;
+	//
+	debug_sm_mtx.lock();
+	memcpy(debug_sm_ptr[aIndex], &aResult, sizeof(aResult));
+	debug_sm_mtx.unlock();
+	//
+	return 0;
+}
+
+int read_debug_sm(DebugFixed& aResult, int aIndex)
+{
+	if (debug_sm_ptr == (void*) -1) return 1;
+	//
+	debug_sm_mtx.lock();
+	memcpy(&aResult, debug_sm_ptr[aIndex], sizeof(aResult));
+	debug_sm_mtx.unlock();
+	//
+	return 0;
+}
+
 void parse_result_to_sm(ParseImageResult& parse_result, int aIndex)
 {
 	ResultFixed rfx = parse_result.ToFixed();
 	write_results_sm(rfx, aIndex);
+}
+
+void parse_debug_to_sm(DebugFixed& debug_result, int aIndex)
+{
+	write_debug_sm(debug_result, aIndex);
 }
