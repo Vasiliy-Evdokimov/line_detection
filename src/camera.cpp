@@ -333,7 +333,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 		parse_result_to_sm(parse_result, aIndex);
-		parse_debug_to_sm(parse_debug[aIndex], aIndex);
+		if (config.WEB_DEBUG)
+			parse_debug_to_sm(parse_debug[aIndex], aIndex);
 
 		if (parse_result.fl_err_parse) {
 			write_log(aThreadName + " parse error!");
@@ -584,7 +585,6 @@ bool find_central_point(ParseImageResult& parse_result)
 
 void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
 {
-	//	COMPRESS
 	int arr_sz = (src.rows * src.cols) / 8;
 	uchar arr[arr_sz] = {0};
 	uchar max_val = config.THRESHOLD_MAXVAL;
@@ -599,16 +599,24 @@ void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
 			//
 			//	на первой итерации
 			if (!i & !j) { pix_p = pix; }
-			//	если пиксел отличается от предыдущего
-			//	или счётчик считаемых битов = 127
-			//	или сквозной счетчик битов = 127
-			if ((pix != pix_p) || (m2 == 127) || (m3 == 127))
+			//
+			if ((pix != pix_p)			//	если пиксел отличается от предыдущего
+				|| (m2 == 127)			//	или счётчик считаемых битов = 127
+				|| (m3 == 127)			//	или сквозной счетчик битов = 127
+				|| (j == src.cols - 1)	//	или закончилась строка
+				)
 			{
 				buf2 = ((m2 & 127) << 1) | (pix_p & 1);
 				dst_arr[k2++] = buf2;
 				//
 				pix_p = pix;
 				m2 = 1;
+				//
+				if (k2 >= DEBUG_MAX_IMG_SIZE)
+				{
+					*dst_arr_sz = DEBUG_MAX_IMG_SIZE;
+					return;
+				}
 			} else m2++;
 			//
 			if (m1 == 8)
@@ -623,23 +631,24 @@ void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
 	//
 	dst_arr[k2++] = ((m2 & 127) << 1) | (pix_p & 1);
 	*dst_arr_sz = k2;
+}
+
+void decompress_image(const uchar* src_arr, const int16_t src_arr_sz, Mat& dst)
+{
+	int i = 0, j = 0;
+	uchar max_val = config.THRESHOLD_MAXVAL;
 	//
-	//	DECODE FROM COMPRESSED
-//	{
-//		Mat M(src.rows, src.cols, src.type());
-//		i = 0; j = 0;
-//		for (int m = 0; m < k2; m++)
-//			for (n = 0; n < (arr2[m] >> 1); n++)
-//			{
-//				M.at<uchar>(i, j++) = (arr2[m] & 1) ? max_val : 0;
-//				//
-//				if (j == src.cols)
-//				{
-//					i++;
-//					j = 0;
-//				}
-//			}
-//	}
+	for (int m = 0; m < src_arr_sz; m++)
+		for (int n = 0; n < (src_arr[m] >> 1); n++)
+		{
+			dst.at<uchar>(i, j++) = (src_arr[m] & 1) ? max_val : 0;
+			//
+			if (j == dst.cols)
+			{
+				i++;
+				j = 0;
+			}
+		}
 }
 
 void set_contour_type_by_bound(DebugContourInfo* arr, int arr_size, Rect rect, int type)
@@ -682,7 +691,15 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 #endif
 
 	//	сжатие изображения в массив
-	compress_image(gray, parse_debug[aIndex].image, &(parse_debug[aIndex].image_size));
+	if (config.WEB_DEBUG)
+	{
+		compress_image(gray, parse_debug[aIndex].image, &(parse_debug[aIndex].image_size));
+//		write_log(to_string(aIndex + 1) + " image_size = " + to_string(parse_debug[aIndex].image_size));
+		//
+//		Mat M(gray.rows, gray.cols, gray.type());
+//		decompress_image(parse_debug[aIndex].image, parse_debug[aIndex].image_size, M);
+//		gray = M.clone();
+	}
 
 	//	config.NUM_ROI - это общее количество ROI на изображении;
 	ContData data[config.NUM_ROI];
@@ -719,6 +736,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 		for (int j = 0; j < (int)dt->vRect.size(); j++)
 		{
+			if (csz >= DEBUG_MAX_CONTOURS) break;
+			//
 			RectData rd = dt->vRect[j];
 			DebugContourInfo dci;
 			//

@@ -74,6 +74,8 @@ struct ConfigData
 	//
 	int STATS_LOG;
 	int STATS_COUNT;
+	//
+	int WEB_DEBUG;
 };
 
 extern ConfigData config;

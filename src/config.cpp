@@ -52,7 +52,8 @@ std::map<std::string, void*> config_pointers = {
 	{ "DATAMATRIX_SEARCH",		&config_buf.DATAMATRIX_SEARCH },
 	{ "CAM_TIMEOUT",	&config_buf.CAM_TIMEOUT },
 	{ "STATS_LOG",		&config_buf.STATS_LOG },
-	{ "STATS_COUNT",	&config_buf.STATS_COUNT }
+	{ "STATS_COUNT",	&config_buf.STATS_COUNT },
+	{ "WEB_DEBUG",		&config_buf.WEB_DEBUG }
 };
 
 std::map<std::string, ConfigItem> config_map;
