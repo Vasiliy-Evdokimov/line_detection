@@ -2,6 +2,8 @@
 #include <thread>
 #include <pthread.h>
 
+#include <unistd.h>
+
 using namespace std;
 using namespace std::chrono_literals;
 
@@ -97,9 +99,9 @@ int main_function()
 	//
 #ifndef SERVICE
 	//
-	while (!kill_threads)
+	while (!kill_threads) {}
 	{
-		this_thread::sleep_for(100ms);
+		usleep(1000);
 	}
 	//
 #endif

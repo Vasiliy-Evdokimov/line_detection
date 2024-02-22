@@ -72,14 +72,13 @@ bool check_rects_adj_horz(const cv::Rect r1, const cv::Rect r2)
 
 void visualizer_func()
 {
-
 	pthread_setname_np(pthread_self(), "visualizer thread");
 
 	write_log("visualizer_func() started!");
 	write_log("visualizer_func() entered infinity loop.");
 
-	while (!kill_threads) {
-
+	while (!kill_threads)
+	{
 		cv::Mat mergedSource;
 		cv::Mat mergedUndistorted;
 		cv::Mat mergedGray;
@@ -155,7 +154,6 @@ void visualizer_func()
 			//
 			toggle_key(key);
 		}
-
 	}
 
 	destroyAllWindows();
@@ -370,6 +368,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 		usleep(1000);
+
 	}
 
 	cap.release();
