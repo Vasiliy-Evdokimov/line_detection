@@ -33,102 +33,53 @@ ResultFixed* results_sm_ptr[CAM_COUNT];
 int debug_sm_id[CAM_COUNT];
 DebugFixed* debug_sm_ptr[CAM_COUNT];
 
-int init_shared_memory()
+template <typename T>
+int init_sm(std::string err_prefix, int proj_id, int& sm_id, T** sm_ptr)
 {
-	//	ipcs -m			- список сегментов shared memory
-	//	ipcrm -m <ID> 	- удаление указанного сегмента shared memory
+	key_t key;
 
-	std::string err_prefix = "config_sm error = ";
-
-	key_t config_key = ftok(SM_NAME, CONFIG_SM_ID);
-	if (config_key == -1)
+	key = ftok(SM_NAME, proj_id);
+	if (key == -1)
 	{
 		write_log(err_prefix + "ftok");
 		perror("ftok");
 		return 1;
 	}
-
-	config_sm_id = shmget(config_key, sizeof(ConfigData), IPC_CREAT | 0666);
-	if (config_sm_id == -1)
+	//
+	sm_id = shmget(key, sizeof(T), IPC_CREAT | 0666);
+	if (sm_id == -1)
 	{
 		write_log(err_prefix + "shmget");
 		perror("shmget");
 		return 1;
 	}
-
-	config_sm_ptr = (ConfigData*) shmat(config_sm_id, nullptr, SHM_R | SHM_W);
-	if (config_sm_ptr == (void*) -1)
+	//
+	*sm_ptr = (T*) shmat(sm_id, nullptr, SHM_R | SHM_W);
+	if (*sm_ptr == (void*) -1)
 	{
 		write_log(err_prefix + "shmat");
 		perror("shmat");
-		shmctl(config_sm_id, IPC_RMID, nullptr);
+		shmctl(sm_id, IPC_RMID, nullptr);
 		return 1;
 	}
-
 	//
+	return 0;
+}
 
-	key_t results_key[CAM_COUNT];
+int init_shared_memory()
+{
+	//	ipcs -m			- список сегментов shared memory
+	//	ipcrm -m <ID> 	- удаление указанного сегмента shared memory
+
+	if (init_sm<ConfigData>("config_sm error = ", CONFIG_SM_ID,
+			config_sm_id, &config_sm_ptr)) return 1;
+
 	for (int i = 0; i < CAM_COUNT; i++)
 	{
-		err_prefix = "results_sm[" + to_string(i) + "] error = ";
-
-		results_key[i] = ftok(SM_NAME, CAMRES_SM_ID + i);
-		if (results_key[i] == -1)
-		{
-			write_log(err_prefix + "ftok");
-			perror("ftok");
-			return 1;
-		}
-
-		results_sm_id[i] = shmget(results_key[i], sizeof(ResultFixed), IPC_CREAT | 0666);
-		if (results_sm_id[i] == -1)
-		{
-			write_log(err_prefix + "shmget");
-			perror("shmget");
-			return 1;
-		}
-
-		results_sm_ptr[i] = (ResultFixed*) shmat(results_sm_id[i], nullptr, SHM_R | SHM_W);
-		if (results_sm_ptr[i] == (void*) -1)
-		{
-			write_log(err_prefix + "shmat");
-			perror("shmat");
-			shmctl(results_sm_id[i], IPC_RMID, nullptr);
-			return 1;
-		}
-	}
-
-	//
-
-	key_t debug_key[CAM_COUNT];
-	for (int i = 0; i < CAM_COUNT; i++)
-	{
-		err_prefix = "debug_sm[" + to_string(i) + "] error = ";
-
-		debug_key[i] = ftok(SM_NAME, DEBUG_SM_ID + i);
-		if (debug_key[i] == -1)
-		{
-			write_log(err_prefix + "ftok");
-			perror("ftok");
-			return 1;
-		}
-
-		debug_sm_id[i] = shmget(debug_key[i], sizeof(DebugFixed), IPC_CREAT | 0666);
-		if (results_sm_id[i] == -1)
-		{
-			write_log(err_prefix + "shmget");
-			perror("shmget");
-			return 1;
-		}
-
-		debug_sm_ptr[i] = (DebugFixed*) shmat(debug_sm_id[i], nullptr, SHM_R | SHM_W);
-		if (debug_sm_ptr[i] == (void*) -1)
-		{
-			write_log(err_prefix + "shmat");
-			perror("shmat");
-			shmctl(debug_sm_id[i], IPC_RMID, nullptr);
-			return 1;
-		}
+		if (init_sm<ResultFixed>("results_sm[" + to_string(i) + "] error = ", CAMRES_SM_ID + i,
+				results_sm_id[i], &(results_sm_ptr[i]))) return 1;
+		if (init_sm<DebugFixed>("debug_sm[" + to_string(i) + "] error = ", DEBUG_SM_ID + i,
+				debug_sm_id[i], &(debug_sm_ptr[i]))) return 1;
 	}
 
 	return 0;
