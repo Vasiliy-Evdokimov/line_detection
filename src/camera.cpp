@@ -584,52 +584,35 @@ bool find_central_point(ParseImageResult& parse_result)
 
 void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
 {
-	int arr_sz = (src.rows * src.cols) / 8;
-	uchar arr[arr_sz] = {0};
 	uchar max_val = config.THRESHOLD_MAXVAL;
-	uchar pix, pix_p, buf = 0, buf2 = 0;
-	int i = 0, j = 0, n = 0;
-	int k1 = 0, m1 = 0, k2 = 0, m2 = 0, m3 = 0;
+	uchar pix, pix_p;
+	int k = 0, m = 0;
 	for (int i = 0; i < src.rows; i++)
 		for (int j = 0; j < src.cols; j++)
 		{
 			pix = (src.at<uchar>(i, j) == max_val) ? 1 : 0;
-			buf |= pix << (m1++);
+			m++;
 			//
-			//	на первой итерации
-			if (!i & !j) { pix_p = pix; }
+			if (!j) { pix_p = pix; }
 			//
 			if ((pix != pix_p)			//	если пиксел отличается от предыдущего
-				|| (m2 == 127)			//	или счётчик считаемых битов = 127
-				|| (m3 == 127)			//	или сквозной счетчик битов = 127
+				|| (m == 127)			//	или счётчик считаемых битов = 127
 				|| (j == src.cols - 1)	//	или закончилась строка
 				)
 			{
-				buf2 = ((m2 & 127) << 1) | (pix_p & 1);
-				dst_arr[k2++] = buf2;
+				dst_arr[k++] = ((m & 127) << 1) | (pix_p & 1);
 				//
 				pix_p = pix;
-				m2 = 1;
+				m = 0;
 				//
-				if (k2 >= DEBUG_MAX_IMG_SIZE)
+				if (k >= DEBUG_MAX_IMG_SIZE)
 				{
 					*dst_arr_sz = DEBUG_MAX_IMG_SIZE;
 					return;
 				}
-			} else m2++;
-			//
-			if (m1 == 8)
-			{
-				arr[k1++] = buf;
-				buf = 0;
-				m1 = 0;
 			}
-			//
-			(m3 == 127) ? m3 = 1 : m3++;
 		}
-	//
-	dst_arr[k2++] = ((m2 & 127) << 1) | (pix_p & 1);
-	*dst_arr_sz = k2;
+	*dst_arr_sz = k;
 }
 
 void decompress_image(const uchar* src_arr, const int16_t src_arr_sz, Mat& dst)
