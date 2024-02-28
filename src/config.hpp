@@ -59,6 +59,8 @@ struct ConfigData
 	int THRESHOLD_MAXVAL;
 	int THRESHOLD_HEIGHT_K;
 	//
+	int FILTER_NEIGHBOR;
+	//
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
 	//

@@ -769,8 +769,12 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				if (i == j) continue;
 				//
 				rd2 = buf_points[j];
-				if ((abs(rd1->roi_row - rd2->roi_row) == 1) &&
-					check_rects_adj_horz(rd1->bound, rd2->bound))
+				if (true
+					//	если области в соседних строках
+					&& (!config.FILTER_NEIGHBOR || (config.FILTER_NEIGHBOR && (abs(rd1->roi_row - rd2->roi_row) == 1)))
+					//	если области пересекаются по горизонтал
+					&& check_rects_adj_horz(rd1->bound, rd2->bound)
+				)
 				{
 					fl = true;
 					break;
@@ -811,9 +815,10 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				if ((i == 0) || //	центральная точка соединяется с любой ближайшей
 					(
 						true
-						&& (abs(rd1->roi_row - rd2->roi_row) == 1)			//	если области в соседних строках
-//						&& check_rects_adj_vert(rd1->bound, rd2->bound)		//	если области пересекаются по вертикали
-						&& check_rects_adj_horz(rd1->bound, rd2->bound)		//	если области пересекаются по горизонтали
+						//	если области в соседних строках
+						&& (!config.FILTER_NEIGHBOR || (config.FILTER_NEIGHBOR && (abs(rd1->roi_row - rd2->roi_row) == 1)))
+						//	если области пересекаются по горизонтали
+						&& check_rects_adj_horz(rd1->bound, rd2->bound)
 					)
 				)
 				{
