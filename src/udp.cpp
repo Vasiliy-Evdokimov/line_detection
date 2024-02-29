@@ -30,6 +30,8 @@
 
 using namespace std;
 
+UdpRequest udp_request;
+
 pthread_t udp_thread_id = 0;
 
 int sockfd = -1;
@@ -78,23 +80,40 @@ void udp_func()
 
 	uint16_t counter = 0;
 
-	udp_package udp_pack;
+	UdpPackage udp_pack;
+
+	bool udp_error_logged = false;
 
 	while (true) {
 
 		if (restart_threads || kill_threads) break;
 
-		int numBytes = recvfrom( sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen );
-		if (numBytes < 0) {
-			write_err("data receiving error!");
+		int num_bytes = recvfrom( sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen );
+		if (num_bytes < 0)
+		{
+			write_err("UDP ERROR data receiving error!");
 			return;
 		}
 
-		string receivedReq = string(buffer, numBytes);
-		//write_log("Received: " + receivedReq);
-
-		if (receivedReq != config.UDP_REQUEST)
+		if (num_bytes != sizeof(udp_request))
+		{
+			if (!udp_error_logged)
+				write_err("UDP ERROR num_bytes != sizeof(udp_request)");
+			udp_error_logged = true;
 			continue;
+		}
+		udp_error_logged = false;
+
+		std::memcpy(&udp_request, &buffer, sizeof(udp_request));
+
+		if (string(udp_request.request) != config.UDP_REQUEST)
+		{
+			if (!udp_error_logged)
+				write_err("UDP ERROR udp_request.request != config.UDP_REQUEST");
+			udp_error_logged = true;
+			continue;
+		}
+		udp_error_logged = false;
 
 		counter++;
 

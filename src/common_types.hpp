@@ -64,6 +64,9 @@ struct ResultFixed
 	int16_t center_x_mm;
 	//
 	int8_t result_time_point[RESULT_TIME_SIZE];
+	//
+	int16_t pult_flags;
+	int16_t hidro_height;
 };
 
 struct ParseImageResult
@@ -86,6 +89,9 @@ struct ParseImageResult
 	bool fl_err_line;
 	bool fl_err_parse;
 	bool fl_err_camera;
+	//
+	int16_t pult_flags;
+	int16_t hidro_height;
 
 	ParseImageResult();
 	ParseImageResult(const ParseImageResult& src);

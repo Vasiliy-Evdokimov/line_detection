@@ -33,6 +33,7 @@ using namespace std;
 #include "templates.hpp"
 #include "shared_memory.hpp"
 #include "calibration.hpp"
+#include "udp.hpp"
 #include "camera.hpp"
 
 cv::Mat sources_to_show[CAM_COUNT];
@@ -48,16 +49,13 @@ const string SOURCE_WND_NAME = "Camera(s) Source";
 const string UNDISTORTED_WND_NAME = "Camera(s) Undistorted";
 const string GRAY_WND_NAME = "Camera(s) Gray";
 const string COLOR_WND_NAME = "Camera(s) Color";
-
 const string CALIBRATION_WND_NAME = "Calibration editor";
 
 cv::Scalar templates_clr[] { CLR_YELLOW, CLR_MAGENTA, CLR_CYAN, CLR_BLUE, CLR_GREEN };
 
 const int SHOW_GRAY = 1;
 
-int shuttle_height = 0;
-
-const int SHUTTLE_HEIGHT_TEST_OFFSET = 10;
+int16_t hidro_height[CAM_COUNT];
 
 bool check_rects_adj_horz(const cv::Rect r1, const cv::Rect r2)
 {
@@ -147,11 +145,6 @@ void visualizer_func()
 		if (key != -1)
 		{
 			write_log(to_string(key));
-			//
-			//	тест зависимости threshold от высоты подъема цилиндров
-			if (key == VK_KEY_A) shuttle_height += SHUTTLE_HEIGHT_TEST_OFFSET;
-			if (key == VK_KEY_S) shuttle_height -= SHUTTLE_HEIGHT_TEST_OFFSET;
-			//
 			toggle_key(key);
 		}
 	}
@@ -534,7 +527,7 @@ void find_templates(cv::Mat& imgColor, ParseImageResult& parse_result,
 	}
 }
 
-void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
+void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg, int aIndex)
 {
 	cv::Mat trImage(srcImg.rows, srcImg.cols, CV_8U);
 	cv::cvtColor(srcImg, trImage, cv::COLOR_BGR2GRAY);
@@ -549,7 +542,7 @@ void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg)
 	cv::morphologyEx(trImage, trImage, MORPH_CLOSE, getStructuringElement(MORPH_RECT, Size2i(mck, mck)));
 
 	cv::threshold(trImage, dstImg,
-			config.THRESHOLD_THRESH + shuttle_height * ( config.THRESHOLD_HEIGHT_K / 100. ),
+			config.THRESHOLD_THRESH + hidro_height[aIndex] * ( config.THRESHOLD_HEIGHT_K / 100. ),
 			config.THRESHOLD_MAXVAL, cv::THRESH_BINARY_INV);
 }
 
@@ -651,6 +644,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_stop_mark = false;
 	parse_result.stop_mark_distance = 0;
 
+	parse_result.pult_flags = udp_request.pult_flags;
+	//
+	hidro_height[aIndex] = udp_request.hidro_height[aIndex];
+	parse_result.hidro_height = hidro_height[aIndex];
+
 #ifdef USE_BARCODES
 	//	поиск штрихкодов
 	std::vector<BarcodeDetectionResult> barcodes_results;
@@ -665,7 +663,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	//	применение фильтров
 	cv::Mat gray;
-	apply_filters(imgColor, gray);
+	apply_filters(imgColor, gray, aIndex);
 
 #ifdef USE_BARCODES
 	//	сокрытие штрихкодов

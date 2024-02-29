@@ -29,6 +29,9 @@ ParseImageResult::ParseImageResult()
 	fl_err_line = false;
 	fl_err_parse = false;
 	fl_err_camera = false;
+	//
+	pult_flags = 0;
+	hidro_height = 0;
 }
 
 ParseImageResult::ParseImageResult(const ParseImageResult& src)
@@ -54,6 +57,9 @@ ParseImageResult::ParseImageResult(const ParseImageResult& src)
 	fl_err_line = src.fl_err_line;
 	fl_err_parse = src.fl_err_parse;
 	fl_err_camera = src.fl_err_camera;
+	//
+	pult_flags = src.pult_flags;
+	hidro_height = src.hidro_height;
 }
 
 ResultFixed ParseImageResult::ToFixed()
@@ -94,6 +100,9 @@ ResultFixed ParseImageResult::ToFixed()
 	res.error_flags |= (fl_err_parse << 1);
 	res.error_flags |= (fl_err_camera << 2);
 	//	3й бит - таймаут, выставляется при чтении из shared memory
+	//
+	res.pult_flags = pult_flags;
+	res.hidro_height = hidro_height;
 	//
 	return res;
 }
