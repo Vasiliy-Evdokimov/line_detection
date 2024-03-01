@@ -18,6 +18,13 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 
 	img(roi).copyTo(roiImg);
 
+	cv::Rect config_roi(
+		config.IMAGE_ROI_X,
+		config.IMAGE_ROI_Y,
+		config.IMAGE_ROI_W,
+		config.IMAGE_ROI_H
+	);
+
 	cv::findContours(roiImg, cont, hie, cv::RETR_CCOMP, cv::CHAIN_APPROX_NONE);
 
 	for (auto i = cont.begin(); i != cont.end(); ++i)
@@ -39,6 +46,12 @@ void get_contur_params(cv::Mat& img, cv::Rect& roi, ContData& data, int roi_row,
 		rd.bound = R;
 		rd.bound.x += roi.x;
 		rd.bound.y += roi.y;
+
+		if (config.USE_IMAGE_ROI)
+		{
+			if (!config_roi.contains(rd.center))
+				continue;
+		}
 
 		rd.roi_row = roi_row;
 		rd.roi_col = roi_col;

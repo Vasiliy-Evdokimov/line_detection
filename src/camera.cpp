@@ -204,9 +204,21 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	bool slow_stop_found = false;
 
+#ifdef USE_FILE
+
+	frame = imread(FILE_PATH, IMREAD_COLOR);
+	//
+	if (frame.empty()) return;
+	//
+	parse_result.fl_err_camera = false;
+
+#endif
+
 	while (1)
 	{
 		if (restart_threads || kill_threads) break;
+
+#ifndef USE_FILE
 
 		if (parse_result.fl_err_camera) {
 
@@ -278,6 +290,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 		camera_read_error_logged = false;
 
+#endif	// USE_FILE
+
 		tStart = clock();
 
 		try
@@ -324,7 +338,7 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 		}
 
 		parse_result_to_sm(parse_result, aIndex);
-		if (config.WEB_DEBUG)
+		if (config.WEB_SHOW_DEBUG || config.WEB_SHOW_IMAGE)
 			parse_debug_to_sm(parse_debug[aIndex], aIndex);
 
 		if (parse_result.fl_err_parse) {
@@ -364,7 +378,8 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 
 	}
 
-	cap.release();
+	if (cap.isOpened())
+		cap.release();
 
 	write_log(aThreadName + " is out of infinity loop.");
 
@@ -687,14 +702,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 #endif
 
 	//	сжатие изображения в массив
-	if (config.WEB_DEBUG)
+	if (config.WEB_SHOW_IMAGE)
 	{
 		compress_image(gray, parse_debug[aIndex].image, &(parse_debug[aIndex].image_size));
-//		write_log(to_string(aIndex + 1) + " image_size = " + to_string(parse_debug[aIndex].image_size));
-		//
-//		Mat M(gray.rows, gray.cols, gray.type());
-//		decompress_image(parse_debug[aIndex].image, parse_debug[aIndex].image_size, M);
-//		gray = M.clone();
 	}
 
 	//	config.NUM_ROI - это общее количество ROI на изображении;
@@ -768,11 +778,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	bool is_auto = (parse_result.pult_flags & 1);
 
-	config.AUTO_ONE_POINT = 0;	//	отключаем эту функцию как небезопасную
-
 	//	фильтруем список областей, оставляя только те,
 	//	у которых есть смежные по вертикали в соседних ROI
-	if (!is_auto || (is_auto && !config.AUTO_ONE_POINT))
 	{
 		size_t i = 0;
 		RectData* rd1;
@@ -857,25 +864,19 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
-	//	в автоматическом режиме линию строим даже по одной точке - соединяем её с центральной;
-	//	для этого временно добавлем центральную точку в результат
-	if (is_auto && config.AUTO_ONE_POINT)
-	{
-		CalibPoint ccb = get_calib_point(imgColor, center_rd.center);
-		parse_result.res_points.push_back(ResultPoint{ccb.point_cnt.x, ccb.point_cnt.y});
-	}
-
 	//	находим центральную точку и её координаты в мм
 	bool y0x_found = find_central_point(parse_result);
 
-	//	удаляем временную центральную точку
-	if (is_auto && config.AUTO_ONE_POINT)
-	{
-		parse_result.res_points.pop_back();
-	}
+	int points_count = parse_result.res_points.size();
 
-	//	ошибка поиска линии если не удалось найти центральную точку
-	parse_result.fl_err_line = !y0x_found;
+	//	ошибка поиска линии
+	parse_result.fl_err_line =
+		//	если не удалось найти центральную точку
+		!y0x_found
+		//	или количество точек в меньше минимального в ручном режиме
+		|| (!is_auto && (points_count < config.MANUAL_MIN_POINTS))
+		//	или количество точек в меньше минимального в режиме АВТО
+		|| (is_auto && (points_count < config.AUTO_MIN_POINTS));
 
 #ifndef NO_GUI
 
@@ -887,6 +888,20 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	рисуем сетку из ROI
 	for (int i = 0; i < config.NUM_ROI; ++i)
 		cv::rectangle(imgColor, data[i].roi, CLR_YELLOW, 1, cv::LINE_AA, 0);
+
+	if (config.USE_IMAGE_ROI)
+	{
+		cv::rectangle(
+			imgColor,
+			cv::Rect(
+				config.IMAGE_ROI_X,
+				config.IMAGE_ROI_Y,
+				config.IMAGE_ROI_W,
+				config.IMAGE_ROI_H
+			),
+			CLR_CYAN
+		);
+	}
 
 	//	рисуем ВСЕ найденные области в ROI
 	for (int i = 0; i < parse_debug[aIndex].contours_size; i++)

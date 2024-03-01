@@ -46,6 +46,12 @@ struct ConfigData
 	//
 	int NUM_ROI;
 	//
+	int USE_IMAGE_ROI;
+	int IMAGE_ROI_X;
+	int IMAGE_ROI_Y;
+	int IMAGE_ROI_W;
+	int IMAGE_ROI_H;
+	//
 	int MIN_CONT_LEN;
 	int MAX_CONT_LEN;
 	int MIN_RECT_WIDTH;
@@ -62,10 +68,9 @@ struct ConfigData
 	int FILTER_NEIGHBOR;
 	//
 	int AUTO_EMULATE;
-	int AUTO_ONE_POINT;
 	//
-	int WEB_SHOW_LINES;
-	int WEB_INTERVAL;
+	int AUTO_MIN_POINTS;
+	int MANUAL_MIN_POINTS;
 	//
 	int BARCODE_TRY_HARDER;
 	int BARCODE_TRY_INVERT;
@@ -80,7 +85,11 @@ struct ConfigData
 	int STATS_LOG;
 	int STATS_COUNT;
 	//
-	int WEB_DEBUG;
+	//
+	int WEB_SHOW_LINES;
+	int WEB_SHOW_DEBUG;
+	int WEB_SHOW_IMAGE;
+	int WEB_INTERVAL;
 };
 
 extern ConfigData config;
