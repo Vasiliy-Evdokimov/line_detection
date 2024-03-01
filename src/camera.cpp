@@ -549,6 +549,7 @@ void apply_filters(cv::Mat& srcImg, cv::Mat& dstImg, int aIndex)
 bool find_central_point(ParseImageResult& parse_result)
 {
 	int y0_x = 10000;
+	bool found = false;
 	for (size_t i = 1; i < parse_result.res_points.size(); i++)
 	{
 		//	берем соседние точки линии;
@@ -564,15 +565,30 @@ bool find_central_point(ParseImageResult& parse_result)
 		//
 		if (y0_x != 10000)
 		{
-			parse_result.center_x = y0_x;
-			CalibPoint res{ Point(0, 0), Point(y0_x, 0) };
-			find_point_mm(res);
-			//
-			parse_result.center_x_mm = res.point_mm.x;
-			return true;
+			found = true;
+			break;
 		}
 	}
-	return false;
+
+	//	если нет точки, пересекающей y = 0, то берем х первой точки
+	if (!found && (parse_result.res_points.size() >= 2))
+	{
+		ResultPoint pt1 = parse_result.res_points[0];
+		ResultPoint pt2 = parse_result.res_points[parse_result.res_points.size() - 1];
+		y0_x = (pt1.x + pt2.x) / 2;
+		found = true;
+	}
+
+	if (found)
+	{
+		parse_result.center_x = y0_x;
+		//
+		CalibPoint res{ Point(0, 0), Point(y0_x, 0) };
+		find_point_mm(res);
+		parse_result.center_x_mm = res.point_mm.x;
+	}
+
+	return found;
 }
 
 void compress_image(const Mat src, uchar* dst_arr, int16_t* dst_arr_sz)
@@ -644,7 +660,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.fl_stop_mark = false;
 	parse_result.stop_mark_distance = 0;
 
-	parse_result.pult_flags = udp_request.pult_flags;
+	parse_result.pult_flags = udp_request.pult_flags | config.AUTO_EMULATE;
 	//
 	hidro_height[aIndex] = udp_request.hidro_height[aIndex];
 	parse_result.hidro_height = hidro_height[aIndex];
@@ -704,7 +720,6 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	parse_result.res_points.clear();
 
 	vector<RectData*> buf_points;
-	vector<RectData*> buf_rd;
 
 	int csz = 0;
 
@@ -751,8 +766,11 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	parse_debug[aIndex].contours_size = csz;
 
+	bool is_auto = (parse_result.pult_flags & 1);
+
 	//	фильтруем список областей, оставляя только те,
 	//	у которых есть смежные по вертикали в соседних ROI
+	if (!is_auto || (is_auto && !config.AUTO_ONE_POINT))
 	{
 		size_t i = 0;
 		RectData* rd1;
@@ -793,9 +811,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	добавляем нижнюю центральную точку в список для построения линии
 	RectData center_rd;
 	center_rd.center = cv::Point(imgWidth / 2, imgHeight);
-	center_rd.bound = cv::Rect(center_rd.center.x - imgWidth / 2, center_rd.center.y - 10, imgWidth, 20);
+	center_rd.bound = cv::Rect(0, imgHeight, imgWidth, 10);
 	center_rd.roi_row = config.NUM_ROI;
-	center_rd._reserved = 100;
 	buf_points.insert(buf_points.begin(), &center_rd);
 
 	//	строим линию
@@ -828,9 +845,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 				}
 			}
 			//
-			if (k > 0) {
-				buf_rd.push_back(buf_points[k]);
-				//
+			if (k > 0)
+			{
 				CalibPoint cb = get_calib_point(imgColor, buf_points[k]->center);
 				parse_result.res_points.push_back(ResultPoint{cb.point_cnt.x, cb.point_cnt.y});
 			}
@@ -839,8 +855,22 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 		}
 	}
 
+	//	в автоматическом режиме линию строим даже по одной точке - соединяем её с центральной;
+	//	для этого временно добавлем центральную точку в результат
+	if (is_auto && config.AUTO_ONE_POINT)
+	{
+		CalibPoint ccb = get_calib_point(imgColor, center_rd.center);
+		parse_result.res_points.push_back(ResultPoint{ccb.point_cnt.x, ccb.point_cnt.y});
+	}
+
 	//	находим центральную точку и её координаты в мм
 	bool y0x_found = find_central_point(parse_result);
+
+	//	удаляем временную центральную точку
+	if (is_auto && config.AUTO_ONE_POINT)
+	{
+		parse_result.res_points.pop_back();
+	}
 
 	//	ошибка поиска линии если не удалось найти центральную точку
 	parse_result.fl_err_line = !y0x_found;
@@ -949,7 +979,7 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	}
 	//
 	cv::putText(imgColor,
-			"height = " + to_string(shuttle_height) + " mm",
+			"hidro_height = " + to_string(hidro_height[aIndex]) + " mm",
 			cv::Point(130, 20),
 			cv::FONT_HERSHEY_DUPLEX, 0.5, CLR_MAGENTA);
 	//

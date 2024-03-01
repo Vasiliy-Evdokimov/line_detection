@@ -61,6 +61,9 @@ struct ConfigData
 	//
 	int FILTER_NEIGHBOR;
 	//
+	int AUTO_EMULATE;
+	int AUTO_ONE_POINT;
+	//
 	int WEB_SHOW_LINES;
 	int WEB_INTERVAL;
 	//

@@ -43,6 +43,8 @@ std::map<std::string, void*> config_pointers = {
 	{ "THRESHOLD_MAXVAL",		&config_buf.THRESHOLD_MAXVAL },
 	{ "THRESHOLD_HEIGHT_K",		&config_buf.THRESHOLD_HEIGHT_K },
 	{ "FILTER_NEIGHBOR",		&config_buf.FILTER_NEIGHBOR },
+	{ "AUTO_EMULATE",			&config_buf.AUTO_EMULATE },
+	{ "AUTO_ONE_POINT",			&config_buf.AUTO_ONE_POINT },
 	{ "WEB_SHOW_LINES",			&config_buf.WEB_SHOW_LINES },
 	{ "WEB_INTERVAL",			&config_buf.WEB_INTERVAL },
 	{ "BARCODE_TRY_HARDER",		&config_buf.BARCODE_TRY_HARDER },
