@@ -28,7 +28,7 @@ struct UdpPackage {
 };
 
 struct UdpRequest {
-	char request[6];	//	'c', 'a', 'm', 'e', 'r', a'
+	char request[16];	//	'c', 'a', 'm', 'e', 'r', a'
 	int16_t pult_flags;
 	int16_t hidro_height[CAM_COUNT];
 };

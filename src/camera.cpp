@@ -768,6 +768,8 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 
 	bool is_auto = (parse_result.pult_flags & 1);
 
+	config.AUTO_ONE_POINT = 0;	//	отключаем эту функцию как небезопасную
+
 	//	фильтруем список областей, оставляя только те,
 	//	у которых есть смежные по вертикали в соседних ROI
 	if (!is_auto || (is_auto && !config.AUTO_ONE_POINT))
@@ -916,9 +918,9 @@ void parse_image(string aThreadName, cv::Mat imgColor,
 	//	рисуем центральные линии
 	cv::Point cnt(imgColor.cols / 2, imgColor.rows / 2);
 	cv::line(imgColor, cv::Point2f(cnt.x, 0), cv::Point2f(cnt.x, imgColor.rows),
-		CLR_YELLOW, 1, cv::LINE_8, 0);
+		CLR_MAGENTA, 1, cv::LINE_8, 0);
 	cv::line(imgColor, cv::Point2f(0, cnt.y), cv::Point2f(imgColor.cols, cnt.y),
-		CLR_YELLOW, 1, cv::LINE_8, 0);
+		CLR_MAGENTA, 1, cv::LINE_8, 0);
 
 	if (parse_result.fl_err_line)
 	{

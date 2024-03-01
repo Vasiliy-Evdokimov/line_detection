@@ -56,12 +56,12 @@ void udp_func()
 	try {
 		close(sockfd);
 	} catch (...) {
-		write_err("socket close error!");
+		write_log("UDP ERROR socket close error!");
 	}
 	//
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd < 0) {
-		write_err("socket creating error!");
+		write_log("UDP ERROR socket creating error!");
 		return;
 	}
 
@@ -69,8 +69,9 @@ void udp_func()
 	serverAddr.sin_port = htons(config.UDP_PORT);
 	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-	if (bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0) {
-		write_err("socket binding error!");
+	if (bind(sockfd, (struct sockaddr *) &serverAddr, sizeof(serverAddr)) < 0)
+	{
+		write_log("UDP ERROR socket binding error!");
 		return;
 	}
 
@@ -91,28 +92,28 @@ void udp_func()
 		int num_bytes = recvfrom( sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *) &clientAddr, &addrLen );
 		if (num_bytes < 0)
 		{
-			write_err("UDP ERROR data receiving error!");
+			write_log("UDP ERROR data receiving error!");
 			return;
 		}
 
 		if (num_bytes != sizeof(udp_request))
 		{
 			if (!udp_error_logged)
-				write_err("UDP ERROR num_bytes != sizeof(udp_request)");
+				write_log("UDP ERROR num_bytes != sizeof(udp_request)");
 			udp_error_logged = true;
 			continue;
 		}
-		udp_error_logged = false;
 
 		std::memcpy(&udp_request, &buffer, sizeof(udp_request));
 
 		if (string(udp_request.request) != config.UDP_REQUEST)
 		{
 			if (!udp_error_logged)
-				write_err("UDP ERROR udp_request.request != config.UDP_REQUEST");
+				write_log("UDP ERROR udp_request.request != config.UDP_REQUEST");
 			udp_error_logged = true;
 			continue;
 		}
+
 		udp_error_logged = false;
 
 		counter++;
