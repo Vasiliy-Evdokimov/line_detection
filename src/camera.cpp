@@ -141,7 +141,13 @@ void visualizer_func()
 		if (!mergedFrames.empty())
 			cv::imshow(COLOR_WND_NAME, mergedFrames);
 		//
+
+#ifndef USE_FILE
 		int key = cv::waitKey(1);
+#else
+		int key = cv::waitKey(100);
+#endif
+
 		if (key != -1)
 		{
 			write_log(to_string(key));
@@ -374,7 +380,11 @@ void camera_func(string aThreadName, string aCamAddress, int aIndex)
 			}
 		}
 
+#ifndef USE_FILE
 		usleep(1000);
+#else
+		usleep(100 * 1000);
+#endif
 
 	}
 

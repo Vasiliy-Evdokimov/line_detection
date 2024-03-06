@@ -12,8 +12,8 @@
 //#define	NO_GUI
 //#define	RELEASE
 
-//#define USE_FILE
-//#define FILE_PATH "screenshot_1.png"
+#define USE_FILE
+#define FILE_PATH "screenshot_1.png"
 
 #define CAM_COUNT			2
 #define CLEAR_CAM_BUFFER	20

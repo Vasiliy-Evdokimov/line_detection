@@ -99,9 +99,15 @@ int main_function()
 	//
 #ifndef SERVICE
 	//
-	while (!kill_threads) {}
+	while (!kill_threads)
 	{
+
+	#ifndef USE_FILE
 		usleep(1000);
+	#else
+		usleep(100 * 1000);
+	#endif
+
 	}
 	//
 #endif
